@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck /> },
