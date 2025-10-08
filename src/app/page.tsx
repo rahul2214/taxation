@@ -1,12 +1,16 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, Zap, Users } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import Autoplay from "embla-carousel-autoplay";
+import React from "react";
 
 const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
 const serviceImages = {
@@ -40,6 +44,10 @@ const testimonials = [
 ];
 
 export default function Home() {
+   const plugin = React.useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true })
+  );
+
   return (
     <PublicLayout>
       <div className="flex flex-col">
@@ -130,6 +138,7 @@ export default function Home() {
               What Our Clients Say
             </h2>
             <Carousel
+              plugins={[plugin.current]}
               opts={{
                 align: "start",
                 loop: true,
@@ -155,8 +164,6 @@ export default function Home() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
             </Carousel>
           </div>
         </section>
