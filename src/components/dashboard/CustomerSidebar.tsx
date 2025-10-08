@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ShieldCheck, User, Info, Upload, FileDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useFirebase } from "@/firebase";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
@@ -23,7 +24,9 @@ const menuItems = [
 
 export function CustomerSidebar() {
   const pathname = usePathname();
-  const userName = "Jane Doe";
+  const { user } = useFirebase();
+  const userName = user?.displayName || "User";
+  const userFallback = userName.split(' ').map(n => n[0]).join('');
 
   return (
     <Sidebar>
@@ -40,8 +43,8 @@ export function CustomerSidebar() {
       <SidebarMenu className="flex-1">
         <div className="p-2 flex flex-col items-center group-data-[collapsible=icon]:hidden">
             <Avatar className="h-20 w-20 mb-2">
-                <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
-                <AvatarFallback>{userName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
+                <AvatarFallback>{userFallback}</AvatarFallback>
             </Avatar>
             <p className="font-semibold text-sidebar-foreground">{userName}</p>
         </div>
