@@ -24,7 +24,7 @@ const menuItems = [
 
 export function CustomerSidebar() {
   const pathname = usePathname();
-  const { user } = useFirebase();
+  const { user, isUserLoading } = useFirebase();
   const userName = user?.displayName || "User";
   const userFallback = userName.split(' ').map(n => n[0]).join('');
 
@@ -36,7 +36,7 @@ export function CustomerSidebar() {
             <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
             <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
           </Link>
-          <SidebarTrigger className="ml-auto" />
+          <SidebarTrigger className="ml-auto md:hidden" />
         </div>
       </SidebarHeader>
 
@@ -56,6 +56,7 @@ export function CustomerSidebar() {
               isActive={pathname.startsWith(item.href)}
               icon={item.icon}
               tooltip={item.label}
+              className="group-data-[mobile=true]:justify-start group-data-[mobile=true]:h-10 group-data-[mobile=true]:p-2"
             >
               <Link href={item.href}>{item.label}</Link>
             </SidebarMenuButton>
@@ -66,12 +67,12 @@ export function CustomerSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<Settings />} tooltip="Settings">
+            <SidebarMenuButton asChild icon={<Settings />} tooltip="Settings" className="group-data-[mobile=true]:justify-start group-data-[mobile=true]:h-10 group-data-[mobile=true]:p-2">
               <Link href="#">Settings</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout">
+            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout" className="group-data-[mobile=true]:justify-start group-data-[mobile=true]:h-10 group-data-[mobile=true]:p-2">
               <Link href="/">Logout</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

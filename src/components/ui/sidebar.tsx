@@ -206,7 +206,7 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <div className="group flex h-full w-full flex-col" data-mobile="true">{children}</div>
           </SheetContent>
         </Sheet>
       )
