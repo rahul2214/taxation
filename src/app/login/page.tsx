@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck } from "lucide-react";
-import { useAuth, useFirebase } from "@/firebase";
-import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
+import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
   const { auth, firestore } = useFirebase();
@@ -22,19 +22,32 @@ export default function LoginPage() {
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
+  const [signupFirstName, setSignupFirstName] = useState("");
+  const [signupLastName, setSignupLastName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [signupReferralEmail, setSignupReferralEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [isSigningUp, setIsSigningUp] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignUp(auth, loginEmail, loginPassword);
-    router.push('/dashboard');
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      router.push('/dashboard');
+    } catch (error: any) {
+       toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Could not log you in. Please check your credentials.",
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -53,14 +66,11 @@ export default function LoginPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
       const user = userCredential.user;
-
-      const [firstName, ...lastNameParts] = signupName.split(' ');
-      const lastName = lastNameParts.join(' ');
-
+      
       // Store user info in Firestore
       await setDoc(doc(firestore, "customers", user.uid), {
-        firstName: firstName || '',
-        lastName: lastName || '',
+        firstName: signupFirstName,
+        lastName: signupLastName,
         email: user.email,
         phone: signupPhone,
         signupDate: serverTimestamp(),
@@ -117,7 +127,9 @@ export default function LoginPage() {
                     <Label htmlFor="login-password">Password</Label>
                     <Input id="login-password" type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
                   </div>
-                  <Button type="submit" className="w-full">Login</Button>
+                  <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                  </Button>
                 </form>
               </CardContent>
             </Card>
@@ -130,9 +142,15 @@ export default function LoginPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSignup} className="space-y-4">
-                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input id="signup-name" type="text" placeholder="John Doe" required value={signupName} onChange={(e) => setSignupName(e.target.value)} />
+                   <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-first-name">First Name</Label>
+                      <Input id="signup-first-name" type="text" placeholder="John" required value={signupFirstName} onChange={(e) => setSignupFirstName(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="signup-last-name">Last Name</Label>
+                      <Input id="signup-last-name" type="text" placeholder="Doe" required value={signupLastName} onChange={(e) => setSignupLastName(e.target.value)} />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone">Phone Number</Label>
