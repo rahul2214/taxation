@@ -9,14 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
-  const { auth, firestore } = useFirebase();
+  const { auth, firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -32,6 +32,11 @@ export default function LoginPage() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +102,14 @@ export default function LoginPage() {
     } finally {
       setIsSigningUp(false);
     }
+  }
+
+  if (isUserLoading || user) {
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            {/* You can add a loader here */}
+        </div>
+    );
   }
 
 
