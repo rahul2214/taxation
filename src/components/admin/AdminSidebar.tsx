@@ -12,7 +12,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck /> },
@@ -38,29 +37,28 @@ export function AdminSidebar() {
       <SidebarMenu className="flex-1">
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
-              <SidebarMenuButton
-                isActive={pathname.startsWith(item.href)}
-                icon={item.icon}
-                tooltip={item.label}
-              >
-                {item.label}
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith(item.href)}
+              icon={item.icon}
+              tooltip={item.label}
+            >
+              <Link href={item.href}>{item.label}</Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="#" legacyBehavior passHref>
-              <SidebarMenuButton icon={<Settings />} tooltip="Settings">Settings</SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton asChild icon={<Settings />} tooltip="Settings">
+              <Link href="#">Settings</Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/" legacyBehavior passHref>
-                <SidebarMenuButton icon={<LogOut />} tooltip="Logout">Logout</SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout">
+              <Link href="/">Logout</Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

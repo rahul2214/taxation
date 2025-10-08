@@ -53,8 +53,8 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
-              <SheetTitle>Navigation Menu</SheetTitle>
-              <SheetDescription>A list of links to navigate the site.</SheetDescription>
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetDescription className="sr-only">A list of links to navigate the site.</SheetDescription>
               <nav className="grid gap-6 text-lg font-medium mt-10">
                 <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary mb-4" onClick={() => setIsOpen(false)}>
                   <ShieldCheck className="h-7 w-7 text-accent" />
