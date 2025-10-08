@@ -12,6 +12,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const menuItems = [
   { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck /> },
@@ -22,6 +23,7 @@ const menuItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const { isMobile } = useSidebar();
 
   return (
     <Sidebar>
@@ -31,7 +33,7 @@ export function AdminSidebar() {
                 <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
                 <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services Admin</span>
             </Link>
-            <SidebarTrigger className="ml-auto md:hidden" />
+            <SidebarTrigger className="ml-auto" />
         </div>
       </SidebarHeader>
       <SidebarMenu className="flex-1">
@@ -42,7 +44,7 @@ export function AdminSidebar() {
               isActive={pathname.startsWith(item.href)}
               icon={item.icon}
               tooltip={item.label}
-              className="group-data-[mobile=true]:justify-start group-data-[mobile=true]:h-10 group-data-[mobile=true]:p-2"
+              className={cn(isMobile && "justify-start h-10 p-2")}
             >
               <Link href={item.href}>{item.label}</Link>
             </SidebarMenuButton>
@@ -52,12 +54,12 @@ export function AdminSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<Settings />} tooltip="Settings" className="group-data-[mobile=true]:justify-start group-data-[mobile=true]:h-10 group-data-[mobile=true]:p-2">
+            <SidebarMenuButton asChild icon={<Settings />} tooltip="Settings" className={cn(isMobile && "justify-start h-10 p-2")}>
               <Link href="#">Settings</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout" className="group-data-[mobile=true]:justify-start group-data-[mobile=true]:h-10 group-data-[mobile=true]:p-2">
+            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
               <Link href="/">Logout</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
