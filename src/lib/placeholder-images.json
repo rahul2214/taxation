@@ -1,3 +1,82 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A modern office setting with people working on laptops.",
+      "imageUrl": "https://picsum.photos/seed/hero/1920/1080",
+      "imageHint": "modern office"
+    },
+    {
+      "id": "service-personal-tax",
+      "description": "A person using a calculator and reviewing documents.",
+      "imageUrl": "https://picsum.photos/seed/service1/600/400",
+      "imageHint": "tax forms"
+    },
+    {
+      "id": "service-business-tax",
+      "description": "A group of professionals in a meeting.",
+      "imageUrl": "https://picsum.photos/seed/service2/600/400",
+      "imageHint": "business meeting"
+    },
+    {
+      "id": "service-audit-support",
+      "description": "A magnifying glass over a financial document.",
+      "imageUrl": "https://picsum.photos/seed/service3/600/400",
+      "imageHint": "magnifying glass"
+    },
+    {
+      "id": "service-bookkeeping",
+      "description": "Ledgers and a pen on a desk.",
+      "imageUrl": "https://picsum.photos/seed/service4/600/400",
+      "imageHint": "bookkeeping ledger"
+    },
+    {
+      "id": "service-consulting",
+      "description": "Two people discussing a chart on a screen.",
+      "imageUrl": "https://picsum.photos/seed/service5/600/400",
+      "imageHint": "financial consulting"
+    },
+    {
+      "id": "service-retirement",
+      "description": "A piggy bank with a graduation cap.",
+      "imageUrl": "https://picsum.photos/seed/service6/600/400",
+      "imageHint": "retirement planning"
+    },
+    {
+      "id": "about-team",
+      "description": "A diverse group of professionals smiling.",
+      "imageUrl": "https://picsum.photos/seed/team/1200/800",
+      "imageHint": "team portrait"
+    },
+    {
+      "id": "team-member-1",
+      "description": "Portrait of a female professional.",
+      "imageUrl": "https://picsum.photos/seed/member1/100/100",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "team-member-2",
+      "description": "Portrait of a male professional.",
+      "imageUrl": "https://picsum.photos/seed/member2/100/100",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "team-member-3",
+      "description": "Portrait of a professional person.",
+      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTk3Nzk4MDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "team-member-4",
+      "description": "Portrait of another professional person.",
+      "imageUrl": "https://picsum.photos/seed/member4/100/100",
+      "imageHint": "professional portrait"
+    },
+    {
+      "id": "guarantee-seal",
+      "description": "A seal or badge representing a guarantee.",
+      "imageUrl": "https://picsum.photos/seed/seal/200/200",
+      "imageHint": "guarantee seal"
+    }
+  ]
 }
