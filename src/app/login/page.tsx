@@ -7,14 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck } from "lucide-react";
-import { useAuth } from "@/firebase";
-import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login";
+import { useAuth, useFirebase } from "@/firebase";
+import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function LoginPage() {
-  const auth = useAuth();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -22,28 +24,69 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [signupReferralEmail, setSignupReferralEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignIn(auth, loginEmail, loginPassword);
+    initiateEmailSignUp(auth, loginEmail, loginPassword);
     router.push('/dashboard');
   }
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(signupPassword !== signupConfirmPassword) {
+    if (signupPassword !== signupConfirmPassword) {
       toast({
         variant: "destructive",
         title: "Passwords do not match",
         description: "Please make sure your passwords match.",
-      })
+      });
       return;
     }
-    initiateEmailSignUp(auth, signupEmail, signupPassword);
-    router.push('/dashboard');
+
+    setIsSigningUp(true);
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+      const user = userCredential.user;
+
+      const [firstName, ...lastNameParts] = signupName.split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      // Store user info in Firestore
+      await setDoc(doc(firestore, "customers", user.uid), {
+        firstName: firstName || '',
+        lastName: lastName || '',
+        email: user.email,
+        phone: signupPhone,
+        signupDate: serverTimestamp(),
+      });
+      
+      if (signupReferralEmail) {
+        // You can add referral logic here if needed in the future
+      }
+
+      toast({
+        title: "Account Created!",
+        description: "Welcome to Polaris Tax Services.",
+      });
+
+      router.push('/dashboard');
+
+    } catch (error: any) {
+      console.error("Signup Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: error.message || "There was a problem with your request.",
+      });
+    } finally {
+      setIsSigningUp(false);
+    }
   }
 
 
@@ -92,8 +135,16 @@ export default function LoginPage() {
                     <Input id="signup-name" type="text" placeholder="John Doe" required value={signupName} onChange={(e) => setSignupName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Phone Number</Label>
+                    <Input id="signup-phone" type="tel" placeholder="(123) 456-7890" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input id="signup-email" type="email" placeholder="m@example.com" required value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
+                  </div>
+                   <div className="space-y-2">
+                    <Label htmlFor="signup-referral-email">Referral Email (Optional)</Label>
+                    <Input id="signup-referral-email" type="email" placeholder="friend@example.com" value={signupReferralEmail} onChange={(e) => setSignupReferralEmail(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
@@ -103,7 +154,9 @@ export default function LoginPage() {
                     <Label htmlFor="signup-confirm-password">Confirm Password</Label>
                     <Input id="signup-confirm-password" type="password" required value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)}/>
                   </div>
-                  <Button type="submit" className="w-full">Sign Up</Button>
+                  <Button type="submit" className="w-full" disabled={isSigningUp}>
+                    {isSigningUp ? 'Signing Up...' : 'Sign Up'}
+                  </Button>
                 </form>
               </CardContent>
             </Card>
