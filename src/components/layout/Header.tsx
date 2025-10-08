@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { Menu, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useState } from "react";
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
 
 const navLinks = [
+  { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/guarantee", label: "Guarantee" },
   { href: "/about", label: "About Us" },
@@ -52,6 +53,8 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetDescription className="sr-only">A list of links to navigate the site.</SheetDescription>
               <nav className="grid gap-6 text-lg font-medium mt-10">
                 <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary mb-4" onClick={() => setIsOpen(false)}>
                   <ShieldCheck className="h-7 w-7 text-accent" />
