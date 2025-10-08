@@ -11,7 +11,7 @@ export default function ReferPage() {
       <div className="container mx-auto max-w-4xl px-4 py-12 md:px-6 md:py-20">
         <header className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary">Refer a Friend, Get Rewarded</h1>
-          <p className="mt-4 text-lg text-muted-foreground">Share the ease of TaxEase and we'll thank you for it.</p>
+          <p className="mt-4 text-lg text-muted-foreground">Share the ease of Polaris Tax Services and we'll thank you for it.</p>
         </header>
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -42,7 +42,7 @@ export default function ReferPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">3. You Both Get a Reward</h3>
-                  <p className="text-muted-foreground">As a thank you, both you and your friend will receive a discount on your next TaxEase service.</p>
+                  <p className="text-muted-foreground">As a thank you, both you and your friend will receive a discount on your next Polaris Tax Services service.</p>
                 </div>
               </li>
             </ul>

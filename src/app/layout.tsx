@@ -3,8 +3,8 @@ import {Toaster} from '@/components/ui/toaster';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TaxEase',
-  description: 'Simplify Your Taxes with TaxEase',
+  title: 'Polaris Tax Services',
+  description: 'Simplify Your Taxes with Polaris Tax Services',
 };
 
 export default function RootLayout({

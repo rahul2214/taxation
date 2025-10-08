@@ -15,7 +15,7 @@ const guarantees = [
   {
     icon: <CheckCircle className="h-8 w-8 text-accent" />,
     title: "Maximum Refund Guarantee",
-    description: "We're confident you'll get your maximum refund. If you find a larger refund or smaller tax due from another tax preparer, we'll refund your TaxEase fees."
+    description: "We're confident you'll get your maximum refund. If you find a larger refund or smaller tax due from another tax preparer, we'll refund your Polaris Tax Services fees."
   },
   {
     icon: <RefreshCw className="h-8 w-8 text-accent" />,
@@ -37,7 +37,7 @@ export default function GuaranteePage() {
           <div className="flex-1">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">Your Peace of Mind is Our Priority</h2>
             <p className="text-muted-foreground mb-4">
-              At TaxEase, we are committed to providing you with the most accurate and reliable tax preparation service. Our guarantees are a testament to our confidence in our platform and our team of experts. We want you to feel secure and supported every step of the way.
+              At Polaris Tax Services, we are committed to providing you with the most accurate and reliable tax preparation service. Our guarantees are a testament to our confidence in our platform and our team of experts. We want you to feel secure and supported every step of the way.
             </p>
             <p className="text-muted-foreground">
               Below are the details of our promises to you.

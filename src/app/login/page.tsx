@@ -43,7 +43,7 @@ export default function LoginPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">Create an Account</CardTitle>
-                <CardDescription>Get started with TaxEase in just a few steps.</CardDescription>
+                <CardDescription>Get started with Polaris Tax Services in just a few steps.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                  <div className="space-y-2">

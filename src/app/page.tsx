@@ -34,9 +34,9 @@ const features = [
 ];
 
 const testimonials = [
-  { name: "Jane Doe", role: "Freelancer", text: "TaxEase made my tax season stress-free. The platform is intuitive and their experts were incredibly helpful!", avatar: "https://picsum.photos/seed/t1/40/40", fallback: "JD" },
-  { name: "John Smith", role: "Small Business Owner", text: "I've been using TaxEase for my business for three years now. Impeccable service and they always find deductions I missed.", avatar: "https://picsum.photos/seed/t2/40/40", fallback: "JS" },
-  { name: "Emily White", role: "Investor", text: "Complex investments are no problem for the TaxEase team. Highly recommend for anyone with a complicated tax situation.", avatar: "https://picsum.photos/seed/t3/40/40", fallback: "EW" },
+  { name: "Jane Doe", role: "Freelancer", text: "Polaris Tax Services made my tax season stress-free. The platform is intuitive and their experts were incredibly helpful!", avatar: "https://picsum.photos/seed/t1/40/40", fallback: "JD" },
+  { name: "John Smith", role: "Small Business Owner", text: "I've been using Polaris Tax Services for my business for three years now. Impeccable service and they always find deductions I missed.", avatar: "https://picsum.photos/seed/t2/40/40", fallback: "JS" },
+  { name: "Emily White", role: "Investor", text: "Complex investments are no problem for the Polaris Tax Services team. Highly recommend for anyone with a complicated tax situation.", avatar: "https://picsum.photos/seed/t3/40/40", fallback: "EW" },
 ];
 
 export default function Home() {
@@ -58,7 +58,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-primary/70" />
           <div className="relative z-10 container mx-auto px-4 md:px-6">
             <h1 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">
-              Simplify Your Taxes with TaxEase
+              Simplify Your Taxes with Polaris Tax Services
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-primary-foreground/90">
               Professional, reliable, and straightforward tax services designed for you.
@@ -73,7 +73,7 @@ export default function Home() {
         <section className="py-16 md:py-24 bg-card">
           <div className="container mx-auto px-4 md:px-6">
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
-              Why Choose TaxEase?
+              Why Choose Polaris Tax Services?
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
@@ -168,7 +168,7 @@ export default function Home() {
               Ready to Take Control of Your Taxes?
             </h2>
             <p className="mt-4 max-w-xl mx-auto">
-              Join thousands of satisfied clients and experience the TaxEase difference.
+              Join thousands of satisfied clients and experience the Polaris Tax Services difference.
             </p>
             <Button asChild size="lg" className="mt-8 bg-accent hover:bg-accent/90 text-accent-foreground">
               <Link href="/login">Sign Up for Free</Link>

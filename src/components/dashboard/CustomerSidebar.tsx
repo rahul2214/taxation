@@ -31,7 +31,7 @@ export function CustomerSidebar() {
         <div className="flex items-center gap-2">
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
             <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
-            <span className="text-sidebar-foreground min-w-max font-headline">TaxEase</span>
+            <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
           </Link>
           <SidebarTrigger className="ml-auto" />
         </div>

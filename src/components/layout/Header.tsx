@@ -25,7 +25,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary">
           <ShieldCheck className="h-7 w-7 text-accent" />
-          <span className="font-headline">TaxEase</span>
+          <span className="font-headline">Polaris Tax Services</span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
           {navLinks.map((link) => (
@@ -53,12 +53,12 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
-              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              <SheetDescription className="sr-only">A list of links to navigate the site.</SheetDescription>
+              <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetDescription>A list of links to navigate the site.</SheetDescription>
               <nav className="grid gap-6 text-lg font-medium mt-10">
                 <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary mb-4" onClick={() => setIsOpen(false)}>
                   <ShieldCheck className="h-7 w-7 text-accent" />
-                  <span className="font-headline">TaxEase</span>
+                  <span className="font-headline">Polaris Tax Services</span>
                 </Link>
                 {navLinks.map((link) => (
                   <Link

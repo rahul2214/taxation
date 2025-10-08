@@ -9,7 +9,7 @@ export function Footer() {
           <div className="flex flex-col items-start">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary mb-2">
               <ShieldCheck className="h-7 w-7 text-accent" />
-              <span className="font-headline">TaxEase</span>
+              <span className="font-headline">Polaris Tax Services</span>
             </Link>
             <p className="text-sm text-muted-foreground">Simplifying your taxes with professional ease.</p>
           </div>
@@ -41,7 +41,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t pt-4 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} TaxEase. All rights reserved.
+          © {new Date().getFullYear()} Polaris Tax Services. All rights reserved.
         </div>
       </div>
     </footer>

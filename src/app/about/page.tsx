@@ -24,7 +24,7 @@ export default function AboutUsPage() {
     <PublicLayout>
       <div className="container mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-20">
         <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary">About TaxEase</h1>
+          <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary">About Polaris Tax Services</h1>
           <p className="mt-4 text-lg text-muted-foreground">Your trusted partner in navigating the complexities of taxation.</p>
         </header>
 
