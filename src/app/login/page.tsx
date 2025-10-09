@@ -79,6 +79,7 @@ export default function LoginPage() {
         email: user.email,
         phone: signupPhone,
         signupDate: serverTimestamp(),
+        role: "user",
       });
       
       if (signupReferralEmail) {
