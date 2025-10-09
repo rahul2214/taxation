@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarHeader,
@@ -14,6 +14,8 @@ import {
 import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useFirebase } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 const menuItems = [
   { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck /> },
@@ -25,6 +27,17 @@ const menuItems = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
+  const { auth } = useFirebase();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
 
   return (
     <Sidebar>
@@ -60,8 +73,8 @@ export function AdminSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
-              <Link href="/">Logout</Link>
+            <SidebarMenuButton onClick={handleLogout} icon={<LogOut />} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
+              Logout
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

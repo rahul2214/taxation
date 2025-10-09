@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarHeader,
@@ -16,6 +16,7 @@ import { ShieldCheck, User, Info, Upload, FileDown, LogOut, Settings } from "luc
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase } from "@/firebase";
 import { cn } from "@/lib/utils";
+import { signOut } from "firebase/auth";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
@@ -26,10 +27,20 @@ const menuItems = [
 
 export function CustomerSidebar() {
   const pathname = usePathname();
-  const { user, isUserLoading } = useFirebase();
-  const userName = user?.displayName || "User";
+  const { auth, user, isUserLoading } = useFirebase();
+  const router = useRouter();
+  const userName = user?.displayName || user?.email || "User";
   const userFallback = userName.split(' ').map(n => n[0]).join('');
   const { isMobile } = useSidebar();
+  
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
 
 
   return (
@@ -76,8 +87,8 @@ export function CustomerSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<LogOut />} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
-              <Link href="/">Logout</Link>
+            <SidebarMenuButton onClick={handleLogout} icon={<LogOut />} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
+              Logout
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
