@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
@@ -34,16 +34,34 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
-      router.push('/dashboard');
+       // If user is already logged in, check their role and redirect
+      const userDocRef = doc(firestore, "customers", user.uid);
+      getDoc(userDocRef).then(userDoc => {
+        if (userDoc.exists() && userDoc.data()?.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      });
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, firestore]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      router.push('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const loggedInUser = userCredential.user;
+
+      // Fetch user document from Firestore to check the role
+      const userDocRef = doc(firestore, "customers", loggedInUser.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists() && userDoc.data()?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
        toast({
         variant: "destructive",
@@ -70,13 +88,13 @@ export default function LoginPage() {
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
-      const user = userCredential.user;
+      const newUser = userCredential.user;
       
       // Store user info in Firestore
-      await setDoc(doc(firestore, "customers", user.uid), {
+      await setDoc(doc(firestore, "customers", newUser.uid), {
         firstName: signupFirstName,
         lastName: signupLastName,
-        email: user.email,
+        email: newUser.email,
         phone: signupPhone,
         signupDate: serverTimestamp(),
         role: "user",
