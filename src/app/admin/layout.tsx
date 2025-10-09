@@ -23,41 +23,31 @@ export default function AdminLayout({
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
+  const isLoading = isUserLoading || isUserDataLoading;
+
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading;
-    if (isLoading) {
-      return; // Wait until we have user and role info
-    }
+    // Don't do anything while loading
+    if (isLoading) return;
 
+    // If loading is finished, check for authentication and authorization
     if (!user) {
-      // Not logged in, redirect to home/login page
       router.push('/login');
-      return;
-    }
-
-    if (userData?.role !== 'admin') {
-      // Logged in, but not an admin, redirect to user dashboard
+    } else if (userData?.role !== 'admin') {
       router.push('/dashboard');
-      return;
     }
+  }, [user, userData, isLoading, router]);
 
-  }, [user, userData, isUserLoading, isUserDataLoading, router]);
-
-  const isLoading = isUserLoading || (user && isUserDataLoading);
-
-  if (isLoading) {
+  // While loading or if the user is not an authorized admin, show a loader or nothing.
+  // This prevents the children from rendering prematurely.
+  if (isLoading || !user || userData?.role !== 'admin') {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (!user || userData?.role !== 'admin') {
-    // Render nothing while redirecting
-    return null;
-  }
   
+  // Only render the layout if the user is an authenticated admin
   return (
     <SidebarProvider>
       <AdminSidebar />
