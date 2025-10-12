@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Loader2 } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -32,45 +32,44 @@ export default function LoginPage() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  useEffect(() => {
-    if (!isUserLoading && user) {
-       // If user is already logged in, check their role and redirect
-      const userDocRef = doc(firestore, "customers", user.uid);
-      getDoc(userDocRef).then(userDoc => {
-        if (userDoc.exists() && userDoc.data()?.role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
-      });
-    }
-  }, [user, isUserLoading, router, firestore]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
+  const checkRoleAndRedirect = async (user: any) => {
+    if (!firestore) return;
+    const userDocRef = doc(firestore, "customers", user.uid);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      const loggedInUser = userCredential.user;
-
-      // Fetch user document from Firestore to check the role
-      const userDocRef = doc(firestore, "customers", loggedInUser.uid);
       const userDoc = await getDoc(userDocRef);
-
       if (userDoc.exists() && userDoc.data()?.role === 'admin') {
         router.push('/admin');
       } else {
         router.push('/dashboard');
       }
+    } catch (error) {
+      console.error("Error fetching user role, redirecting to default dashboard:", error);
+      router.push('/dashboard');
+    }
+  };
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      checkRoleAndRedirect(user);
+    }
+  }, [user, isUserLoading, router, firestore]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth) return;
+    setIsLoggingIn(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      // The useEffect will handle the redirection
     } catch (error: any) {
        toast({
         variant: "destructive",
         title: "Login Failed",
         description: error.message || "Could not log you in. Please check your credentials.",
       });
-    } finally {
       setIsLoggingIn(false);
     }
+    // No need for finally block, useEffect will take over
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -83,21 +82,20 @@ export default function LoginPage() {
       });
       return;
     }
-
+    if (!auth || !firestore) return;
     setIsSigningUp(true);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
       const newUser = userCredential.user;
       
-      // Store user info in Firestore
       await setDoc(doc(firestore, "customers", newUser.uid), {
         firstName: signupFirstName,
         lastName: signupLastName,
         email: newUser.email,
         phone: signupPhone,
         signupDate: serverTimestamp(),
-        role: "user",
+        role: "user", // Assign 'user' role by default
       });
       
       if (signupReferralEmail) {
@@ -109,8 +107,7 @@ export default function LoginPage() {
         description: "Welcome to Polaris Tax Services.",
       });
 
-      router.push('/dashboard');
-
+      // Let the useEffect handle redirection
     } catch (error: any) {
       console.error("Signup Error:", error);
       toast({
@@ -126,7 +123,7 @@ export default function LoginPage() {
   if (isUserLoading || user) {
     return (
         <div className="flex min-h-screen items-center justify-center">
-            {/* You can add a loader here */}
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
@@ -160,6 +157,7 @@ export default function LoginPage() {
                     <Input id="login-password" type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                    {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     {isLoggingIn ? 'Logging in...' : 'Login'}
                   </Button>
                 </form>
@@ -205,6 +203,7 @@ export default function LoginPage() {
                     <Input id="signup-confirm-password" type="password" required value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)}/>
                   </div>
                   <Button type="submit" className="w-full" disabled={isSigningUp}>
+                    {isSigningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     {isSigningUp ? 'Signing Up...' : 'Sign Up'}
                   </Button>
                 </form>
