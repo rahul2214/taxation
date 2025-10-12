@@ -4,10 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users } from "lucide-react";
+import { CheckCircle, Zap, Users, Check } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
 import React from "react";
@@ -42,6 +42,37 @@ const testimonials = [
   { name: "John Smith", role: "Small Business Owner", text: "I've been using Polaris Tax Services for my business for three years now. Impeccable service and they always find deductions I missed.", avatar: "https://picsum.photos/seed/t2/40/40", fallback: "JS" },
   { name: "Emily White", role: "Investor", text: "Complex investments are no problem for the Polaris Tax Services team. Highly recommend for anyone with a complicated tax situation.", avatar: "https://picsum.photos/seed/t3/40/40", fallback: "EW" },
 ];
+
+const plans = [
+    {
+        id: "personal",
+        title: "Personal",
+        description: "Perfect for individuals and families looking for a stress-free tax season.",
+        price: "$59",
+        pricePeriod: "starts at",
+        features: ["W-2 & 1099 Income", "Itemized Deductions", "Student Loan Interest", "Free E-filing"],
+        buttonText: "Get Started"
+    },
+    {
+        id: "business",
+        title: "Business",
+        description: "Tailored solutions for small businesses, freelancers, and S-Corps.",
+        price: "$199",
+        pricePeriod: "starts at",
+        features: ["Sole Proprietorship, LLC, S-Corp", "Expense Tracking", "Quarterly Estimates", "Year-End Filing"],
+        buttonText: "Get Started"
+    },
+    {
+        id: "bookkeeping",
+        title: "Bookkeeping",
+        description: "Keep your finances in order year-round with our professional services.",
+        price: "$250",
+        pricePeriod: "/month",
+        features: ["Monthly Reconciliation", "Financial Statements", "Payroll Integration", "Tax-Ready Books"],
+        buttonText: "Learn More"
+    }
+];
+
 
 export default function Home() {
    const plugin = React.useRef(
@@ -173,6 +204,44 @@ export default function Home() {
               </CarouselContent>
             </Carousel>
           </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="py-16 md:py-24">
+            <div className="container mx-auto px-4 md:px-6">
+                <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
+                Find the Right Plan for You
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                {plans.map((plan) => (
+                    <Card key={plan.id} className="flex flex-col shadow-lg hover:shadow-2xl transition-all duration-300">
+                    <CardHeader className="p-6">
+                        <CardTitle className="text-2xl">{plan.title}</CardTitle>
+                        <p className="text-muted-foreground pt-2">{plan.description}</p>
+                    </CardHeader>
+                    <CardContent className="flex-grow p-6">
+                        <div className="mb-6">
+                            <span className="text-4xl font-bold">{plan.price}</span>
+                            <span className="text-sm text-muted-foreground ml-1">{plan.pricePeriod}</span>
+                        </div>
+                        <ul className="space-y-3">
+                        {plan.features.map((feature, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                            <Check className="h-5 w-5 text-accent" />
+                            <span className="text-muted-foreground">{feature}</span>
+                            </li>
+                        ))}
+                        </ul>
+                    </CardContent>
+                    <CardFooter className="p-6">
+                        <Button asChild className="w-full">
+                            <Link href="/login">{plan.buttonText}</Link>
+                        </Button>
+                    </CardFooter>
+                    </Card>
+                ))}
+                </div>
+            </div>
         </section>
         
         {/* CTA Section */}
