@@ -125,6 +125,41 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Why Polaris Section */}
+        <section className="py-16 md:py-24 bg-background">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Why Polaris Tax Services?</h2>
+                <p className="text-muted-foreground mb-4">
+                  Navigating the complexities of tax season can be daunting. At Polaris Tax Services, we provide a seamless, digital-first experience backed by a team of certified tax professionals. Our mission is to empower you with the tools and expertise needed to file your taxes with confidence and accuracy.
+                </p>
+                <p className="text-muted-foreground">
+                  Whether you're an individual, a freelancer, or a small business owner, our platform is designed to handle your unique tax situation. We focus on maximizing your refund, ensuring compliance, and providing year-round support for your financial peace of mind.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                  <Card className="bg-card p-6 text-center">
+                    <h3 className="text-3xl font-bold text-primary">99%</h3>
+                    <p className="text-muted-foreground mt-1">Accuracy Rate</p>
+                  </Card>
+                   <Card className="bg-card p-6 text-center">
+                    <h3 className="text-3xl font-bold text-primary">10,000+</h3>
+                    <p className="text-muted-foreground mt-1">Happy Clients</p>
+                  </Card>
+                   <Card className="bg-card p-6 text-center">
+                    <h3 className="text-3xl font-bold text-primary">$500+</h3>
+                    <p className="text-muted-foreground mt-1">Avg. Extra Savings</p>
+                  </Card>
+                   <Card className="bg-card p-6 text-center">
+                    <h3 className="text-3xl font-bold text-primary">24/7</h3>
+                    <p className="text-muted-foreground mt-1">Support</p>
+                  </Card>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section */}
         <section className="py-16 md:py-24 bg-card">
           <div className="container mx-auto px-4 md:px-6">
@@ -283,7 +318,7 @@ export default function Home() {
                 Share the Love, Get Rewarded
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                Love our service? Refer your friends to Polaris Tax Services and you'll both receive a special discount on your next service. It's our way of saying thank you!
+                Love our service? Refer a friend to Polaris Tax Services and you'll both receive a special discount on your next service. It's our way of saying thank you!
               </p>
               <Button asChild size="lg" className="mt-8">
                 <Link href="/refer">Refer a Friend Now</Link>
