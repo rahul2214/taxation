@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase } from "@/firebase";
 import { cn } from "@/lib/utils";
 import { signOut } from "firebase/auth";
+import { DocumentData } from "firebase/firestore";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
@@ -25,12 +27,17 @@ const menuItems = [
   { href: "/dashboard/final-documents", label: "Final Documents", icon: <FileDown /> },
 ];
 
-export function CustomerSidebar() {
+export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {
   const pathname = usePathname();
   const { auth, user, isUserLoading } = useFirebase();
   const router = useRouter();
-  const userName = user?.displayName || user?.email || "User";
-  const userFallback = userName.split(' ').map(n => n[0]).join('');
+  
+  const firstName = userData?.firstName || "";
+  const lastName = userData?.lastName || "";
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+  const userName = fullName || user?.email || "User";
+  const userFallback = (firstName?.[0] || '') + (lastName?.[0] || '');
   const { isMobile } = useSidebar();
   
   const handleLogout = async () => {
