@@ -57,7 +57,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
       </SidebarHeader>
       
       {userData && (
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-4">
             <div className={cn("text-center", isMobile && "text-left")}>
                 <p className="text-sm font-semibold text-sidebar-foreground">
                     {userData.firstName} {userData.lastName}
