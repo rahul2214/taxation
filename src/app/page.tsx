@@ -45,7 +45,7 @@ const testimonials = [
 
 export default function Home() {
    const plugin = React.useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: true })
+    Autoplay({ delay: 4000, stopOnInteraction: true })
   );
 
   return (
@@ -71,9 +71,14 @@ export default function Home() {
             <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-primary-foreground/90">
               Professional, reliable, and straightforward tax services designed for you.
             </p>
-            <Button asChild size="lg" className="mt-8 bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link href="/services">Get Started Today</Link>
-            </Button>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Link href="/services">Get Started Today</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="bg-background/20 text-white border-white hover:bg-background/30">
+                <Link href="/services">Book Appointment</Link>
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -139,6 +144,8 @@ export default function Home() {
             </h2>
             <Carousel
               plugins={[plugin.current]}
+              onMouseEnter={plugin.current.stop}
+              onMouseLeave={plugin.current.reset}
               opts={{
                 align: "start",
                 loop: true,
