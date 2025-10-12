@@ -55,6 +55,16 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
           <SidebarTrigger className="ml-auto" />
         </div>
       </SidebarHeader>
+      
+      {userData && (
+        <div className="p-4 border-b border-sidebar-border">
+            <div className={cn("text-center", isMobile && "text-left")}>
+                <p className="text-sm font-semibold text-sidebar-foreground">
+                    {userData.firstName} {userData.lastName}
+                </p>
+            </div>
+        </div>
+      )}
 
       <SidebarMenu className="flex-1">
         {menuItems.map((item) => (
