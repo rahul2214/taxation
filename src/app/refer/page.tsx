@@ -1,3 +1,4 @@
+
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,25 +55,21 @@ export default function ReferPage() {
             </CardHeader>
             <CardContent>
               <form className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="your-name">Your Name</Label>
-                    <Input id="your-name" placeholder="John Doe" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="your-email">Your Email</Label>
-                    <Input id="your-email" type="email" placeholder="you@example.com" required />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="your-name">Your Name</Label>
+                  <Input id="your-name" placeholder="John Doe" required />
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="friend-name">Friend's Name</Label>
-                        <Input id="friend-name" placeholder="Jane Smith" required />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="friend-email">Friend's Email</Label>
-                        <Input id="friend-email" type="email" placeholder="friend@example.com" required />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="your-email">Your Email</Label>
+                  <Input id="your-email" type="email" placeholder="you@example.com" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="friend-name">Friend's Name</Label>
+                    <Input id="friend-name" placeholder="Jane Smith" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="friend-email">Friend's Email</Label>
+                    <Input id="friend-email" type="email" placeholder="friend@example.com" required />
                 </div>
                 <Button type="submit" className="w-full">Send Invite</Button>
               </form>
