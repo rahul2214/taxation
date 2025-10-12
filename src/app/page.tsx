@@ -80,10 +80,10 @@ const plans = [
 ];
 
 const trustedByLogos = [
-    { name: "Microsoft" },
-    { name: "Google" },
-    { name: "Amazon" },
-    { name: "Tesla" },
+    { icon: <Briefcase className="h-10 w-10" /> },
+    { icon: <Building2 className="h-10 w-10" /> },
+    { icon: <Globe className="h-10 w-10" /> },
+    { icon: <Factory className="h-10 w-10" /> },
 ];
 
 export default function Home() {
@@ -224,10 +224,10 @@ export default function Home() {
                 <h2 className="text-xl font-semibold text-center text-muted-foreground uppercase tracking-wider mb-8">
                     Proudly Serving Leading Global Corporations
                 </h2>
-                <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
+                <div className="flex flex-wrap justify-center items-center gap-x-16 gap-y-8">
                     {trustedByLogos.map((logo, index) => (
-                        <div key={index} className="flex items-center gap-3 text-muted-foreground/70 hover:text-foreground transition-colors">
-                            <span className="font-bold text-2xl tracking-widest">{logo.name}</span>
+                        <div key={index} className="text-muted-foreground/70 hover:text-foreground transition-colors">
+                            {logo.icon}
                         </div>
                     ))}
                 </div>
