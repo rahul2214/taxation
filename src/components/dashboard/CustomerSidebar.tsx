@@ -65,7 +65,6 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
       <SidebarMenu className="flex-1">
         <div className="p-2 flex flex-col items-center group-data-[collapsible=icon]:hidden">
             <Avatar className="h-20 w-20 mb-2">
-                <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
                 <AvatarFallback>{userFallback}</AvatarFallback>
             </Avatar>
             <p className="font-semibold text-sidebar-foreground">{userName}</p>
