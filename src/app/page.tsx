@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy } from "lucide-react";
+import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
 import React from "react";
@@ -270,6 +270,21 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Privacy Section */}
+        <section className="py-16 md:py-24">
+            <div className="container mx-auto px-4 md:px-6 text-center">
+                <div className="mx-auto max-w-3xl">
+                    <ShieldCheck className="h-12 w-12 text-accent mx-auto mb-4" />
+                    <h2 className="text-3xl md:text-4xl font-headline font-bold">
+                        Protecting your privacy, securing your data, always.
+                    </h2>
+                    <p className="mt-4 text-muted-foreground">
+                        Your trust is our most important asset. We use bank-level security and encryption to keep your personal information safe and confidential. Your data is never shared without your consent.
+                    </p>
+                </div>
+            </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-16 md:py-24 bg-primary text-primary-foreground">
           <div className="container mx-auto px-4 md:px-6 text-center">
@@ -288,5 +303,7 @@ export default function Home() {
     </PublicLayout>
   );
 }
+
+    
 
     
