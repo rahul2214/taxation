@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users, Check } from "lucide-react";
+import { CheckCircle, Zap, Users, Check, Gift } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
 import React from "react";
@@ -244,6 +245,26 @@ export default function Home() {
             </div>
         </section>
         
+        {/* Referral Section */}
+        <section className="py-16 md:py-24 bg-card">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="bg-accent/10 p-8 rounded-lg text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Gift className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold text-primary">
+                Share the Love, Get Rewarded
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+                Love our service? Refer your friends to Polaris Tax Services and you'll both receive a special discount on your next service. It's our way of saying thank you!
+              </p>
+              <Button asChild size="lg" className="mt-8">
+                <Link href="/refer">Refer a Friend Now</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-16 md:py-24 bg-primary text-primary-foreground">
           <div className="container mx-auto px-4 md:px-6 text-center">
