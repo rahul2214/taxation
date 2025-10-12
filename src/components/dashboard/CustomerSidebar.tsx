@@ -32,12 +32,6 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   const { auth, user, isUserLoading } = useFirebase();
   const router = useRouter();
   
-  const firstName = userData?.firstName || "";
-  const lastName = userData?.lastName || "";
-  const fullName = [firstName, lastName].filter(Boolean).join(' ');
-
-  const userName = fullName || user?.email || "User";
-  const userFallback = (firstName?.[0] || '') + (lastName?.[0] || '');
   const { isMobile } = useSidebar();
   
   const handleLogout = async () => {
@@ -63,13 +57,6 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
       </SidebarHeader>
 
       <SidebarMenu className="flex-1">
-        <div className="p-2 flex flex-col items-center group-data-[collapsible=icon]:hidden">
-            <Avatar className="h-20 w-20 mb-2">
-                <AvatarFallback>{userFallback}</AvatarFallback>
-            </Avatar>
-            <p className="font-semibold text-sidebar-foreground">{userName}</p>
-        </div>
-
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
