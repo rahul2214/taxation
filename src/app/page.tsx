@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck } from "lucide-react";
+import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
 import React from "react";
@@ -79,6 +79,12 @@ const plans = [
     }
 ];
 
+const trustedByLogos = [
+    { icon: <Briefcase className="h-8 w-8" />, name: "GlobalCorp" },
+    { icon: <Building2 className="h-8 w-8" />, name: "Innovate Inc." },
+    { icon: <Globe className="h-8 w-8" />, name: "WorldWide Co" },
+    { icon: <Factory className="h-8 w-8" />, name: "Manufacture LLC" },
+];
 
 export default function Home() {
    const plugin = React.useRef(
@@ -212,8 +218,25 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Pricing Section */}
+        {/* Trusted By Section */}
         <section className="py-16 md:py-24">
+            <div className="container mx-auto px-4 md:px-6">
+                <h2 className="text-xl font-semibold text-center text-muted-foreground uppercase tracking-wider mb-8">
+                    Proudly Serving Leading Global Corporations
+                </h2>
+                <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
+                    {trustedByLogos.map((logo, index) => (
+                        <div key={index} className="flex items-center gap-3 text-muted-foreground/70 hover:text-foreground transition-colors">
+                            {logo.icon}
+                            <span className="font-bold text-xl">{logo.name}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="py-16 md:py-24 bg-card">
             <div className="container mx-auto px-4 md:px-6">
                 <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
                 Find the Right Plan for You
@@ -251,7 +274,7 @@ export default function Home() {
         </section>
         
         {/* Referral Section */}
-        <section className="py-16 md:py-24 bg-card">
+        <section className="py-16 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
             <div className="bg-accent/10 p-8 rounded-lg text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -271,7 +294,7 @@ export default function Home() {
         </section>
 
         {/* Privacy Section */}
-        <section className="py-16 md:py-24">
+        <section className="py-16 md:py-24 bg-card">
             <div className="container mx-auto px-4 md:px-6 text-center">
                 <div className="mx-auto max-w-3xl">
                     <ShieldCheck className="h-12 w-12 text-accent mx-auto mb-4" />
@@ -303,7 +326,3 @@ export default function Home() {
     </PublicLayout>
   );
 }
-
-    
-
-    
