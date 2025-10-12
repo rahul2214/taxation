@@ -43,7 +43,7 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          <Button asChild>
+          <Button asChild className="hidden md:inline-flex">
             <Link href="/login">Login / Sign Up</Link>
           </Button>
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -53,7 +53,7 @@ export function Header() {
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="left" className="flex flex-col">
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <SheetDescription className="sr-only">A list of links to navigate the site.</SheetDescription>
               <nav className="grid gap-6 text-lg font-medium mt-10">
@@ -75,6 +75,11 @@ export function Header() {
                   </Link>
                 ))}
               </nav>
+              <div className="mt-auto">
+                 <Button asChild className="w-full">
+                    <Link href="/login" onClick={() => setIsOpen(false)}>Login / Sign Up</Link>
+                </Button>
+              </div>
             </SheetContent>
           </Sheet>
         </div>
