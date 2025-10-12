@@ -73,7 +73,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/services">Get Started Today</Link>
+                <Link href="/login">Get Started Today</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-background/20 text-white border-white hover:bg-background/30">
                 <Link href="/services">Book Appointment</Link>
