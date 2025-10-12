@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users, Check, Gift } from "lucide-react";
+import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
 import React from "react";
@@ -36,6 +36,11 @@ const features = [
     title: "Maximum Refund",
     description: "We guarantee you'll get the maximum refund possible, or your money back.",
   },
+  {
+    icon: <LifeBuoy className="h-8 w-8 text-accent" />,
+    title: "Free Live Support",
+    description: "Our dedicated support team is here to help you every step of the way.",
+  }
 ];
 
 const testimonials = [
@@ -120,7 +125,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
               Why Choose Polaris Tax Services?
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
                 <div key={index} className="flex flex-col items-center text-center p-6">
                   {feature.icon}
@@ -283,3 +288,5 @@ export default function Home() {
     </PublicLayout>
   );
 }
+
+    
