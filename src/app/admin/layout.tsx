@@ -27,19 +27,24 @@ export default function AdminLayout({
   const isAdmin = userData?.role === 'admin';
 
   useEffect(() => {
-    // If loading is complete, and we don't have a user, redirect to login.
-    if (!isLoading && !user) {
+    // Wait until all loading is complete before making any decisions
+    if (isLoading) return;
+
+    // If there's no user, they should be at the login page.
+    if (!user) {
       router.push('/login');
+      return;
     }
-    
-    // If loading is complete, we have a user, but they are not an admin, redirect to user dashboard.
-    if (!isLoading && user && !isAdmin) {
+
+    // If we have a user and their data, but they aren't an admin, redirect.
+    if (user && userData && !isAdmin) {
       router.push('/dashboard');
     }
-  }, [isLoading, user, isAdmin, router]);
 
-  // If still loading, or if the user is not an admin, show a loading screen.
-  // This prevents rendering the admin layout for non-admins and avoids flashes of content.
+  }, [isLoading, user, userData, isAdmin, router]);
+
+  // Show a loading screen while we verify the user's identity and role.
+  // This prevents rendering the admin layout for non-admins or before auth state is confirmed.
   if (isLoading || !isAdmin) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -48,7 +53,7 @@ export default function AdminLayout({
     );
   }
   
-  // Only render the layout if the user is an authenticated admin
+  // Only render the layout if the user is an authenticated admin.
   return (
     <SidebarProvider>
       <AdminSidebar />
