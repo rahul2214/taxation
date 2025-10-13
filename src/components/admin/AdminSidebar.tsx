@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -49,7 +50,7 @@ export function AdminSidebar() {
                     <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
                     <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
                 </div>
-                <span className="text-xs font-medium text-sidebar-foreground/70 ml-9">Admin</span>
+                <span className="text-sm font-bold text-sidebar-primary ml-9">Admin</span>
             </Link>
             <SidebarTrigger className="ml-auto" />
         </div>
