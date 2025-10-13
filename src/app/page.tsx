@@ -114,30 +114,30 @@ function TaxEstimator() {
 
     const taxBrackets: { [key: string]: { rate: number, amount: number }[] } = {
       single: [
-        { rate: 0.10, amount: 11000 },
-        { rate: 0.12, amount: 44725 },
-        { rate: 0.22, amount: 95375 },
-        { rate: 0.24, amount: 182100 },
-        { rate: 0.32, amount: 231250 },
-        { rate: 0.35, amount: 578125 },
+        { rate: 0.10, amount: 11600 },
+        { rate: 0.12, amount: 47150 },
+        { rate: 0.22, amount: 100500 },
+        { rate: 0.24, amount: 191950 },
+        { rate: 0.32, amount: 243700 },
+        { rate: 0.35, amount: 609350 },
         { rate: 0.37, amount: Infinity },
       ],
       married: [
-        { rate: 0.10, amount: 22000 },
-        { rate: 0.12, amount: 89450 },
-        { rate: 0.22, amount: 190750 },
-        { rate: 0.24, amount: 364200 },
-        { rate: 0.32, amount: 462500 },
-        { rate: 0.35, amount: 693750 },
+        { rate: 0.10, amount: 23200 },
+        { rate: 0.12, amount: 94300 },
+        { rate: 0.22, amount: 201050 },
+        { rate: 0.24, amount: 383900 },
+        { rate: 0.32, amount: 487450 },
+        { rate: 0.35, amount: 731200 },
         { rate: 0.37, amount: Infinity },
       ],
       hoh: [
-        { rate: 0.10, amount: 15700 },
-        { rate: 0.12, amount: 59850 },
-        { rate: 0.22, amount: 95350 },
-        { rate: 0.24, amount: 182100 },
-        { rate: 0.32, amount: 231250 },
-        { rate: 0.35, amount: 578100 },
+        { rate: 0.10, amount: 16550 },
+        { rate: 0.12, amount: 63100 },
+        { rate: 0.22, amount: 100500 },
+        { rate: 0.24, amount: 191950 },
+        { rate: 0.32, amount: 243700 },
+        { rate: 0.35, amount: 609350 },
         { rate: 0.37, amount: Infinity },
       ]
     };
@@ -340,9 +340,9 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">Our Core Services</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                {serviceImages.personal && <Image src={serviceImages.personal.imageUrl} alt="Personal Tax Filing" width={600} height={400} className="w-full h-48 object-cover" data-ai-hint={serviceImages.personal.imageHint} />}
+                {serviceImages.personal && <Image src={serviceImages.personal.imageUrl} alt="Individual Tax Filing" width={600} height={400} className="w-full h-48 object-cover" data-ai-hint={serviceImages.personal.imageHint} />}
                 <CardHeader>
-                  <CardTitle>Personal Tax Filing</CardTitle>
+                  <CardTitle>Individual Tax Filing</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">Comprehensive support for individuals and families. We ensure you get every deduction you deserve.</p>
@@ -516,3 +516,5 @@ export default function Home() {
     </PublicLayout>
   );
 }
+
+    
