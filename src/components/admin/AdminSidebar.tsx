@@ -11,13 +11,14 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings } from "lucide-react";
+import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 
 const menuItems = [
+  { href: "/admin", label: "Dashboard", icon: <LayoutDashboard /> },
   { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck /> },
   { href: "/admin/referrals", label: "Referrals", icon: <UsersRound /> },
   { href: "/admin/customers", label: "Customers", icon: <Users /> },
@@ -55,7 +56,7 @@ export function AdminSidebar() {
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               asChild
-              isActive={pathname.startsWith(item.href)}
+              isActive={pathname === item.href}
               icon={item.icon}
               tooltip={item.label}
               className={cn(isMobile && "justify-start h-10 p-2")}
