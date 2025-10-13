@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory, Calculator, Minus, Plus } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -94,6 +94,15 @@ function TaxEstimator() {
   const [income, setIncome] = useState(50000);
   const [filingStatus, setFilingStatus] = useState("single");
   const [dependents, setDependents] = useState(0);
+  const [withholding, setWithholding] = useState(4000);
+
+  useEffect(() => {
+    // Set a default withholding based on 8% of income, but only when income changes.
+    // This provides a sensible default without overwriting user input.
+    const newWithholding = Math.round(income * 0.08);
+    setWithholding(newWithholding);
+  }, [income]);
+
 
   const estimatedTax = useMemo(() => {
     // This is a highly simplified tax calculation for demonstration purposes.
@@ -153,12 +162,10 @@ function TaxEstimator() {
       }
     }
     
-    // Assuming a flat 8% withholding for refund/due calculation
-    const withholding = income * 0.08;
     let refund = withholding - (tax - childCredit);
     
     return { refund: Math.round(refund) };
-  }, [income, filingStatus, dependents]);
+  }, [income, filingStatus, dependents, withholding]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
@@ -172,11 +179,15 @@ function TaxEstimator() {
         <p className="text-muted-foreground">Get a quick idea of your potential refund or tax due.</p>
       </CardHeader>
       <CardContent className="p-8">
-        <div className="grid md:grid-cols-3 gap-6 items-center">
-          <div className="space-y-4">
+        <div className="grid md:grid-cols-3 gap-6 items-start">
+          <div className="md:col-span-2 grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="income">Annual Income</Label>
               <Input id="income" type="number" value={income} onChange={(e) => setIncome(Number(e.target.value))} placeholder="e.g., 50000" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="withholding">Taxes Withheld</Label>
+              <Input id="withholding" type="number" value={withholding} onChange={(e) => setWithholding(Number(e.target.value))} placeholder="e.g., 4000" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="filing-status">Filing Status</Label>
@@ -204,8 +215,8 @@ function TaxEstimator() {
               </div>
             </div>
           </div>
-          <div className="md:col-span-2 flex items-center justify-center">
-            <div className="text-center bg-primary/10 p-8 rounded-lg">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center bg-primary/10 p-8 rounded-lg w-full">
               <p className="text-lg font-medium text-muted-foreground">
                 {estimatedTax.refund >= 0 ? "Estimated Refund" : "Estimated Tax Due"}
               </p>
