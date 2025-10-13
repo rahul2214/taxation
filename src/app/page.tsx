@@ -153,8 +153,8 @@ function TaxEstimator() {
       }
     }
     
-    // Assuming a flat 15% withholding for refund/due calculation
-    const withholding = income * 0.15;
+    // Assuming a flat 8% withholding for refund/due calculation
+    const withholding = income * 0.08;
     let refund = withholding - (tax - childCredit);
     
     return { refund: Math.round(refund) };
