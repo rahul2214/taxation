@@ -22,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -29,12 +30,14 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
 type Appointment = {
   id: string;
@@ -42,13 +45,13 @@ type Appointment = {
   service: string;
   date: string;
   time: string;
-  status: "Confirmed" | "Completed" | "Pending" | "Cancelled";
+  status: AppointmentStatus;
   clientEmail?: string;
   clientPhone?: string;
   notes?: string;
 };
 
-const appointments: Appointment[] = [
+const initialAppointments: Appointment[] = [
   { id: "APT001", client: "John Smith", service: "Personal Tax Filing", date: "2024-05-20", time: "10:00 AM", status: "Confirmed", clientEmail: "john.s@example.com", clientPhone: "(123) 456-7890", notes: "Prefers morning appointments." },
   { id: "APT002", client: "Jane Doe", service: "Business Tax Services", date: "2024-05-21", time: "02:00 PM", status: "Completed", clientEmail: "jane.d@example.com", clientPhone: "(987) 654-3210", notes: "Needs to discuss quarterly estimates." },
   { id: "APT003", client: "Peter Jones", service: "IRS Audit Support", date: "2024-05-22", time: "11:00 AM", status: "Pending", clientEmail: "peter.j@example.com", clientPhone: "(555) 123-4567" },
@@ -65,12 +68,26 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
 
 
 export default function AppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleViewDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setIsDialogOpen(true);
+  };
+  
+  const handleStatusChange = (appointmentId: string, newStatus: AppointmentStatus) => {
+    setAppointments(currentAppointments => 
+      currentAppointments.map(apt => 
+        apt.id === appointmentId ? { ...apt, status: newStatus } : apt
+      )
+    );
+    toast({
+      title: "Status Updated",
+      description: `Appointment ${appointmentId} has been marked as ${newStatus}.`
+    });
   };
 
   return (
@@ -114,8 +131,10 @@ export default function AppointmentsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDetails(apt)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Reschedule</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleStatusChange(apt.id, 'Confirmed')} disabled={apt.status === 'Confirmed'}>Mark as Confirmed</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(apt.id, 'Completed')} disabled={apt.status === 'Completed'}>Mark as Completed</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(apt.id, 'Cancelled')} disabled={apt.status === 'Cancelled'} className="text-destructive">Mark as Cancelled</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
