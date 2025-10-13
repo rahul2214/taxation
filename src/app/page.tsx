@@ -58,9 +58,9 @@ const plans = [
         id: "personal",
         title: "Personal",
         description: "Perfect for individuals and families looking for a stress-free tax season.",
-        price: "$59",
+        price: "$0",
         pricePeriod: "starts at",
-        features: ["W-2 & 1099 Income", "Itemized Deductions", "Student Loan Interest", "Free E-filing"],
+        features: ["W-2", "Students", "Unemployement Income", "Free E-filing"],
         buttonText: "Get Started"
     },
     {
@@ -566,3 +566,5 @@ export default function Home() {
     </PublicLayout>
   );
 }
+
+    
