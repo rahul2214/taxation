@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const customers = [
   { id: "CUST001", name: "John Smith", email: "john.s@example.com", joinDate: "2023-01-15", status: "Active", avatar: "https://picsum.photos/seed/cust1/40/40", fallback: "JS" },
@@ -60,13 +59,7 @@ export default function CustomersPage() {
             {customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>
-                    <div className="flex items-center gap-3">
-                        <Avatar>
-                            <AvatarImage src={customer.avatar} alt={customer.name} />
-                            <AvatarFallback>{customer.fallback}</AvatarFallback>
-                        </Avatar>
-                        <div className="font-medium">{customer.name}</div>
-                    </div>
+                    <div className="font-medium">{customer.name}</div>
                 </TableCell>
                 <TableCell>{customer.email}</TableCell>
                 <TableCell>{customer.joinDate}</TableCell>
