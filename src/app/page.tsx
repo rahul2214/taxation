@@ -108,8 +108,8 @@ function TaxEstimator() {
     // This is a highly simplified tax calculation for demonstration purposes.
     const standardDeductions: { [key: string]: number } = {
       single: 14600,
-      married: 27700,
-      hoh: 20800
+      married: 29200,
+      hoh: 21900
     };
 
     const taxBrackets: { [key: string]: { rate: number, amount: number }[] } = {
