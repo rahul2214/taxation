@@ -39,16 +39,18 @@ type Customer = {
   id: string;
   name: string;
   email: string;
+  phone: string;
+  address: string;
   joinDate: string;
   status: "Active" | "Inactive" | "Suspended";
 };
 
 const customers: Customer[] = [
-  { id: "CUST001", name: "John Smith", email: "john.s@example.com", joinDate: "2023-01-15", status: "Active" },
-  { id: "CUST002", name: "Jane Doe", email: "jane.d@example.com", joinDate: "2023-02-20", status: "Active" },
-  { id: "CUST003", name: "Peter Jones", email: "peter.j@example.com", joinDate: "2023-03-10", status: "Inactive" },
-  { id: "CUST004", name: "Mary Johnson", email: "mary.j@example.com", joinDate: "2023-04-05", status: "Active" },
-  { id: "CUST005", name: "David Lee", email: "david.l@example.com", joinDate: "2023-05-12", status: "Suspended" },
+  { id: "CUST001", name: "John Smith", email: "john.s@example.com", phone: "(123) 456-7890", address: "123 Main St, Anytown, USA 12345", joinDate: "2023-01-15", status: "Active" },
+  { id: "CUST002", name: "Jane Doe", email: "jane.d@example.com", phone: "(987) 654-3210", address: "456 Oak Ave, Someville, USA 67890", joinDate: "2023-02-20", status: "Active" },
+  { id: "CUST003", name: "Peter Jones", email: "peter.j@example.com", phone: "(555) 123-4567", address: "789 Pine Ln, Otherplace, USA 13579", joinDate: "2023-03-10", status: "Inactive" },
+  { id: "CUST004", name: "Mary Johnson", email: "mary.j@example.com", phone: "(111) 222-3333", address: "101 Maple Dr, Newcity, USA 24680", joinDate: "2023-04-05", status: "Active" },
+  { id: "CUST005", name: "David Lee", email: "david.l@example.com", phone: "(444) 555-6666", address: "212 Birch Rd, Oldtown, USA 97531", joinDate: "2023-05-12", status: "Suspended" },
 ];
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
@@ -134,6 +136,14 @@ export default function CustomersPage() {
                      <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Email</span>
                         <span className="col-span-3 text-sm">{selectedCustomer.email}</span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Phone</span>
+                        <span className="col-span-3 text-sm">{selectedCustomer.phone}</span>
+                    </div>
+                     <div className="grid grid-cols-4 items-start gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Address</span>
+                        <span className="col-span-3 text-sm">{selectedCustomer.address}</span>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Joined</span>
