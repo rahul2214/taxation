@@ -34,17 +34,18 @@ type Referral = {
   id: string;
   referrerName: string;
   referrerEmail: string;
+  referredName: string;
   referredEmail: string;
   date: string;
   status: ReferralStatus;
 };
 
 const initialReferrals: Referral[] = [
-  { id: "REF001", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredEmail: "alice.b@example.com", date: "2024-02-10", status: "Completed" },
-  { id: "REF002", referrerName: "Jane Doe", referrerEmail: "jane.d@example.com", referredEmail: "bob.w@example.com", date: "2024-02-15", status: "Pending" },
-  { id: "REF003", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredEmail: "charlie.g@example.com", date: "2024-03-01", status: "Completed" },
-  { id: "REF004", referrerName: "Mary Johnson", referrerEmail: "mary.j@example.com", referredEmail: "diana.p@example.com", date: "2024-03-05", status: "Pending" },
-  { id: "REF005", referrerName: "David Lee", referrerEmail: "david.l@example.com", referredEmail: "frank.c@example.com", date: "2024-03-20", status: "Expired" },
+  { id: "REF001", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredName: "Alice Brown", referredEmail: "alice.b@example.com", date: "2024-02-10", status: "Completed" },
+  { id: "REF002", referrerName: "Jane Doe", referrerEmail: "jane.d@example.com", referredName: "Bob Williams", referredEmail: "bob.w@example.com", date: "2024-02-15", status: "Pending" },
+  { id: "REF003", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredName: "Charlie Green", referredEmail: "charlie.g@example.com", date: "2024-03-01", status: "Completed" },
+  { id: "REF004", referrerName: "Mary Johnson", referrerEmail: "mary.j@example.com", referredName: "Diana Prince", referredEmail: "diana.p@example.com", date: "2024-03-05", status: "Pending" },
+  { id: "REF005", referrerName: "David Lee", referrerEmail: "david.l@example.com", referredName: "Frank Castle", referredEmail: "frank.c@example.com", date: "2024-03-20", status: "Expired" },
 ];
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
@@ -79,9 +80,8 @@ export default function ReferralsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Referral ID</TableHead>
               <TableHead>Referrer</TableHead>
-              <TableHead>Referred Email</TableHead>
+              <TableHead>Referred</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -90,12 +90,14 @@ export default function ReferralsPage() {
           <TableBody>
             {referrals.map((ref) => (
               <TableRow key={ref.id}>
-                <TableCell className="font-medium">{ref.id}</TableCell>
                 <TableCell>
                     <div>{ref.referrerName}</div>
                     <div className="text-sm text-muted-foreground">{ref.referrerEmail}</div>
                 </TableCell>
-                <TableCell>{ref.referredEmail}</TableCell>
+                 <TableCell>
+                    <div>{ref.referredName}</div>
+                    <div className="text-sm text-muted-foreground">{ref.referredEmail}</div>
+                </TableCell>
                 <TableCell>{ref.date}</TableCell>
                 <TableCell>
                   <Badge variant={statusVariant[ref.status] || "default"}>{ref.status}</Badge>
