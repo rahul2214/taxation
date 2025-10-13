@@ -59,7 +59,7 @@ const plans = [
         title: "Personal",
         description: "Perfect for individuals and families looking for a stress-free tax season.",
         price: "$0",
-        pricePeriod: "starts at",
+        pricePeriod: "state additional for paid products simple returns only",
         features: ["W-2", "Students", "Unemployement Income", "Free E-filing"],
         buttonText: "Get Started"
     },
