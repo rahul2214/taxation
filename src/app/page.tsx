@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -10,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory, Calculator, Minus, Plus } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -234,6 +235,55 @@ function TaxEstimator() {
   );
 }
 
+const AnimatedCounter = ({ target, duration = 2000, prefix = "", suffix = "" }) => {
+  const [count, setCount] = useState(0);
+  const countRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          let start = 0;
+          const end = target;
+          const startTime = Date.now();
+
+          const animate = () => {
+            const currentTime = Date.now();
+            const progress = currentTime - startTime;
+            const currentCount = Math.min(Math.floor((progress / duration) * end), end);
+            setCount(currentCount);
+
+            if (currentCount < end) {
+              requestAnimationFrame(animate);
+            }
+          };
+          requestAnimationFrame(animate);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (countRef.current) {
+      observer.observe(countRef.current);
+    }
+
+    return () => {
+      if (countRef.current) {
+        observer.unobserve(countRef.current);
+      }
+    };
+  }, [target, duration]);
+  
+  const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
+
+  return (
+    <span ref={countRef} className="text-3xl font-bold text-primary">
+      {prefix}{formatNumber(count)}{suffix}
+    </span>
+  );
+};
+
 
 export default function Home() {
    const plugin = React.useRef(
@@ -289,15 +339,15 @@ export default function Home() {
               </div>
               <div className="grid grid-cols-2 gap-6">
                   <Card className="bg-card p-6 text-center">
-                    <h3 className="text-3xl font-bold text-primary">99%</h3>
+                    <h3 className="text-3xl font-bold text-primary"><AnimatedCounter target={99} suffix="%" /></h3>
                     <p className="text-muted-foreground mt-1">Accuracy Rate</p>
                   </Card>
                    <Card className="bg-card p-6 text-center">
-                    <h3 className="text-3xl font-bold text-primary">10,000+</h3>
+                    <h3 className="text-3xl font-bold text-primary"><AnimatedCounter target={10000} suffix="+" /></h3>
                     <p className="text-muted-foreground mt-1">Happy Clients</p>
                   </Card>
                    <Card className="bg-card p-6 text-center">
-                    <h3 className="text-3xl font-bold text-primary">$500+</h3>
+                    <h3 className="text-3xl font-bold text-primary"><AnimatedCounter target={4000} prefix="$" suffix="+" /></h3>
                     <p className="text-muted-foreground mt-1">Avg. Extra Savings</p>
                   </Card>
                    <Card className="bg-card p-6 text-center">
@@ -516,5 +566,3 @@ export default function Home() {
     </PublicLayout>
   );
 }
-
-    
