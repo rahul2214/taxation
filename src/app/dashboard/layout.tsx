@@ -18,6 +18,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const userDocRef = useMemoFirebase(() => {
+    // The hook will run, but return null if user/firestore isn't ready
     if (!user || !firestore) return null;
     return doc(firestore, `customers/${user.uid}`);
   }, [user, firestore]);
@@ -25,27 +26,26 @@ export default function DashboardLayout({
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    // If the user loading state is finished and there's no user, redirect to login
+    // If auth state is resolved and there is no user, redirect to login.
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // While checking auth state or loading user data, show a loader
-  if (isUserLoading || isUserDataLoading) {
+  // Determine the combined loading state after all hooks are called.
+  const isLoading = isUserLoading || isUserDataLoading;
+
+  // If we are loading or there's no user yet, show a full-screen loader.
+  // This prevents rendering the main layout until authentication is confirmed.
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-
-  // If user is not logged in, don't render the dashboard (the redirect is happening)
-  if (!user) {
-    return null;
-  }
   
-  // If user is logged in, render the dashboard layout
+  // Only when loading is complete and we have a user, render the full dashboard layout.
   return (
     <SidebarProvider>
       <CustomerSidebar userData={userData} />
