@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -8,10 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory } from "lucide-react";
+import { CheckCircle, Zap, Users, Check, Gift, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory, Calculator, Minus, Plus } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
-import React from "react";
+import React, { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
 const serviceImages = {
@@ -86,6 +89,141 @@ const trustedByLogos = [
     { icon: <Factory className="h-10 w-10" /> },
 ];
 
+
+function TaxEstimator() {
+  const [income, setIncome] = useState(50000);
+  const [filingStatus, setFilingStatus] = useState("single");
+  const [dependents, setDependents] = useState(0);
+
+  const estimatedTax = useMemo(() => {
+    // This is a highly simplified tax calculation for demonstration purposes.
+    const standardDeductions: { [key: string]: number } = {
+      single: 13850,
+      married: 27700,
+      hoh: 20800
+    };
+
+    const taxBrackets: { [key: string]: { rate: number, amount: number }[] } = {
+      single: [
+        { rate: 0.10, amount: 11000 },
+        { rate: 0.12, amount: 44725 },
+        { rate: 0.22, amount: 95375 },
+        { rate: 0.24, amount: 182100 },
+        { rate: 0.32, amount: 231250 },
+        { rate: 0.35, amount: 578125 },
+        { rate: 0.37, amount: Infinity },
+      ],
+      married: [
+        { rate: 0.10, amount: 22000 },
+        { rate: 0.12, amount: 89450 },
+        { rate: 0.22, amount: 190750 },
+        { rate: 0.24, amount: 364200 },
+        { rate: 0.32, amount: 462500 },
+        { rate: 0.35, amount: 693750 },
+        { rate: 0.37, amount: Infinity },
+      ],
+      hoh: [
+        { rate: 0.10, amount: 15700 },
+        { rate: 0.12, amount: 59850 },
+        { rate: 0.22, amount: 95350 },
+        { rate: 0.24, amount: 182100 },
+        { rate: 0.32, amount: 231250 },
+        { rate: 0.35, amount: 578100 },
+        { rate: 0.37, amount: Infinity },
+      ]
+    };
+
+    const deduction = standardDeductions[filingStatus] || 0;
+    const childCredit = dependents * 2000;
+    
+    let taxableIncome = income - deduction;
+    if (taxableIncome < 0) taxableIncome = 0;
+
+    let tax = 0;
+    let remainingIncome = taxableIncome;
+    let previousLimit = 0;
+    const brackets = taxBrackets[filingStatus] || taxBrackets.single;
+
+    for (const bracket of brackets) {
+      if (remainingIncome > 0) {
+        const taxableInBracket = Math.min(remainingIncome, bracket.amount - previousLimit);
+        tax += taxableInBracket * bracket.rate;
+        remainingIncome -= taxableInBracket;
+        previousLimit = bracket.amount;
+      }
+    }
+    
+    // Assuming a flat 15% withholding for refund/due calculation
+    const withholding = income * 0.15;
+    let refund = withholding - (tax - childCredit);
+    
+    return { refund: Math.round(refund) };
+  }, [income, filingStatus, dependents]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+  }
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto shadow-2xl">
+      <CardHeader className="text-center">
+        <Calculator className="mx-auto h-12 w-12 text-primary" />
+        <CardTitle className="text-3xl font-bold">Initial Tax Estimation</CardTitle>
+        <p className="text-muted-foreground">Get a quick idea of your potential refund or tax due.</p>
+      </CardHeader>
+      <CardContent className="p-8">
+        <div className="grid md:grid-cols-3 gap-6 items-center">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="income">Annual Income</Label>
+              <Input id="income" type="number" value={income} onChange={(e) => setIncome(Number(e.target.value))} placeholder="e.g., 50000" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="filing-status">Filing Status</Label>
+              <Select value={filingStatus} onValueChange={setFilingStatus}>
+                <SelectTrigger id="filing-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">Single</SelectItem>
+                  <SelectItem value="married">Married Filing Jointly</SelectItem>
+                  <SelectItem value="hoh">Head of Household</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dependents">Dependents</Label>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => setDependents(Math.max(0, dependents - 1))}>
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input id="dependents" type="number" value={dependents} onChange={(e) => setDependents(Math.max(0, Number(e.target.value)))} className="text-center" />
+                <Button variant="outline" size="icon" onClick={() => setDependents(dependents + 1)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="md:col-span-2 flex items-center justify-center">
+            <div className="text-center bg-primary/10 p-8 rounded-lg">
+              <p className="text-lg font-medium text-muted-foreground">
+                {estimatedTax.refund >= 0 ? "Estimated Refund" : "Estimated Tax Due"}
+              </p>
+              <p className={`text-5xl font-bold ${estimatedTax.refund >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                {formatCurrency(Math.abs(estimatedTax.refund))}
+              </p>
+               <p className="text-xs text-muted-foreground mt-4 max-w-xs mx-auto">
+                This is a simplified estimate. Actual refund or tax due may vary. This is not tax advice.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export default function Home() {
    const plugin = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -158,6 +296,13 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </section>
+        
+        {/* Tax Estimator Section */}
+        <section className="py-16 md:py-24">
+            <div className="container mx-auto px-4 md:px-6">
+                <TaxEstimator />
+            </div>
         </section>
 
         {/* Features Section */}
