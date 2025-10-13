@@ -107,7 +107,7 @@ function TaxEstimator() {
   const estimatedTax = useMemo(() => {
     // This is a highly simplified tax calculation for demonstration purposes.
     const standardDeductions: { [key: string]: number } = {
-      single: 13850,
+      single: 14600,
       married: 27700,
       hoh: 20800
     };
