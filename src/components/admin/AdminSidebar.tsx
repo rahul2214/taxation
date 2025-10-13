@@ -44,9 +44,12 @@ export function AdminSidebar() {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-            <Link href="/admin" className="flex items-center gap-2 font-bold text-lg">
-                <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
-                <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services Admin</span>
+            <Link href="/admin" className="flex flex-col items-start gap-1 font-bold text-lg">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
+                    <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
+                </div>
+                <span className="text-xs font-medium text-sidebar-foreground/70 ml-9">Admin</span>
             </Link>
             <SidebarTrigger className="ml-auto" />
         </div>
