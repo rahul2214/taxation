@@ -37,7 +37,7 @@ import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collectionGroup, doc, Timestamp, query } from "firebase/firestore";
+import { collection, doc, Timestamp, query, writeBatch } from "firebase/firestore";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
@@ -50,6 +50,7 @@ type Appointment = {
   status: AppointmentStatus;
   requestDate: Timestamp;
   customerId: string;
+  customerAppointmentId: string;
 };
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
@@ -68,7 +69,8 @@ export default function AppointmentsPage() {
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'appointments'));
+    // Query the top-level collection for admins
+    return query(collection(firestore, 'admin-appointments'));
   }, [firestore]);
 
   const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsQuery);
@@ -78,17 +80,35 @@ export default function AppointmentsPage() {
     setIsDialogOpen(true);
   };
   
-  const handleStatusChange = (appointment: Appointment, newStatus: AppointmentStatus) => {
+  const handleStatusChange = async (appointment: Appointment, newStatus: AppointmentStatus) => {
     if (!firestore) return;
     
-    // Path to the document is customers/{customerId}/appointments/{appointmentId}
-    const appointmentDocRef = doc(firestore, `customers/${appointment.customerId}/appointments/${appointment.id}`);
-    updateDocumentNonBlocking(appointmentDocRef, { status: newStatus });
-    
-    toast({
-      title: "Status Updated",
-      description: `Appointment for ${appointment.fullName} has been marked as ${newStatus}.`
-    });
+    const batch = writeBatch(firestore);
+
+    // 1. Update the document in the admin collection
+    const adminAppointmentRef = doc(firestore, 'admin-appointments', appointment.id);
+    batch.update(adminAppointmentRef, { status: newStatus });
+
+    // 2. Update the corresponding document in the customer's subcollection
+    if (appointment.customerId && appointment.customerAppointmentId) {
+      const customerAppointmentRef = doc(firestore, `customers/${appointment.customerId}/appointments/${appointment.customerAppointmentId}`);
+      batch.update(customerAppointmentRef, { status: newStatus });
+    }
+
+    try {
+      await batch.commit();
+      toast({
+        title: "Status Updated",
+        description: `Appointment for ${appointment.fullName} has been marked as ${newStatus}.`
+      });
+    } catch (error) {
+       console.error("Error updating status:", error);
+       toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: `Could not update appointment status.`
+      });
+    }
   };
 
   return (

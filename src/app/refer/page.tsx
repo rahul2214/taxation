@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Gift, Mail, Users, Loader2 } from "lucide-react";
 import { useFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { collection, serverTimestamp, doc, setDoc, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { signInAnonymously } from "firebase/auth";
@@ -35,11 +35,13 @@ export default function ReferPage() {
 
     try {
       let userId = user?.uid;
+      let isAnonymous = user?.isAnonymous || false;
 
-      // If user is not logged in, sign them in anonymously and create a customer record.
+      // If user is not logged in, sign them in anonymously.
       if (!user) {
         const userCredential = await signInAnonymously(auth);
         userId = userCredential.user.uid;
+        isAnonymous = true;
         
         // Create a customer document for the anonymous user
         const customerDocRef = doc(firestore, `customers/${userId}`);
@@ -56,8 +58,22 @@ export default function ReferPage() {
           throw new Error("Could not determine user ID for referral.");
       }
 
-      const targetCollection = collection(firestore, `customers/${userId}/referrals`);
-      await addDocumentNonBlocking(targetCollection, referralData);
+      const batch = writeBatch(firestore);
+
+      // 1. Write to the customer's subcollection
+      const customerReferralRef = doc(collection(firestore, `customers/${userId}/referrals`));
+      batch.set(customerReferralRef, { ...referralData, referrerId: userId });
+
+      // 2. Write to the top-level admin collection
+      const adminReferralRef = doc(collection(firestore, 'admin-referrals'));
+      batch.set(adminReferralRef, {
+        ...referralData,
+        referrerId: userId,
+        customerReferralId: customerReferralRef.id,
+        isAnonymous,
+      });
+
+      await batch.commit();
       
       toast({
         title: "Invite Sent!",

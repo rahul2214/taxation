@@ -27,8 +27,8 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collectionGroup, doc, Timestamp, query } from "firebase/firestore";
+import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, Timestamp, query, writeBatch } from "firebase/firestore";
 
 type ReferralStatus = "Completed" | "Pending" | "Expired";
 
@@ -40,7 +40,8 @@ type Referral = {
   referredEmail: string;
   referralDate: Timestamp;
   status: ReferralStatus;
-  customerId: string;
+  referrerId: string;
+  customerReferralId: string;
 };
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
@@ -55,22 +56,40 @@ export default function ReferralsPage() {
 
   const referralsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'referrals'));
+    return query(collection(firestore, 'admin-referrals'));
   }, [firestore]);
 
   const { data: referrals, isLoading } = useCollection<Referral>(referralsQuery);
 
-  const handleStatusChange = (referral: Referral, newStatus: ReferralStatus) => {
+  const handleStatusChange = async (referral: Referral, newStatus: ReferralStatus) => {
     if (!firestore) return;
 
-    // Path to the document is customers/{customerId}/referrals/{referralId}
-    const referralDocRef = doc(firestore, `customers/${referral.customerId}/referrals/${referral.id}`);
-    updateDocumentNonBlocking(referralDocRef, { status: newStatus });
+    const batch = writeBatch(firestore);
 
-    toast({
-      title: "Status Updated",
-      description: `Referral from ${referral.referrerName} has been marked as ${newStatus}.`
-    });
+    // 1. Update the doc in the admin collection
+    const adminReferralRef = doc(firestore, `admin-referrals/${referral.id}`);
+    batch.update(adminReferralRef, { status: newStatus });
+
+    // 2. Update the corresponding doc in the customer's subcollection
+    if (referral.referrerId && referral.customerReferralId) {
+      const customerReferralRef = doc(firestore, `customers/${referral.referrerId}/referrals/${referral.customerReferralId}`);
+      batch.update(customerReferralRef, { status: newStatus });
+    }
+
+    try {
+      await batch.commit();
+      toast({
+        title: "Status Updated",
+        description: `Referral from ${referral.referrerName} has been marked as ${newStatus}.`
+      });
+    } catch (error) {
+      console.error("Error updating referral status:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: `Could not update referral status.`
+      });
+    }
   };
 
   return (
