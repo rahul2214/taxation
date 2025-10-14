@@ -36,13 +36,13 @@ export default function ReferPage() {
     };
 
     try {
-      let userId = user?.uid;
+      let currentUser = user;
 
-      if (!user) {
+      if (!currentUser) {
         const userCredential = await signInAnonymously(auth);
-        userId = userCredential.user.uid;
+        currentUser = userCredential.user;
         
-        const customerDocRef = doc(firestore, `customers/${userId}`);
+        const customerDocRef = doc(firestore, `customers/${currentUser.uid}`);
         await setDoc(customerDocRef, {
             email: referrerEmail,
             firstName: referrerName.split(' ')[0] || 'Anonymous',
@@ -52,13 +52,17 @@ export default function ReferPage() {
         });
       }
       
-      if (!userId) {
+      if (!currentUser?.uid) {
           throw new Error("Could not determine user ID for referral.");
       }
 
-      const customerReferralRef = collection(firestore, `customers/${userId}/referrals`);
-      addDocumentNonBlocking(customerReferralRef, { ...referralData, referrerId: userId });
+      const customerReferralRef = collection(firestore, `customers/${currentUser.uid}/referrals`);
+      const referralDoc = await addDoc(customerReferralRef, { ...referralData, referrerId: currentUser.uid });
       
+      // Dual write to admin collection
+      const adminReferralRef = doc(firestore, `admin-referrals/${referralDoc.id}`);
+      await setDoc(adminReferralRef, { ...referralData, referrerId: currentUser.uid, customerReferralId: referralDoc.id });
+
       toast({
         title: "Invite Sent!",
         description: `Your referral to ${referralData.referredName} has been sent. Thank you!`,

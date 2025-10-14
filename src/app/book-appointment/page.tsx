@@ -43,15 +43,15 @@ export default function BookAppointmentPage() {
     };
 
     try {
-      let userId = user?.uid;
+      let currentUser = user;
 
       // If user is not logged in, sign them in anonymously.
-      if (!user) {
+      if (!currentUser) {
         const userCredential = await signInAnonymously(auth);
-        userId = userCredential.user.uid;
+        currentUser = userCredential.user;
         
         // Create a customer document for the anonymous user
-        const customerDocRef = doc(firestore, `customers/${userId}`);
+        const customerDocRef = doc(firestore, `customers/${currentUser.uid}`);
         await setDoc(customerDocRef, {
             email: email,
             firstName: fullName.split(' ')[0] || 'Anonymous',
@@ -61,13 +61,18 @@ export default function BookAppointmentPage() {
         });
       }
       
-      if (!userId) {
+      if (!currentUser?.uid) {
           throw new Error("Could not determine user ID.");
       }
 
       // Write to the customer's subcollection
-      const customerAppointmentRef = collection(firestore, `customers/${userId}/appointments`);
-      addDocumentNonBlocking(customerAppointmentRef, { ...appointmentData, customerId: userId });
+      const customerAppointmentRef = collection(firestore, `customers/${currentUser.uid}/appointments`);
+      const appointmentDoc = await addDoc(customerAppointmentRef, { ...appointmentData, customerId: currentUser.uid });
+
+      // Dual write to admin collection
+      const adminAppointmentRef = doc(firestore, `admin-appointments/${appointmentDoc.id}`);
+      await setDoc(adminAppointmentRef, { ...appointmentData, customerId: currentUser.uid, customerAppointmentId: appointmentDoc.id });
+
 
       toast({
         title: "Appointment Requested",
