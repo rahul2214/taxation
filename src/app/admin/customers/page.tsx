@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 
 type Customer = {
   id: string;
@@ -50,6 +50,7 @@ type Customer = {
     zip: string;
   };
   signupDate: { seconds: number, nanoseconds: number } | Date;
+  role?: string;
 };
 
 export default function CustomersPage() {
@@ -57,8 +58,8 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const customersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'customers') : null, [firestore]);
-  const { data: customers, isLoading } = useCollection<Omit<Customer, 'id'>>(customersCollection);
+  const customersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'customers'), where('role', '!=', 'admin')) : null, [firestore]);
+  const { data: customers, isLoading } = useCollection<Omit<Customer, 'id'>>(customersQuery);
 
   const handleViewProfile = (customer: Customer) => {
     setSelectedCustomer(customer);
