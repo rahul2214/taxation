@@ -37,7 +37,7 @@ import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collectionGroup, doc, Timestamp } from "firebase/firestore";
+import { collectionGroup, doc, Timestamp, query } from "firebase/firestore";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
@@ -68,7 +68,7 @@ export default function AppointmentsPage() {
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collectionGroup(firestore, 'appointments');
+    return query(collectionGroup(firestore, 'appointments'));
   }, [firestore]);
 
   const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsQuery);
@@ -81,12 +81,13 @@ export default function AppointmentsPage() {
   const handleStatusChange = (appointment: Appointment, newStatus: AppointmentStatus) => {
     if (!firestore) return;
     
+    // Path to the document is customers/{customerId}/appointments/{appointmentId}
     const appointmentDocRef = doc(firestore, `customers/${appointment.customerId}/appointments/${appointment.id}`);
     updateDocumentNonBlocking(appointmentDocRef, { status: newStatus });
     
     toast({
       title: "Status Updated",
-      description: `Appointment ${appointment.id} has been marked as ${newStatus}.`
+      description: `Appointment for ${appointment.fullName} has been marked as ${newStatus}.`
     });
   };
 

@@ -25,10 +25,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collectionGroup, doc, Timestamp } from "firebase/firestore";
+import { collectionGroup, doc, Timestamp, query } from "firebase/firestore";
 
 type ReferralStatus = "Completed" | "Pending" | "Expired";
 
@@ -55,7 +55,7 @@ export default function ReferralsPage() {
 
   const referralsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collectionGroup(firestore, 'referrals');
+    return query(collectionGroup(firestore, 'referrals'));
   }, [firestore]);
 
   const { data: referrals, isLoading } = useCollection<Referral>(referralsQuery);
@@ -63,12 +63,13 @@ export default function ReferralsPage() {
   const handleStatusChange = (referral: Referral, newStatus: ReferralStatus) => {
     if (!firestore) return;
 
+    // Path to the document is customers/{customerId}/referrals/{referralId}
     const referralDocRef = doc(firestore, `customers/${referral.customerId}/referrals/${referral.id}`);
     updateDocumentNonBlocking(referralDocRef, { status: newStatus });
 
     toast({
       title: "Status Updated",
-      description: `Referral ${referral.id} has been marked as ${newStatus}.`
+      description: `Referral from ${referral.referrerName} has been marked as ${newStatus}.`
     });
   };
 
