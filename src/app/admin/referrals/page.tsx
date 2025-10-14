@@ -24,9 +24,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { collectionGroup, doc, Timestamp } from "firebase/firestore";
 
 type ReferralStatus = "Completed" | "Pending" | "Expired";
 
@@ -36,17 +38,10 @@ type Referral = {
   referrerEmail: string;
   referredName: string;
   referredEmail: string;
-  date: string;
+  referralDate: Timestamp;
   status: ReferralStatus;
+  customerId: string;
 };
-
-const initialReferrals: Referral[] = [
-  { id: "REF001", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredName: "Alice Brown", referredEmail: "alice.b@example.com", date: "2024-02-10", status: "Completed" },
-  { id: "REF002", referrerName: "Jane Doe", referrerEmail: "jane.d@example.com", referredName: "Bob Williams", referredEmail: "bob.w@example.com", date: "2024-02-15", status: "Pending" },
-  { id: "REF003", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredName: "Charlie Green", referredEmail: "charlie.g@example.com", date: "2024-03-01", status: "Completed" },
-  { id: "REF004", referrerName: "Mary Johnson", referrerEmail: "mary.j@example.com", referredName: "Diana Prince", referredEmail: "diana.p@example.com", date: "2024-03-05", status: "Pending" },
-  { id: "REF005", referrerName: "David Lee", referrerEmail: "david.l@example.com", referredName: "Frank Castle", referredEmail: "frank.c@example.com", date: "2024-03-20", status: "Expired" },
-];
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
     "Completed": "default",
@@ -55,18 +50,25 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } 
 };
 
 export default function ReferralsPage() {
-  const [referrals, setReferrals] = useState<Referral[]>(initialReferrals);
+  const { firestore } = useFirebase();
   const { toast } = useToast();
 
-  const handleStatusChange = (referralId: string, newStatus: ReferralStatus) => {
-    setReferrals(currentReferrals => 
-      currentReferrals.map(ref => 
-        ref.id === referralId ? { ...ref, status: newStatus } : ref
-      )
-    );
+  const referralsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collectionGroup(firestore, 'referrals');
+  }, [firestore]);
+
+  const { data: referrals, isLoading } = useCollection<Referral>(referralsQuery);
+
+  const handleStatusChange = (referral: Referral, newStatus: ReferralStatus) => {
+    if (!firestore) return;
+
+    const referralDocRef = doc(firestore, `customers/${referral.customerId}/referrals/${referral.id}`);
+    updateDocumentNonBlocking(referralDocRef, { status: newStatus });
+
     toast({
       title: "Status Updated",
-      description: `Referral ${referralId} has been marked as ${newStatus}.`
+      description: `Referral ${referral.id} has been marked as ${newStatus}.`
     });
   };
 
@@ -88,7 +90,14 @@ export default function ReferralsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {referrals.map((ref) => (
+            {isLoading && (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                    </TableCell>
+                </TableRow>
+            )}
+            {!isLoading && referrals?.map((ref) => (
               <TableRow key={ref.id}>
                 <TableCell>
                     <div>{ref.referrerName}</div>
@@ -98,7 +107,7 @@ export default function ReferralsPage() {
                     <div>{ref.referredName}</div>
                     <div className="text-sm text-muted-foreground">{ref.referredEmail}</div>
                 </TableCell>
-                <TableCell>{ref.date}</TableCell>
+                <TableCell>{ref.referralDate ? new Date(ref.referralDate.seconds * 1000).toLocaleDateString() : 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant={statusVariant[ref.status] || "default"}>{ref.status}</Badge>
                 </TableCell>
@@ -111,14 +120,19 @@ export default function ReferralsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleStatusChange(ref.id, 'Completed')} disabled={ref.status === 'Completed'}>Mark as Completed</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(ref.id, 'Pending')} disabled={ref.status === 'Pending'}>Mark as Pending</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(ref.id, 'Expired')} disabled={ref.status === 'Expired'} className="text-destructive">Mark as Expired</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(ref, 'Completed')} disabled={ref.status === 'Completed'}>Mark as Completed</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(ref, 'Pending')} disabled={ref.status === 'Pending'}>Mark as Pending</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(ref, 'Expired')} disabled={ref.status === 'Expired'} className="text-destructive">Mark as Expired</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
+            {!isLoading && (!referrals || referrals.length === 0) && (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">No referrals found.</TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

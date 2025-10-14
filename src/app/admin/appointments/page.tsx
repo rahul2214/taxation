@@ -33,31 +33,24 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { collectionGroup, doc, Timestamp } from "firebase/firestore";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
 type Appointment = {
   id: string;
-  client: string;
-  service: string;
-  date: string;
-  time: string;
-  status: AppointmentStatus;
-  clientEmail?: string;
-  clientPhone?: string;
+  fullName: string;
+  email: string;
+  phone: string;
   notes?: string;
+  status: AppointmentStatus;
+  requestDate: Timestamp;
+  customerId: string;
 };
-
-const initialAppointments: Appointment[] = [
-  { id: "APT001", client: "John Smith", service: "Personal Tax Filing", date: "2024-05-20", time: "10:00 AM", status: "Confirmed", clientEmail: "john.s@example.com", clientPhone: "(123) 456-7890", notes: "Prefers morning appointments." },
-  { id: "APT002", client: "Jane Doe", service: "Business Tax Services", date: "2024-05-21", time: "02:00 PM", status: "Completed", clientEmail: "jane.d@example.com", clientPhone: "(987) 654-3210", notes: "Needs to discuss quarterly estimates." },
-  { id: "APT003", client: "Peter Jones", service: "IRS Audit Support", date: "2024-05-22", time: "11:00 AM", status: "Pending", clientEmail: "peter.j@example.com", clientPhone: "(555) 123-4567" },
-  { id: "APT004", client: "Mary Johnson", service: "Personal Tax Filing", date: "2024-05-23", time: "09:00 AM", status: "Cancelled", clientEmail: "mary.j@example.com", clientPhone: "(111) 222-3333", notes: "Cancelled due to a family emergency." },
-  { id: "APT005", client: "David Lee", service: "Tax Consulting", date: "2024-05-24", time: "03:00 PM", status: "Confirmed", clientEmail: "david.l@example.com", clientPhone: "(444) 555-6666" },
-];
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
     "Confirmed": "default",
@@ -68,25 +61,32 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
 
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const { firestore } = useFirebase();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collectionGroup(firestore, 'appointments');
+  }, [firestore]);
+
+  const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsQuery);
 
   const handleViewDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setIsDialogOpen(true);
   };
   
-  const handleStatusChange = (appointmentId: string, newStatus: AppointmentStatus) => {
-    setAppointments(currentAppointments => 
-      currentAppointments.map(apt => 
-        apt.id === appointmentId ? { ...apt, status: newStatus } : apt
-      )
-    );
+  const handleStatusChange = (appointment: Appointment, newStatus: AppointmentStatus) => {
+    if (!firestore) return;
+    
+    const appointmentDocRef = doc(firestore, `customers/${appointment.customerId}/appointments/${appointment.id}`);
+    updateDocumentNonBlocking(appointmentDocRef, { status: newStatus });
+    
     toast({
       title: "Status Updated",
-      description: `Appointment ${appointmentId} has been marked as ${newStatus}.`
+      description: `Appointment ${appointment.id} has been marked as ${newStatus}.`
     });
   };
 
@@ -101,23 +101,26 @@ export default function AppointmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Requested Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {appointments.map((apt) => (
+              {isLoading && (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                    </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && appointments?.map((apt) => (
                 <TableRow key={apt.id}>
-                  <TableCell className="font-medium">{apt.id}</TableCell>
-                  <TableCell>{apt.client}</TableCell>
-                  <TableCell>{apt.service}</TableCell>
-                  <TableCell>{apt.date}</TableCell>
-                  <TableCell>{apt.time}</TableCell>
+                  <TableCell className="font-medium">{apt.fullName}</TableCell>
+                  <TableCell>{apt.email}</TableCell>
+                  <TableCell>{apt.requestDate ? new Date(apt.requestDate.seconds * 1000).toLocaleDateString() : 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[apt.status] || "default"}>{apt.status}</Badge>
                   </TableCell>
@@ -132,14 +135,19 @@ export default function AppointmentsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDetails(apt)}>View Details</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleStatusChange(apt.id, 'Confirmed')} disabled={apt.status === 'Confirmed'}>Mark as Confirmed</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(apt.id, 'Completed')} disabled={apt.status === 'Completed'}>Mark as Completed</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(apt.id, 'Cancelled')} disabled={apt.status === 'Cancelled'} className="text-destructive">Mark as Cancelled</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(apt, 'Confirmed')} disabled={apt.status === 'Confirmed'}>Mark as Confirmed</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(apt, 'Completed')} disabled={apt.status === 'Completed'}>Mark as Completed</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChange(apt, 'Cancelled')} disabled={apt.status === 'Cancelled'} className="text-destructive">Mark as Cancelled</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
+               {!isLoading && (!appointments || appointments.length === 0) && (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">No appointments found.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -157,23 +165,19 @@ export default function AppointmentsPage() {
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Client</span>
-                        <span className="col-span-3 text-sm">{selectedAppointment.client}</span>
+                        <span className="col-span-3 text-sm">{selectedAppointment.fullName}</span>
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Email</span>
-                        <span className="col-span-3 text-sm">{selectedAppointment.clientEmail || 'N/A'}</span>
+                        <span className="col-span-3 text-sm">{selectedAppointment.email || 'N/A'}</span>
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Phone</span>
-                        <span className="col-span-3 text-sm">{selectedAppointment.clientPhone || 'N/A'}</span>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Service</span>
-                        <span className="col-span-3 text-sm">{selectedAppointment.service}</span>
+                        <span className="col-span-3 text-sm">{selectedAppointment.phone || 'N/A'}</span>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Date</span>
-                        <span className="col-span-3 text-sm">{selectedAppointment.date} at {selectedAppointment.time}</span>
+                        <span className="col-span-3 text-sm">{selectedAppointment.requestDate ? new Date(selectedAppointment.requestDate.seconds * 1000).toLocaleString() : 'N/A'}</span>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Status</span>
@@ -195,4 +199,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
