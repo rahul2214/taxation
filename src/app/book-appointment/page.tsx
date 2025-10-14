@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
+import { collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import { useState } from "react";
 
@@ -41,18 +41,29 @@ export default function BookAppointmentPage() {
     };
 
     try {
-      let targetCollection;
-      
-      // If user is logged in, use their UID. If not, sign them in anonymously first.
-      if (user) {
-        targetCollection = collection(firestore, `publicAppointments`);
-        Object.assign(appointmentData, { customerId: user.uid });
-      } else {
+      let userId = user?.uid;
+
+      // If user is not logged in, sign them in anonymously and create a customer record.
+      if (!user) {
         const userCredential = await signInAnonymously(auth);
-        targetCollection = collection(firestore, `publicAppointments`);
-        Object.assign(appointmentData, { customerId: userCredential.user.uid, isAnonymous: true });
+        userId = userCredential.user.uid;
+        
+        // Create a customer document for the anonymous user
+        const customerDocRef = doc(firestore, `customers/${userId}`);
+        await setDoc(customerDocRef, {
+            email: appointmentData.email,
+            firstName: appointmentData.fullName.split(' ')[0] || 'Anonymous',
+            lastName: appointmentData.fullName.split(' ').slice(1).join(' ') || 'User',
+            signupDate: serverTimestamp(),
+            isAnonymous: true,
+        });
       }
       
+      if (!userId) {
+          throw new Error("Could not determine user ID.");
+      }
+
+      const targetCollection = collection(firestore, `customers/${userId}/appointments`);
       await addDocumentNonBlocking(targetCollection, appointmentData);
 
       toast({

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Gift, Mail, Users, Loader2 } from "lucide-react";
 import { useFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
+import { collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { signInAnonymously } from "firebase/auth";
@@ -34,17 +34,30 @@ export default function ReferPage() {
     };
 
     try {
-      const referralsCollection = collection(firestore, "referrals");
-      
-      // If user is logged in, use their UID. If not, sign them in anonymously.
-      if (user) {
-        Object.assign(referralData, { referrerId: user.uid });
-      } else {
+      let userId = user?.uid;
+
+      // If user is not logged in, sign them in anonymously and create a customer record.
+      if (!user) {
         const userCredential = await signInAnonymously(auth);
-        Object.assign(referralData, { referrerId: userCredential.user.uid, isAnonymous: true });
+        userId = userCredential.user.uid;
+        
+        // Create a customer document for the anonymous user
+        const customerDocRef = doc(firestore, `customers/${userId}`);
+        await setDoc(customerDocRef, {
+            email: referralData.referrerEmail,
+            firstName: referralData.referrerName.split(' ')[0] || 'Anonymous',
+            lastName: referralData.referrerName.split(' ').slice(1).join(' ') || 'Referrer',
+            signupDate: serverTimestamp(),
+            isAnonymous: true,
+        });
+      }
+      
+      if (!userId) {
+          throw new Error("Could not determine user ID for referral.");
       }
 
-      await addDocumentNonBlocking(referralsCollection, referralData);
+      const targetCollection = collection(firestore, `customers/${userId}/referrals`);
+      await addDocumentNonBlocking(targetCollection, referralData);
       
       toast({
         title: "Invite Sent!",
