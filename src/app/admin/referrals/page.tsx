@@ -25,10 +25,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, Timestamp, query, writeBatch } from "firebase/firestore";
+import { useFirebase } from "@/firebase";
+import { collection, doc, Timestamp, writeBatch, getDocs } from "firebase/firestore";
 
 type ReferralStatus = "Completed" | "Pending" | "Expired";
 
@@ -52,30 +52,70 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } 
 
 export default function ReferralsPage() {
   const { firestore } = useFirebase();
+  const [allReferrals, setAllReferrals] = useState<Referral[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    if (!firestore) return;
 
-  const referralsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'admin-referrals'));
-  }, [firestore]);
+    const fetchAllReferrals = async () => {
+      setIsLoading(true);
+      try {
+        const customersSnapshot = await getDocs(collection(firestore, "customers"));
+        let referrals: Referral[] = [];
+        
+        for (const customerDoc of customersSnapshot.docs) {
+          const referralsSnapshot = await getDocs(collection(firestore, `customers/${customerDoc.id}/referrals`));
+          
+          referralsSnapshot.forEach((refDoc) => {
+            const refData = refDoc.data();
+            referrals.push({
+              id: refDoc.id,
+              customerReferralId: refDoc.id,
+              referrerId: customerDoc.id,
+              referrerName: refData.referrerName,
+              referrerEmail: refData.referrerEmail,
+              referredName: refData.referredName,
+              referredEmail: refData.referredEmail,
+              referralDate: refData.referralDate,
+              status: refData.status,
+            });
+          });
+        }
+        
+        setAllReferrals(referrals);
+      } catch (error) {
+        console.error("Error fetching all referrals:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load data",
+          description: "Could not fetch referrals. You may not have the required permissions.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const { data: referrals, isLoading } = useCollection<Referral>(referralsQuery);
+    fetchAllReferrals();
+  }, [firestore, toast]);
+
 
   const handleStatusChange = async (referral: Referral, newStatus: ReferralStatus) => {
     if (!firestore) return;
 
-    const batch = writeBatch(firestore);
-
-    const adminReferralRef = doc(firestore, `admin-referrals/${referral.id}`);
-    batch.update(adminReferralRef, { status: newStatus });
-
-    if (referral.referrerId && referral.customerReferralId) {
-      const customerReferralRef = doc(firestore, `customers/${referral.referrerId}/referrals/${referral.customerReferralId}`);
-      batch.update(customerReferralRef, { status: newStatus });
-    }
+    const customerReferralRef = doc(firestore, `customers/${referral.referrerId}/referrals/${referral.customerReferralId}`);
 
     try {
+      const batch = writeBatch(firestore);
+      batch.update(customerReferralRef, { status: newStatus });
       await batch.commit();
+
+      // Update local state
+      setAllReferrals(prev => prev.map(ref => 
+        ref.id === referral.id ? { ...ref, status: newStatus } : ref
+      ));
+
       toast({
         title: "Status Updated",
         description: `Referral from ${referral.referrerName} has been marked as ${newStatus}.`
@@ -115,8 +155,8 @@ export default function ReferralsPage() {
                     </TableCell>
                 </TableRow>
             )}
-            {!isLoading && referrals?.map((ref) => (
-              <TableRow key={ref.id}>
+            {!isLoading && allReferrals.map((ref) => (
+              <TableRow key={`${ref.referrerId}-${ref.id}`}>
                 <TableCell>
                     <div>{ref.referrerName}</div>
                     <div className="text-sm text-muted-foreground">{ref.referrerEmail}</div>
@@ -146,7 +186,7 @@ export default function ReferralsPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {!isLoading && (!referrals || referrals.length === 0) && (
+            {!isLoading && allReferrals.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground">No referrals found.</TableCell>
                 </TableRow>
