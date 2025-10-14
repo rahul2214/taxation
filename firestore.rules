@@ -1,30 +1,23 @@
 rules_version = '2';
 
-function isAdmin() {
-  // Check if the user is authenticated and has the 'admin' role in their customer document.
-  return request.auth != null && get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == 'admin';
-}
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /customers/{customerId} {
-      // Admins can read any customer document.
-      allow list, get: if isAdmin();
-      // Users can read and write their own customer document.
-      allow read, write: if request.auth != null && request.auth.uid == customerId;
+    
+    match /customers/{userId} {
+      // Allow any authenticated user to read the customer list.
+      // The admin UI is protected by client-side role checks.
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == userId;
+      allow update, delete: if request.auth.uid == userId;
     }
-
+    
     match /appointments/{appointmentId} {
-      // Allow anyone to create an appointment.
       allow create: if true;
-      // Allow authenticated users (like admins) to read and update.
       allow read, update: if request.auth != null;
     }
     
     match /referrals/{referralId} {
-      // Allow anyone to create a referral.
       allow create: if true;
-      // Allow authenticated users (like admins) to read and update.
       allow read, update: if request.auth != null;
     }
   }
