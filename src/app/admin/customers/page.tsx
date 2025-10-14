@@ -24,7 +24,6 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,41 +31,60 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 type Customer = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
-  address: string;
-  joinDate: string;
-  status: "Active" | "Inactive" | "Suspended";
-};
-
-const customers: Customer[] = [
-  { id: "CUST001", name: "John Smith", email: "john.s@example.com", phone: "(123) 456-7890", address: "123 Main St, Anytown, USA 12345", joinDate: "2023-01-15", status: "Active" },
-  { id: "CUST002", name: "Jane Doe", email: "jane.d@example.com", phone: "(987) 654-3210", address: "456 Oak Ave, Someville, USA 67890", joinDate: "2023-02-20", status: "Active" },
-  { id: "CUST003", name: "Peter Jones", email: "peter.j@example.com", phone: "(555) 123-4567", address: "789 Pine Ln, Otherplace, USA 13579", joinDate: "2023-03-10", status: "Inactive" },
-  { id: "CUST004", name: "Mary Johnson", email: "mary.j@example.com", phone: "(111) 222-3333", address: "101 Maple Dr, Newcity, USA 24680", joinDate: "2023-04-05", status: "Active" },
-  { id: "CUST005", name: "David Lee", email: "david.l@example.com", phone: "(444) 555-6666", address: "212 Birch Rd, Oldtown, USA 97531", joinDate: "2023-05-12", status: "Suspended" },
-];
-
-const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
-    "Active": "default",
-    "Inactive": "secondary",
-    "Suspended": "destructive",
+  phone?: string;
+  address?: {
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+  signupDate: { seconds: number, nanoseconds: number } | Date;
 };
 
 export default function CustomersPage() {
+  const { firestore } = useFirebase();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const customersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'customers') : null, [firestore]);
+  const { data: customers, isLoading } = useCollection<Omit<Customer, 'id'>>(customersCollection);
 
   const handleViewProfile = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsDialogOpen(true);
   };
+  
+  const formatDate = (date: { seconds: number, nanoseconds: number } | Date) => {
+    if (date instanceof Date) {
+        return date.toLocaleDateString();
+    }
+    if (date && date.seconds) {
+        return new Date(date.seconds * 1000).toLocaleDateString();
+    }
+    return "N/A";
+  }
+  
+  const formatAddress = (address: Customer['address']) => {
+    if (!address) return "N/A";
+    const { line1, line2, city, state, zip } = address;
+    let fullAddress = line1;
+    if (line2) fullAddress += `, ${line2}`;
+    if (city) fullAddress += `, ${city}`;
+    if (state) fullAddress += `, ${state}`;
+    if (zip) fullAddress += ` ${zip}`;
+    return fullAddress;
+  }
 
   return (
     <>
@@ -82,21 +100,24 @@ export default function CustomersPage() {
                 <TableHead>Customer</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Joined</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map((customer) => (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && customers && customers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
-                      <div className="font-medium">{customer.name}</div>
+                      <div className="font-medium">{customer.firstName} {customer.lastName}</div>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.joinDate}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[customer.status] || "default"}>{customer.status}</Badge>
-                  </TableCell>
+                  <TableCell>{formatDate(customer.signupDate)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -114,6 +135,11 @@ export default function CustomersPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {!isLoading && (!customers || customers.length === 0) && (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">No customers found.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -131,7 +157,7 @@ export default function CustomersPage() {
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Name</span>
-                        <span className="col-span-3 text-sm">{selectedCustomer.name}</span>
+                        <span className="col-span-3 text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</span>
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Email</span>
@@ -139,21 +165,15 @@ export default function CustomersPage() {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Phone</span>
-                        <span className="col-span-3 text-sm">{selectedCustomer.phone}</span>
+                        <span className="col-span-3 text-sm">{selectedCustomer.phone || 'N/A'}</span>
                     </div>
                      <div className="grid grid-cols-4 items-start gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Address</span>
-                        <span className="col-span-3 text-sm">{selectedCustomer.address}</span>
+                        <span className="col-span-3 text-sm">{formatAddress(selectedCustomer.address)}</span>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Joined</span>
-                        <span className="col-span-3 text-sm">{selectedCustomer.joinDate}</span>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Status</span>
-                        <span className="col-span-3 text-sm">
-                          <Badge variant={statusVariant[selectedCustomer.status]}>{selectedCustomer.status}</Badge>
-                        </span>
+                        <span className="col-span-3 text-sm">{formatDate(selectedCustomer.signupDate)}</span>
                     </div>
                 </div>
             )}
