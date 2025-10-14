@@ -1,122 +1,31 @@
-/**
- * @fileoverview Firestore Security Rules for TaxEase application.
- *
- * Core Philosophy:
- * This ruleset prioritizes secure data access based on ownership and explicit permissions.
- * It enforces a strict access control model for customer-specific data (tax documents) and a more open model for public resources (appointments, referrals).
- *
- * Data Structure:
- * - /customers/{customerId}: Stores customer profiles, accessible only to the customer themselves.
- * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents, accessible only to the owning customer.
- * - /appointments/{appointmentId}: Stores appointment requests, publicly readable but writable by anyone.
- * - /referrals/{referralId}: Stores referrals, publicly readable but writable by anyone.
- *
- * Key Security Decisions:
- * - Customers can only access their own profile data and tax documents.
- * - Appointments and referrals are publicly readable, but write access is restricted.
- * - The ruleset does NOT enforce data validation beyond relational integrity for customerId.
- *
- * Denormalization for Authorization:
- * - The 'TaxDocument' entity contains a 'customerId' field, which is essential for authorization. This ensures that tax documents can be accessed only by the customer who owns them, without requiring additional database lookups.
- *
- * Structural Segregation:
- * - The use of separate collections for customer-specific data (/customers/{customerId}/taxDocuments/{taxDocumentId}) and public data (/appointments/{appointmentId}, /referrals/{referralId}) allows for different security postures. Customer-specific data is strictly controlled, while public data can be more easily accessed.
- */
 rules_version = '2';
+
+function isAdmin() {
+  // Check if the user is authenticated and has the 'admin' role in their customer document.
+  return request.auth != null && get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == 'admin';
+}
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Controls access to customer profiles.
-     * @path /customers/{customerId}
-     * @allow (read) User with matching UID can read their own profile.
-     * @allow (create) User with matching UID can create their profile.
-     * @deny (update) User cannot update another user's profile.
-     * @deny (delete) User cannot delete another user's profile.
-     * @principle Enforces document ownership.
-     */
     match /customers/{customerId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(customerId);
-      allow list: if false;
-      allow create: if isOwner(customerId) && request.resource.data.id == customerId;
-      allow update: if isExistingOwner(customerId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(customerId);
+      // Admins can read any customer document.
+      allow list, get: if isAdmin();
+      // Users can read and write their own customer document.
+      allow read, write: if request.auth != null && request.auth.uid == customerId;
     }
 
-    /**
-     * @description Controls access to tax documents.
-     * @path /customers/{customerId}/taxDocuments/{taxDocumentId}
-     * @allow (read) User with matching UID can read their tax documents.
-     * @allow (create) User with matching UID can create tax documents under their profile.
-     * @deny (update) User cannot update tax documents under another user's profile.
-     * @deny (delete) User cannot delete tax documents under another user's profile.
-     * @principle Enforces document ownership for tax documents.
-     */
-    match /customers/{customerId}/taxDocuments/{taxDocumentId} {
-      function isOwner(customerId) {
-        return request.auth != null && request.auth.uid == customerId;
-      }
-
-      function isExistingOwner(customerId) {
-        return isOwner(customerId) && resource != null;
-      }
-
-      allow get: if isOwner(customerId);
-      allow list: if isOwner(customerId);
-      allow create: if isOwner(customerId) && request.resource.data.customerId == customerId;
-      allow update: if isExistingOwner(customerId) && request.resource.data.customerId == resource.data.customerId;
-      allow delete: if isExistingOwner(customerId);
-    }
-
-    /**
-     * @description Controls access to appointments.
-     * @path /appointments/{appointmentId}
-     * @allow (read) Anyone can read appointments.
-     * @allow (create) Anyone can create appointments.
-     * @deny (update) Only authenticated users can update appointments.
-     * @deny (delete) Only authenticated users can delete appointments.
-     */
     match /appointments/{appointmentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-        function isExisting() {
-            return resource != null;
-        }
-      allow get, list: if true;
+      // Allow anyone to create an appointment.
       allow create: if true;
-      allow update: if isExisting() && isSignedIn();
-      allow delete: if isExisting() && isSignedIn();
+      // Allow authenticated users (like admins) to read and update.
+      allow read, update: if request.auth != null;
     }
-
-    /**
-     * @description Controls access to referrals.
-     * @path /referrals/{referralId}
-     * @allow (read) Anyone can read referrals.
-     * @allow (create) Anyone can create referrals.
-     * @deny (update) Only authenticated users can update referrals.
-     * @deny (delete) Only authenticated users can delete referrals.
-     */
+    
     match /referrals/{referralId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-        function isExisting() {
-            return resource != null;
-        }
-      allow get, list: if true;
+      // Allow anyone to create a referral.
       allow create: if true;
-      allow update: if isExisting() && isSignedIn();
-      allow delete: if isExisting() && isSignedIn();
+      // Allow authenticated users (like admins) to read and update.
+      allow read, update: if request.auth != null;
     }
   }
 }
