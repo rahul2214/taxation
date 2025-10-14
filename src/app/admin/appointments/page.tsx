@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase, useCollection, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, Timestamp, query, writeBatch } from "firebase/firestore";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";

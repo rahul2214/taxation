@@ -30,7 +30,7 @@ export default function ReferPage() {
       referredName: formData.get("friend-name") as string,
       referredEmail: formData.get("friend-email") as string,
       referralDate: serverTimestamp(),
-      status: "Pending",
+      status: "Pending" as const,
     };
 
     try {

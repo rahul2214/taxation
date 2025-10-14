@@ -36,7 +36,7 @@ export default function BookAppointmentPage() {
       phone: formData.get("phone") as string,
       email: formData.get("email") as string,
       notes: formData.get("notes") as string,
-      status: "Pending",
+      status: "Pending" as const,
       requestDate: serverTimestamp(),
     };
 
