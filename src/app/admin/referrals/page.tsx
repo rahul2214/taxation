@@ -24,9 +24,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, updateDoc } from "firebase/firestore";
 
 type ReferralStatus = "Completed" | "Pending" | "Expired";
 
@@ -36,16 +38,10 @@ type Referral = {
   referrerEmail: string;
   referredName: string;
   referredEmail: string;
-  referralDate: Date;
+  referralDate: { seconds: number, nanoseconds: number } | Date;
   status: ReferralStatus;
+  referrerId?: string;
 };
-
-const mockReferrals: Referral[] = [
-    { id: "REF001", referrerName: "John Smith", referrerEmail: "john.s@example.com", referredName: "Sarah Connor", referredEmail: "s.connor@example.com", referralDate: new Date("2024-05-15"), status: "Pending" },
-    { id: "REF002", referrerName: "Jane Doe", referrerEmail: "jane.d@example.com", referredName: "Kyle Reese", referredEmail: "k.reese@example.com", referralDate: new Date("2024-04-20"), status: "Completed" },
-    { id: "REF003", referrerName: "Peter Jones", referrerEmail: "peter.j@example.com", referredName: "Miles Dyson", referredEmail: "m.dyson@example.com", referralDate: new Date("2024-03-10"), status: "Expired" },
-];
-
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
     "Completed": "default",
@@ -54,23 +50,48 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } 
 };
 
 export default function ReferralsPage() {
+  const { firestore } = useFirebase();
   const { toast } = useToast();
-  const [referrals, setReferrals] = useState<Referral[]>(mockReferrals);
+
+  const referralsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'referrals') : null, [firestore]);
+  const { data: referrals, isLoading } = useCollection<Omit<Referral, 'id'>>(referralsCollection);
 
   const handleStatusChange = async (referral: Referral, newStatus: ReferralStatus) => {
-    setReferrals(prev => prev.map(ref => ref.id === referral.id ? { ...ref, status: newStatus } : ref));
+    if (!firestore) return;
     
-    toast({
-      title: "Status Updated (Local)",
-      description: `Referral from ${referral.referrerName} has been marked as ${newStatus}. This change is not saved to the database.`
-    });
+    const referralDocRef = doc(firestore, 'referrals', referral.id);
+
+    try {
+      await updateDoc(referralDocRef, { status: newStatus });
+      toast({
+        title: "Status Updated",
+        description: `Referral from ${referral.referrerName} has been marked as ${newStatus}.`
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Could not update the referral status."
+      });
+    }
   };
+
+  const formatDate = (date: { seconds: number, nanoseconds: number } | Date) => {
+    if (date instanceof Date) {
+        return date.toLocaleDateString();
+    }
+    if (date && date.seconds) {
+        return new Date(date.seconds * 1000).toLocaleDateString();
+    }
+    return "N/A";
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Referrals</CardTitle>
-        <CardDescription>Track and manage customer referrals. (Mock Data)</CardDescription>
+        <CardDescription>Track and manage customer referrals.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -84,7 +105,14 @@ export default function ReferralsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {referrals.map((ref) => (
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                </TableCell>
+              </TableRow>
+            )}
+            {!isLoading && referrals && referrals.map((ref) => (
               <TableRow key={ref.id}>
                 <TableCell>
                     <div>{ref.referrerName}</div>
@@ -94,7 +122,7 @@ export default function ReferralsPage() {
                     <div>{ref.referredName}</div>
                     <div className="text-sm text-muted-foreground">{ref.referredEmail}</div>
                 </TableCell>
-                <TableCell>{ref.referralDate.toLocaleDateString()}</TableCell>
+                <TableCell>{formatDate(ref.referralDate)}</TableCell>
                 <TableCell>
                   <Badge variant={statusVariant[ref.status] || "default"}>{ref.status}</Badge>
                 </TableCell>
@@ -115,7 +143,7 @@ export default function ReferralsPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {referrals.length === 0 && (
+            {!isLoading && (!referrals || referrals.length === 0) && (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground">No referrals found.</TableCell>
                 </TableRow>

@@ -8,46 +8,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Gift, Mail, Users, Loader2 } from "lucide-react";
 import { useFirebase } from "@/firebase";
-import { collection, serverTimestamp, doc, setDoc, addDoc } from "firebase/firestore";
+import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { signInAnonymously } from "firebase/auth";
 
 export default function ReferPage() {
-  const { firestore, user } = useFirebase();
+  const { firestore, auth, user } = useFirebase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !auth) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const referrerName = formData.get("your-name") as string;
-    const referrerEmail = formData.get("your-email") as string;
     const referralData = {
-      referrerName: referrerName,
-      referrerEmail: referrerEmail,
+      referrerName: formData.get("your-name") as string,
+      referrerEmail: formData.get("your-email") as string,
       referredName: formData.get("friend-name") as string,
       referredEmail: formData.get("friend-email") as string,
       referralDate: serverTimestamp(),
       status: "Pending" as const,
+      referrerId: user?.uid || null,
     };
 
     try {
-      if (user) {
-        // Logged-in user flow
-        const customerReferralRef = collection(firestore, `customers/${user.uid}/referrals`);
-        const referralDoc = await addDoc(customerReferralRef, { ...referralData, referrerId: user.uid });
-        
-        // Dual write to admin collection
-        const adminReferralRef = doc(firestore, `admin-referrals/${referralDoc.id}`);
-        await setDoc(adminReferralRef, { ...referralData, referrerId: user.uid, customerReferralId: referralDoc.id });
-      } else {
-        // Guest user flow
-        const publicReferralRef = collection(firestore, 'public-referrals');
-        await addDoc(publicReferralRef, referralData);
+       if (!user) {
+        // Silently sign in guest users anonymously
+        await signInAnonymously(auth);
       }
+      
+      const referralsCollection = collection(firestore, 'referrals');
+      await addDoc(referralsCollection, referralData);
 
       toast({
         title: "Invite Sent!",

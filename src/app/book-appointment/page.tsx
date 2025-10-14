@@ -16,46 +16,39 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { collection, serverTimestamp, doc, setDoc, addDoc } from "firebase/firestore";
+import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { useState } from "react";
+import { signInAnonymously } from "firebase/auth";
 
 export default function BookAppointmentPage() {
   const { toast } = useToast();
-  const { firestore, user } = useFirebase();
+  const { firestore, auth, user } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !auth) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const fullName = formData.get("fullName") as string;
-    const email = formData.get("email") as string;
     const appointmentData = {
-      fullName: fullName,
+      fullName: formData.get("fullName") as string,
       phone: formData.get("phone") as string,
-      email: email,
+      email: formData.get("email") as string,
       notes: formData.get("notes") as string,
       status: "Pending" as const,
       requestDate: serverTimestamp(),
+      customerId: user?.uid || null,
     };
 
     try {
-      if (user) {
-        // Logged-in user flow
-        const customerAppointmentRef = collection(firestore, `customers/${user.uid}/appointments`);
-        const appointmentDoc = await addDoc(customerAppointmentRef, { ...appointmentData, customerId: user.uid });
-
-        // Dual write to admin collection for logged-in user
-        const adminAppointmentRef = doc(firestore, `admin-appointments/${appointmentDoc.id}`);
-        await setDoc(adminAppointmentRef, { ...appointmentData, customerId: user.uid, customerAppointmentId: appointmentDoc.id });
-
-      } else {
-        // Guest user flow
-        const publicAppointmentRef = collection(firestore, 'public-appointments');
-        await addDoc(publicAppointmentRef, appointmentData);
+      if (!user) {
+        // Silently sign in guest users anonymously
+        await signInAnonymously(auth);
       }
+      
+      const appointmentsCollection = collection(firestore, 'appointments');
+      await addDoc(appointmentsCollection, appointmentData);
 
       toast({
         title: "Appointment Requested",

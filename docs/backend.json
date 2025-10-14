@@ -103,7 +103,7 @@
         },
         "customerId": {
           "type": "string",
-          "description": "Reference to Customer. (Relationship: Customer 1:N Appointment)"
+          "description": "Reference to Customer, if the user is logged in. (Relationship: Customer 1:N Appointment)"
         },
         "appointmentDate": {
           "type": "string",
@@ -121,7 +121,6 @@
       },
       "required": [
         "id",
-        "customerId",
         "appointmentDate",
         "status"
       ]
@@ -138,7 +137,7 @@
         },
         "referrerId": {
           "type": "string",
-          "description": "Reference to Customer who made the referral. (Relationship: Customer 1:N Referral)"
+          "description": "Reference to Customer who made the referral, if logged in. (Relationship: Customer 1:N Referral)"
         },
         "referredEmail": {
           "type": "string",
@@ -161,7 +160,6 @@
       },
       "required": [
         "id",
-        "referrerId",
         "referredEmail",
         "referralDate",
         "status"
@@ -183,7 +181,7 @@
           "schema": {
             "$ref": "#/backend/entities/Customer"
           },
-          "description": "Stores customer profiles.  Each document represents a single customer.",
+          "description": "Stores customer profiles. Each document represents a single customer, including anonymous users.",
           "params": [
             {
               "name": "customerId",
@@ -213,18 +211,14 @@
         }
       },
       {
-        "path": "/customers/{customerId}/appointments/{appointmentId}",
+        "path": "/appointments/{appointmentId}",
         "definition": {
           "entityName": "Appointment",
           "schema": {
             "$ref": "#/backend/entities/Appointment"
           },
-          "description": "Stores appointment information for customers.  The customerId in the path ensures ownership.",
+          "description": "Top-level collection for all appointment requests, from both guests and registered users.",
           "params": [
-            {
-              "name": "customerId",
-              "description": "Unique identifier for the customer who scheduled the appointment."
-            },
             {
               "name": "appointmentId",
               "description": "Unique identifier for the appointment."
@@ -233,18 +227,14 @@
         }
       },
       {
-        "path": "/customers/{customerId}/referrals/{referralId}",
+        "path": "/referrals/{referralId}",
         "definition": {
           "entityName": "Referral",
           "schema": {
             "$ref": "#/backend/entities/Referral"
           },
-          "description": "Stores referral information. The customerId represents the referrer. ",
+          "description": "Top-level collection for all referrals, from both guests and registered users.",
           "params": [
-            {
-              "name": "customerId",
-              "description": "Unique identifier for the customer who made the referral."
-            },
             {
               "name": "referralId",
               "description": "Unique identifier for the referral."
@@ -253,6 +243,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence and facilitate secure list operations (QAPs). It leverages path-based ownership and denormalization to avoid using `get()` calls in security rules.\n\n1.  **Customers:**  Customers are stored under `/customers/{customerId}`. Tax documents, appointments, and referrals are stored as subcollections under each customer document. This enables easy management of customer-specific data and leverages Firestore's indexing capabilities for efficient querying.\n\n2.  **Tax Documents:** Tax documents are stored in `/customers/{customerId}/taxDocuments/{taxDocumentId}`. This structure provides clear ownership and enables secure listing of tax documents for a specific customer.\n\n3.  **Appointments:** Appointments are stored in `/customers/{customerId}/appointments/{appointmentId}`. This path-based ownership facilitates secure listing of appointments for a specific customer.\n\n4.  **Referrals:** Referrals are stored in `/customers/{customerId}/referrals/{referralId}`. Similar to tax documents and appointments, this structure provides secure access to referrals made by a specific customer.\n\nThis design adheres to Authorization Independence by avoiding `get()` calls in security rules, as all necessary information for authorization is contained within the document or can be derived from the path itself.  QAPs are supported through structural segregation; each customer's data is stored separately, enabling secure listing operations at the customer level."
+    "reasoning": "The Firestore structure has been updated to use top-level collections for appointments and referrals. This simplifies data access for administrative purposes and allows for more flexible security rules, such as permitting unauthenticated users to create appointments or referrals. Customer-specific data like tax documents remains in a subcollection for clear ownership and security."
   }
 }
