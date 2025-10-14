@@ -2,118 +2,114 @@
  * @fileoverview Firestore Security Rules for TaxEase application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model, where each customer 
- * can only access their own data and associated tax documents, appointments, and referrals.
+ * This ruleset enforces a user-ownership model for customer profiles and their associated tax documents.
+ * Appointments and referrals are in top-level collections and can be created by anyone, including unauthenticated users.
  *
  * Data Structure:
  * - /customers/{customerId}: Stores customer profiles.
- * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents owned by the customer.
- * - /customers/{customerId}/appointments/{appointmentId}: Stores appointments scheduled by the customer.
- * - /customers/{customerId}/referrals/{referralId}: Stores referrals made by the customer.
+ * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents owned by a specific customer.
+ * - /appointments/{appointmentId}: Stores appointment requests.
+ * - /referrals/{referralId}: Stores referrals.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - All write operations are protected by an authorization check based on the customer ID in the path.
- * - No schema validation is performed beyond ensuring that the path-based customerId matches the document's customerId field.
- * - Appointments and Referrals are being stored as subcollections of the Customer to ensure Authorization Independence.
+ * - Customers can only read and write their own profile data.
+ * - Customers can only manage their own tax documents.
+ * - Anyone, including unauthenticated users, can create appointments and referrals.
+ * - No listing is allowed for the customers collection.
  *
  * Denormalization for Authorization:
- * - The `customerId` is used in the path and MUST also be present in the document data for `create` operations. This ensures consistency and allows for efficient authorization checks.
+ * - The `customerId` field in `TaxDocument` is used to enforce ownership, avoiding costly `get()` calls to the `customers` collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects the customers collection.
+     * @description Controls access to customer profiles. Customers can only read and write their own profile.
      * @path /customers/{customerId}
-     * @allow (create) Signed-in user creates their own customer document.
-     * @deny (create) Attempt to create a customer document with a mismatched customer ID.
-     * @allow (get) Signed-in user reads their own customer document.
-     * @deny (get) Attempt to read another user's customer document.
-     * @allow (list) Listing of all customers is disallowed.
-     * @deny (update) Attempt to update another user's customer document.
-     * @deny (delete) Attempt to delete another user's customer document.
-     * @principle Enforces document ownership for writes; restricts access to a user's own data.
+     * @allow (create) User with UID 'user_abc' can create a customer profile with ID 'user_abc'.
+     * @allow (get) User with UID 'user_abc' can read the customer profile with ID 'user_abc'.
+     * @allow (update) User with UID 'user_abc' can update the customer profile with ID 'user_abc'.
+     * @allow (delete) User with UID 'user_abc' can delete the customer profile with ID 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a customer profile with ID 'user_abc'.
+     * @deny (get) User with UID 'user_xyz' cannot read the customer profile with ID 'user_abc'.
+     * @deny (update) User with UID 'user_xyz' cannot update the customer profile with ID 'user_abc'.
+     * @deny (delete) User with UID 'user_xyz' cannot delete the customer profile with ID 'user_abc'.
+     * @principle Enforces document ownership for writes.
      */
     match /customers/{customerId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
       allow get: if isOwner(customerId);
       allow list: if false;
       allow create: if isOwner(customerId) && request.resource.data.id == customerId;
-      allow update: if isOwner(customerId) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(customerId) && resource != null;
+      allow update: if isExistingOwner(customerId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(customerId);
     }
 
     /**
-     * @description Protects the taxDocuments subcollection.
+     * @description Controls access to tax documents. Customers can only manage their own tax documents.
      * @path /customers/{customerId}/taxDocuments/{taxDocumentId}
-     * @allow (create) Signed-in user creates a tax document under their own customer document.
-     * @deny (create) Attempt to create a tax document under another user's customer document.
-     * @allow (get) Signed-in user reads their own tax document.
-     * @deny (get) Attempt to read another user's tax document.
-     * @allow (list) Signed-in user lists their own tax documents.
-     * @deny (update) Attempt to update another user's tax document.
-     * @deny (delete) Attempt to delete another user's tax document.
-     * @principle Enforces document ownership for writes; restricts access to a user's own data tree.
+     * @allow (create) User with UID 'user_abc' can create a tax document under /customers/user_abc/.
+     * @allow (get) User with UID 'user_abc' can read a tax document under /customers/user_abc/.
+     * @allow (update) User with UID 'user_abc' can update a tax document under /customers/user_abc/.
+     * @allow (delete) User with UID 'user_abc' can delete a tax document under /customers/user_abc/.
+     * @deny (create) User with UID 'user_xyz' cannot create a tax document under /customers/user_abc/.
+     * @deny (get) User with UID 'user_xyz' cannot read a tax document under /customers/user_abc/.
+     * @deny (update) User with UID 'user_xyz' cannot update a tax document under /customers/user_abc/.
+     * @deny (delete) User with UID 'user_xyz' cannot delete a tax document under /customers/user_abc/.
+     * @principle Enforces document ownership for writes.
      */
     match /customers/{customerId}/taxDocuments/{taxDocumentId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      function isOwner(customerId) {
+        return request.auth != null && request.auth.uid == customerId;
       }
-      allow get: if isOwner(customerId);
-      allow list: if isOwner(customerId);
-      allow create: if isOwner(customerId) && request.resource.data.customerId == customerId;
-      allow update: if isOwner(customerId) && resource != null && request.resource.data.customerId == resource.data.customerId;
-      allow delete: if isOwner(customerId) && resource != null;
-    }
 
-     /**
-      * @description Protects the appointments subcollection.
-      * @path /customers/{customerId}/appointments/{appointmentId}
-      * @allow (create) Signed-in user creates an appointment under their own customer document.
-      * @deny (create) Attempt to create an appointment under another user's customer document.
-      * @allow (get) Signed-in user reads their own appointment.
-      * @deny (get) Attempt to read another user's appointment.
-      * @allow (list) Signed-in user lists their own appointments.
-      * @deny (update) Attempt to update another user's appointment.
-      * @deny (delete) Attempt to delete another user's appointment.
-      * @principle Enforces document ownership for writes; restricts access to a user's own data tree.
-      */
-    match /customers/{customerId}/appointments/{appointmentId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      function isExistingOwner(customerId) {
+        return isOwner(customerId) && resource != null;
       }
+
       allow get: if isOwner(customerId);
       allow list: if isOwner(customerId);
       allow create: if isOwner(customerId) && request.resource.data.customerId == customerId;
-      allow update: if isOwner(customerId) && resource != null && request.resource.data.customerId == resource.data.customerId;
-      allow delete: if isOwner(customerId) && resource != null;
+      allow update: if isExistingOwner(customerId) && request.resource.data.customerId == resource.data.customerId;
+      allow delete: if isExistingOwner(customerId);
     }
 
     /**
-     * @description Protects the referrals subcollection.
-     * @path /customers/{customerId}/referrals/{referralId}
-     * @allow (create) Signed-in user creates a referral under their own customer document.
-     * @deny (create) Attempt to create a referral under another user's customer document.
-     * @allow (get) Signed-in user reads their own referral.
-     * @deny (get) Attempt to read another user's referral.
-     * @allow (list) Signed-in user lists their own referrals.
-     * @deny (update) Attempt to update another user's referral.
-     * @deny (delete) Attempt to delete another user's referral.
-     * @principle Enforces document ownership for writes; restricts access to a user's own data tree.
+     * @description Controls access to appointments. Anyone can create appointments.
+     * @path /appointments/{appointmentId}
+     * @allow (create) Any user (or unauthenticated user) can create an appointment.
+     * @allow (get) Any user can read an appointment.
+     * @allow (list) Any user can list appointments.
+     * @deny (update) No one can update an appointment. // TODO: Add role-based access for admins.
+     * @deny (delete) No one can delete an appointment. // TODO: Add role-based access for admins.
+     * @principle Allows public creation of appointments; restricts updates and deletes.
      */
-    match /customers/{customerId}/referrals/{referralId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-      allow get: if isOwner(customerId);
-      allow list: if isOwner(customerId);
-      allow create: if isOwner(customerId) && request.resource.data.referrerId == customerId;
-      allow update: if isOwner(customerId) && resource != null && request.resource.data.referrerId == resource.data.referrerId;
-      allow delete: if isOwner(customerId) && resource != null;
+    match /appointments/{appointmentId} {
+      allow get, list, create: if true;
+      allow update, delete: if false; // TODO: Add role-based access for admins.
+    }
+
+    /**
+     * @description Controls access to referrals. Anyone can create referrals.
+     * @path /referrals/{referralId}
+     * @allow (create) Any user (or unauthenticated user) can create a referral.
+     * @allow (get) Any user can read a referral.
+     * @allow (list) Any user can list referrals.
+     * @deny (update) No one can update a referral. // TODO: Add role-based access for admins.
+     * @deny (delete) No one can delete a referral. // TODO: Add role-based access for admins.
+     * @principle Allows public creation of referrals; restricts updates and deletes.
+     */
+    match /referrals/{referralId} {
+      allow get, list, create: if true;
+      allow update, delete: if false; // TODO: Add role-based access for admins.
     }
   }
 }
