@@ -66,11 +66,9 @@ export default function ReferralsPage() {
 
     const batch = writeBatch(firestore);
 
-    // 1. Update the doc in the admin collection
     const adminReferralRef = doc(firestore, `admin-referrals/${referral.id}`);
     batch.update(adminReferralRef, { status: newStatus });
 
-    // 2. Update the corresponding doc in the customer's subcollection
     if (referral.referrerId && referral.customerReferralId) {
       const customerReferralRef = doc(firestore, `customers/${referral.referrerId}/referrals/${referral.customerReferralId}`);
       batch.update(customerReferralRef, { status: newStatus });

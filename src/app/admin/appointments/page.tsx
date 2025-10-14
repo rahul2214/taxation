@@ -69,7 +69,6 @@ export default function AppointmentsPage() {
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Query the top-level collection for admins
     return query(collection(firestore, 'admin-appointments'));
   }, [firestore]);
 
@@ -85,11 +84,9 @@ export default function AppointmentsPage() {
     
     const batch = writeBatch(firestore);
 
-    // 1. Update the document in the admin collection
     const adminAppointmentRef = doc(firestore, 'admin-appointments', appointment.id);
     batch.update(adminAppointmentRef, { status: newStatus });
 
-    // 2. Update the corresponding document in the customer's subcollection
     if (appointment.customerId && appointment.customerAppointmentId) {
       const customerAppointmentRef = doc(firestore, `customers/${appointment.customerId}/appointments/${appointment.customerAppointmentId}`);
       batch.update(customerAppointmentRef, { status: newStatus });
