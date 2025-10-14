@@ -41,8 +41,16 @@ export default function BookAppointmentPage() {
     };
 
     try {
-      const appointmentsCollection = collection(firestore, "appointments");
-      await addDocumentNonBlocking(appointmentsCollection, appointmentData);
+      let targetCollection;
+      if (user) {
+        // For logged-in users, save to their subcollection
+        targetCollection = collection(firestore, `customers/${user.uid}/appointments`);
+      } else {
+        // For guests, save to a public collection
+        targetCollection = collection(firestore, "publicAppointments");
+      }
+      
+      await addDocumentNonBlocking(targetCollection, appointmentData);
 
       toast({
         title: "Appointment Requested",
