@@ -34,10 +34,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, Timestamp, query, writeBatch } from "firebase/firestore";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
@@ -48,10 +46,17 @@ type Appointment = {
   phone: string;
   notes?: string;
   status: AppointmentStatus;
-  requestDate: Timestamp;
+  requestDate: Date;
   customerId: string;
   customerAppointmentId: string;
 };
+
+const mockAppointments: Appointment[] = [
+    { id: "APT001", fullName: "Alice Johnson", email: "alice.j@example.com", phone: "111-222-3333", status: "Confirmed", requestDate: new Date("2024-05-20"), customerId: "cust1", customerAppointmentId: "c-apt1", notes: "Prefers a morning call." },
+    { id: "APT002", fullName: "Bob Williams", email: "bob.w@example.com", phone: "444-555-6666", status: "Completed", requestDate: new Date("2024-05-18"), customerId: "cust2", customerAppointmentId: "c-apt2" },
+    { id: "APT003", fullName: "Charlie Brown", email: "charlie.b@example.com", phone: "777-888-9999", status: "Pending", requestDate: new Date("2024-05-22"), customerId: "cust3", customerAppointmentId: "c-apt3" },
+    { id: "APT004", fullName: "Diana Prince", email: "diana.p@example.com", phone: "123-456-7890", status: "Cancelled", requestDate: new Date("2024-05-19"), customerId: "cust4", customerAppointmentId: "c-apt4", notes: "Rescheduling for next month." },
+];
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
     "Confirmed": "default",
@@ -62,17 +67,10 @@ const statusVariant: { [key: string]: "default" | "secondary" | "destructive" | 
 
 
 export default function AppointmentsPage() {
-  const { firestore } = useFirebase();
+  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-
-  const appointmentsCollectionRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, "admin-appointments");
-  }, [firestore]);
-  
-  const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsCollectionRef);
 
   const handleViewDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -80,29 +78,15 @@ export default function AppointmentsPage() {
   };
   
   const handleStatusChange = async (appointment: Appointment, newStatus: AppointmentStatus) => {
-    if (!firestore) return;
-    
-    const adminAppointmentRef = doc(firestore, `admin-appointments/${appointment.id}`);
-    const customerAppointmentRef = doc(firestore, `customers/${appointment.customerId}/appointments/${appointment.customerAppointmentId}`);
-    
-    try {
-      const batch = writeBatch(firestore);
-      batch.update(adminAppointmentRef, { status: newStatus });
-      batch.update(customerAppointmentRef, { status: newStatus });
-      await batch.commit();
+    // This is now a local state update
+    setAppointments(prev => prev.map(apt => 
+      apt.id === appointment.id ? { ...apt, status: newStatus } : apt
+    ));
       
-      toast({
-        title: "Status Updated",
-        description: `Appointment for ${appointment.fullName} has been marked as ${newStatus}.`
-      });
-    } catch (error) {
-       console.error("Error updating status:", error);
-       toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: `Could not update appointment status. Ensure you have permissions for both collections.`,
-      });
-    }
+    toast({
+      title: "Status Updated (Local)",
+      description: `Appointment for ${appointment.fullName} has been marked as ${newStatus}. This is a local change and is not saved to the database.`
+    });
   };
 
   return (
@@ -110,7 +94,7 @@ export default function AppointmentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Booked Appointments</CardTitle>
-          <CardDescription>Manage and view all client appointments.</CardDescription>
+          <CardDescription>Manage and view all client appointments. (Mock Data)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -124,18 +108,11 @@ export default function AppointmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && (
-                <TableRow>
-                    <TableCell colSpan={5} className="text-center">
-                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                    </TableCell>
-                </TableRow>
-              )}
-              {appointments && appointments.map((apt) => (
+              {appointments.map((apt) => (
                 <TableRow key={apt.id}>
                   <TableCell className="font-medium">{apt.fullName}</TableCell>
                   <TableCell>{apt.email}</TableCell>
-                  <TableCell>{apt.requestDate ? new Date(apt.requestDate.seconds * 1000).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{apt.requestDate.toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[apt.status] || "default"}>{apt.status}</Badge>
                   </TableCell>
@@ -158,7 +135,7 @@ export default function AppointmentsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-               {!isLoading && appointments && appointments.length === 0 && (
+               {appointments.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground">No appointments found.</TableCell>
                 </TableRow>
@@ -192,7 +169,7 @@ export default function AppointmentsPage() {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Date</span>
-                        <span className="col-span-3 text-sm">{selectedAppointment.requestDate ? new Date(selectedAppointment.requestDate.seconds * 1000).toLocaleString() : 'N/A'}</span>
+                        <span className="col-span-3 text-sm">{selectedAppointment.requestDate.toLocaleString()}</span>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Status</span>

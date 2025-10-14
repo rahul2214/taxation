@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase } from "@/firebase";
-import { collection, serverTimestamp, doc, setDoc, writeBatch } from "firebase/firestore";
+import { useFirebase, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import { useState } from "react";
 
@@ -44,13 +44,11 @@ export default function BookAppointmentPage() {
 
     try {
       let userId = user?.uid;
-      let isAnonymous = user?.isAnonymous || false;
 
       // If user is not logged in, sign them in anonymously.
       if (!user) {
         const userCredential = await signInAnonymously(auth);
         userId = userCredential.user.uid;
-        isAnonymous = true;
         
         // Create a customer document for the anonymous user
         const customerDocRef = doc(firestore, `customers/${userId}`);
@@ -67,22 +65,9 @@ export default function BookAppointmentPage() {
           throw new Error("Could not determine user ID.");
       }
 
-      const batch = writeBatch(firestore);
-
-      // 1. Write to the customer's subcollection
-      const customerAppointmentRef = doc(collection(firestore, `customers/${userId}/appointments`));
-      batch.set(customerAppointmentRef, { ...appointmentData, customerId: userId });
-
-      // 2. Write to the top-level admin collection for easy querying
-      const adminAppointmentRef = doc(collection(firestore, 'admin-appointments'));
-      batch.set(adminAppointmentRef, { 
-        ...appointmentData, 
-        customerId: userId,
-        customerAppointmentId: customerAppointmentRef.id, // Link to the original doc
-        isAnonymous,
-      });
-
-      await batch.commit();
+      // Write to the customer's subcollection
+      const customerAppointmentRef = collection(firestore, `customers/${userId}/appointments`);
+      addDocumentNonBlocking(customerAppointmentRef, { ...appointmentData, customerId: userId });
 
       toast({
         title: "Appointment Requested",
