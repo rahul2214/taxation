@@ -15,19 +15,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
-import { signInAnonymously } from "firebase/auth";
+import { useFirebase } from "@/firebase";
+import { collection, serverTimestamp, doc, setDoc, addDoc } from "firebase/firestore";
 import { useState } from "react";
 
 export default function BookAppointmentPage() {
   const { toast } = useToast();
-  const { firestore, auth, user } = useFirebase();
+  const { firestore, user } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore || !auth) return;
+    if (!firestore) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -43,36 +42,20 @@ export default function BookAppointmentPage() {
     };
 
     try {
-      let currentUser = user;
+      if (user) {
+        // Logged-in user flow
+        const customerAppointmentRef = collection(firestore, `customers/${user.uid}/appointments`);
+        const appointmentDoc = await addDoc(customerAppointmentRef, { ...appointmentData, customerId: user.uid });
 
-      // If user is not logged in, sign them in anonymously.
-      if (!currentUser) {
-        const userCredential = await signInAnonymously(auth);
-        currentUser = userCredential.user;
-        
-        // Create a customer document for the anonymous user
-        const customerDocRef = doc(firestore, `customers/${currentUser.uid}`);
-        await setDoc(customerDocRef, {
-            email: email,
-            firstName: fullName.split(' ')[0] || 'Anonymous',
-            lastName: fullName.split(' ').slice(1).join(' ') || 'User',
-            signupDate: serverTimestamp(),
-            isAnonymous: true,
-        });
+        // Dual write to admin collection for logged-in user
+        const adminAppointmentRef = doc(firestore, `admin-appointments/${appointmentDoc.id}`);
+        await setDoc(adminAppointmentRef, { ...appointmentData, customerId: user.uid, customerAppointmentId: appointmentDoc.id });
+
+      } else {
+        // Guest user flow
+        const publicAppointmentRef = collection(firestore, 'public-appointments');
+        await addDoc(publicAppointmentRef, appointmentData);
       }
-      
-      if (!currentUser?.uid) {
-          throw new Error("Could not determine user ID.");
-      }
-
-      // Write to the customer's subcollection
-      const customerAppointmentRef = collection(firestore, `customers/${currentUser.uid}/appointments`);
-      const appointmentDoc = await addDoc(customerAppointmentRef, { ...appointmentData, customerId: currentUser.uid });
-
-      // Dual write to admin collection
-      const adminAppointmentRef = doc(firestore, `admin-appointments/${appointmentDoc.id}`);
-      await setDoc(adminAppointmentRef, { ...appointmentData, customerId: currentUser.uid, customerAppointmentId: appointmentDoc.id });
-
 
       toast({
         title: "Appointment Requested",
