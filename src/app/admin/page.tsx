@@ -187,7 +187,6 @@ export default function AdminDashboardPage() {
                 {!isLoading && newCustomers && newCustomers.map((customer, index) => (
                     <div key={customer.id} className="flex items-center gap-4">
                         <Avatar className="hidden h-9 w-9 sm:flex">
-                        <AvatarImage src={`https://picsum.photos/seed/${customer.id}/40/40`} alt="Avatar" />
                         <AvatarFallback>{getInitials(customer.firstName, customer.lastName)}</AvatarFallback>
                         </Avatar>
                         <div className="grid gap-1">
