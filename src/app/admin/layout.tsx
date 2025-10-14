@@ -3,9 +3,9 @@
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import { useFirebase, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { doc } from "firebase/firestore";
+import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -24,28 +24,36 @@ export default function AdminLayout({
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
-  const isLoading = isUserLoading || isUserDataLoading;
+  const pendingAppointmentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'appointments'), where('status', '==', 'Pending'));
+  }, [firestore]);
+
+  const pendingReferralsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'referrals'), where('status', '==', 'Pending'));
+  }, [firestore]);
+
+  const { data: pendingAppointments, isLoading: appointmentsLoading } = useCollection(pendingAppointmentsQuery);
+  const { data: pendingReferrals, isLoading: referralsLoading } = useCollection(pendingReferralsQuery);
+
+  const isLoading = isUserLoading || isUserDataLoading || appointmentsLoading || referralsLoading;
   const isAdmin = userData?.role === 'admin';
 
   useEffect(() => {
-    // Wait until all loading is complete before making any decisions
-    if (isLoading) return;
+    if (isUserLoading || isUserDataLoading) return;
 
-    // If there's no user, they should be at the login page.
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // If we have a user and their data, but they aren't an admin, redirect.
     if (user && userData && !isAdmin) {
       router.push('/dashboard');
     }
 
-  }, [isLoading, user, userData, isAdmin, router]);
+  }, [isUserLoading, isUserDataLoading, user, userData, isAdmin, router]);
 
-  // Show a loading screen while we verify the user's identity and role.
-  // This prevents rendering the admin layout for non-admins or before auth state is confirmed.
   if (isLoading || !isAdmin) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -54,10 +62,12 @@ export default function AdminLayout({
     );
   }
   
-  // Only render the layout if the user is an authenticated admin.
   return (
     <SidebarProvider>
-      <AdminSidebar />
+      <AdminSidebar 
+        pendingAppointmentsCount={pendingAppointments?.length || 0}
+        pendingReferralsCount={pendingReferrals?.length || 0}
+      />
       <SidebarInset>
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </SidebarInset>

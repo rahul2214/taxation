@@ -19,15 +19,12 @@ import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 
-const menuItems = [
-  { href: "/admin", label: "Dashboard", icon: <LayoutDashboard /> },
-  { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck />, badge: 3 },
-  { href: "/admin/referrals", label: "Referrals", icon: <UsersRound />, badge: 2 },
-  { href: "/admin/customers", label: "Customers", icon: <Users /> },
-  { href: "/admin/documents", label: "Tax Documents", icon: <FileText /> },
-];
+type AdminSidebarProps = {
+  pendingAppointmentsCount: number;
+  pendingReferralsCount: number;
+};
 
-export function AdminSidebar() {
+export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount }: AdminSidebarProps) {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
   const { auth } = useFirebase();
@@ -35,12 +32,23 @@ export function AdminSidebar() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      if(auth) {
+        await signOut(auth);
+      }
       router.push('/');
     } catch (error) {
       console.error("Logout Error:", error);
     }
   };
+
+  const menuItems = [
+    { href: "/admin", label: "Dashboard", icon: <LayoutDashboard /> },
+    { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck />, badge: pendingAppointmentsCount },
+    { href: "/admin/referrals", label: "Referrals", icon: <UsersRound />, badge: pendingReferralsCount },
+    { href: "/admin/customers", label: "Customers", icon: <Users /> },
+    { href: "/admin/documents", label: "Tax Documents", icon: <FileText /> },
+  ];
+
 
   return (
     <Sidebar>
@@ -68,7 +76,7 @@ export function AdminSidebar() {
             >
               <Link href={item.href}>
                 {item.label}
-                {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
+                {item.badge > 0 && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
