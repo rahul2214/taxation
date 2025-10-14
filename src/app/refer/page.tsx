@@ -1,12 +1,59 @@
 
+"use client";
+
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Gift, Mail, Users } from "lucide-react";
+import { Gift, Mail, Users, Loader2 } from "lucide-react";
+import { useFirebase, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function ReferPage() {
+  const { firestore, user } = useFirebase();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!firestore) return;
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const referralData = {
+      referrerName: formData.get("your-name") as string,
+      referrerEmail: formData.get("your-email") as string,
+      referredName: formData.get("friend-name") as string,
+      referredEmail: formData.get("friend-email") as string,
+      referralDate: serverTimestamp(),
+      status: "Pending",
+      ...(user && { referrerId: user.uid }),
+    };
+
+    try {
+      const referralsCollection = collection(firestore, "referrals");
+      await addDocumentNonBlocking(referralsCollection, referralData);
+      
+      toast({
+        title: "Invite Sent!",
+        description: `Your referral to ${referralData.referredName} has been sent. Thank you!`,
+      });
+      (event.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error("Error sending referral:", error);
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "There was an error sending the referral. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PublicLayout>
       <div className="container mx-auto max-w-4xl px-4 py-12 md:px-6 md:py-20">
@@ -54,24 +101,27 @@ export default function ReferPage() {
               <CardDescription>Enter your friend's email to send them an invite.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="your-name">Your Name</Label>
-                  <Input id="your-name" placeholder="John Doe" required />
+                  <Input id="your-name" name="your-name" placeholder="John Doe" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="your-email">Your Email</Label>
-                  <Input id="your-email" type="email" placeholder="you@example.com" required />
+                  <Input id="your-email" name="your-email" type="email" placeholder="you@example.com" required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="friend-name">Friend's Name</Label>
-                    <Input id="friend-name" placeholder="Jane Smith" required />
+                    <Input id="friend-name" name="friend-name" placeholder="Jane Smith" required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="friend-email">Friend's Email</Label>
-                    <Input id="friend-email" type="email" placeholder="friend@example.com" required />
+                    <Input id="friend-email" name="friend-email" type="email" placeholder="friend@example.com" required />
                 </div>
-                <Button type="submit" className="w-full">Send Invite</Button>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {isSubmitting ? "Sending..." : "Send Invite"}
+                </Button>
               </form>
             </CardContent>
           </Card>

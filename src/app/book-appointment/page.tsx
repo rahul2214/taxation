@@ -13,21 +13,52 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebase, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 
 export default function BookAppointmentPage() {
   const { toast } = useToast();
+  const { firestore, user } = useFirebase();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Here you would typically handle the form submission, e.g., send data to a server.
-    toast({
-      title: "Appointment Requested",
-      description: "Thank you! We've received your request and will contact you shortly to confirm.",
-    });
-    // Optionally, you can reset the form here.
-    (event.target as HTMLFormElement).reset();
+    if (!firestore) return;
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const appointmentData = {
+      fullName: formData.get("fullName") as string,
+      phone: formData.get("phone") as string,
+      email: formData.get("email") as string,
+      notes: formData.get("notes") as string,
+      status: "Pending",
+      requestDate: serverTimestamp(),
+      ...(user && { customerId: user.uid }),
+    };
+
+    try {
+      const appointmentsCollection = collection(firestore, "appointments");
+      await addDocumentNonBlocking(appointmentsCollection, appointmentData);
+
+      toast({
+        title: "Appointment Requested",
+        description: "Thank you! We've received your request and will contact you shortly to confirm.",
+      });
+      (event.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "There was an error submitting your request. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,6 +80,7 @@ export default function BookAppointmentPage() {
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
+                  name="fullName"
                   placeholder="John Doe"
                   required
                 />
@@ -58,6 +90,7 @@ export default function BookAppointmentPage() {
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
+                    name="phone"
                     type="tel"
                     placeholder="(123) 456-7890"
                     required
@@ -67,6 +100,7 @@ export default function BookAppointmentPage() {
                   <Label htmlFor="email">Email Address</Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="john.doe@example.com"
                     required
@@ -79,11 +113,13 @@ export default function BookAppointmentPage() {
                 </Label>
                 <Textarea
                   id="notes"
+                  name="notes"
                   placeholder="Let us know what times work best for you..."
                 />
               </div>
-              <Button type="submit" className="w-full">
-                Request Appointment
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isSubmitting ? "Submitting..." : "Request Appointment"}
               </Button>
             </form>
           </CardContent>
