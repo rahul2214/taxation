@@ -17,16 +17,17 @@ import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, addDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp } from "firebase/firestore";
+import { signInAnonymously } from "firebase/auth";
 import { useState } from "react";
 
 export default function BookAppointmentPage() {
   const { toast } = useToast();
-  const { firestore, user } = useFirebase();
+  const { firestore, auth, user } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !auth) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -37,17 +38,19 @@ export default function BookAppointmentPage() {
       notes: formData.get("notes") as string,
       status: "Pending",
       requestDate: serverTimestamp(),
-      ...(user && { customerId: user.uid }),
     };
 
     try {
       let targetCollection;
+      
+      // If user is logged in, use their UID. If not, sign them in anonymously first.
       if (user) {
-        // For logged-in users, save to their subcollection
-        targetCollection = collection(firestore, `customers/${user.uid}/appointments`);
+        targetCollection = collection(firestore, `publicAppointments`);
+        Object.assign(appointmentData, { customerId: user.uid });
       } else {
-        // For guests, save to a public collection
-        targetCollection = collection(firestore, "publicAppointments");
+        const userCredential = await signInAnonymously(auth);
+        targetCollection = collection(firestore, `publicAppointments`);
+        Object.assign(appointmentData, { customerId: userCredential.user.uid, isAnonymous: true });
       }
       
       await addDocumentNonBlocking(targetCollection, appointmentData);

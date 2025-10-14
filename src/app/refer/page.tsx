@@ -11,15 +11,16 @@ import { useFirebase, addDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { signInAnonymously } from "firebase/auth";
 
 export default function ReferPage() {
-  const { firestore, user } = useFirebase();
+  const { firestore, auth, user } = useFirebase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !auth) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -30,11 +31,19 @@ export default function ReferPage() {
       referredEmail: formData.get("friend-email") as string,
       referralDate: serverTimestamp(),
       status: "Pending",
-      ...(user && { referrerId: user.uid }),
     };
 
     try {
       const referralsCollection = collection(firestore, "referrals");
+      
+      // If user is logged in, use their UID. If not, sign them in anonymously.
+      if (user) {
+        Object.assign(referralData, { referrerId: user.uid });
+      } else {
+        const userCredential = await signInAnonymously(auth);
+        Object.assign(referralData, { referrerId: userCredential.user.uid, isAnonymous: true });
+      }
+
       await addDocumentNonBlocking(referralsCollection, referralData);
       
       toast({
