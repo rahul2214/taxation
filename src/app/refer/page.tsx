@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Gift, Mail, Users, Loader2 } from "lucide-react";
-import { useFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useFirebase } from "@/firebase";
 import { collection, serverTimestamp, doc, setDoc, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -24,9 +24,11 @@ export default function ReferPage() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
+    const referrerName = formData.get("your-name") as string;
+    const referrerEmail = formData.get("your-email") as string;
     const referralData = {
-      referrerName: formData.get("your-name") as string,
-      referrerEmail: formData.get("your-email") as string,
+      referrerName: referrerName,
+      referrerEmail: referrerEmail,
       referredName: formData.get("friend-name") as string,
       referredEmail: formData.get("friend-email") as string,
       referralDate: serverTimestamp(),
@@ -46,9 +48,9 @@ export default function ReferPage() {
         // Create a customer document for the anonymous user
         const customerDocRef = doc(firestore, `customers/${userId}`);
         await setDoc(customerDocRef, {
-            email: referralData.referrerEmail,
-            firstName: referralData.referrerName.split(' ')[0] || 'Anonymous',
-            lastName: referralData.referrerName.split(' ').slice(1).join(' ') || 'Referrer',
+            email: referrerEmail,
+            firstName: referrerName.split(' ')[0] || 'Anonymous',
+            lastName: referrerName.split(' ').slice(1).join(' ') || 'Referrer',
             signupDate: serverTimestamp(),
             isAnonymous: true,
         });

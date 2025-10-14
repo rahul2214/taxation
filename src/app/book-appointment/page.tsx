@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useFirebase } from "@/firebase";
 import { collection, serverTimestamp, doc, setDoc, writeBatch } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import { useState } from "react";
@@ -31,10 +31,12 @@ export default function BookAppointmentPage() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
+    const fullName = formData.get("fullName") as string;
+    const email = formData.get("email") as string;
     const appointmentData = {
-      fullName: formData.get("fullName") as string,
+      fullName: fullName,
       phone: formData.get("phone") as string,
-      email: formData.get("email") as string,
+      email: email,
       notes: formData.get("notes") as string,
       status: "Pending" as const,
       requestDate: serverTimestamp(),
@@ -53,9 +55,9 @@ export default function BookAppointmentPage() {
         // Create a customer document for the anonymous user
         const customerDocRef = doc(firestore, `customers/${userId}`);
         await setDoc(customerDocRef, {
-            email: appointmentData.email,
-            firstName: appointmentData.fullName.split(' ')[0] || 'Anonymous',
-            lastName: appointmentData.fullName.split(' ').slice(1).join(' ') || 'User',
+            email: email,
+            firstName: fullName.split(' ')[0] || 'Anonymous',
+            lastName: fullName.split(' ').slice(1).join(' ') || 'User',
             signupDate: serverTimestamp(),
             isAnonymous: true,
         });
