@@ -1,3 +1,4 @@
+
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Check } from "lucide-react";
 const services = [
   {
     id: "personal",
-    title: "Personal Tax Filing",
+    title: "Individual Tax Filing",
     description: "For individuals and families. We'll help you navigate deductions and credits to maximize your refund.",
     image: PlaceHolderImages.find(p => p.id === 'service-personal-tax'),
     features: ["W-2 and 1099 income", "Itemized deductions", "Student loan interest", "Free e-filing"],
