@@ -92,17 +92,10 @@ const trustedByLogos = [
 
 
 function TaxEstimator() {
-  const [income, setIncome] = useState(50000);
+  const [income, setIncome] = useState(0);
   const [filingStatus, setFilingStatus] = useState("single");
   const [dependents, setDependents] = useState(0);
-  const [withholding, setWithholding] = useState(4000);
-
-  useEffect(() => {
-    // Set a default withholding based on 8% of income, but only when income changes.
-    // This provides a sensible default without overwriting user input.
-    const newWithholding = Math.round(income * 0.08);
-    setWithholding(newWithholding);
-  }, [income]);
+  const [withholding, setWithholding] = useState(0);
 
 
   const estimatedTax = useMemo(() => {
