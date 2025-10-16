@@ -6,12 +6,6 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Target, Eye, Handshake } from "lucide-react";
 
 const teamImage = PlaceHolderImages.find(p => p.id === 'about-team');
-const teamMembers = [
-  { name: "Sarah Chen", role: "Founder & CEO", avatar: PlaceHolderImages.find(p => p.id === 'team-member-1'), fallback: "SC" },
-  { name: "Michael Rodriguez", role: "Head of Tax Strategy", avatar: PlaceHolderImages.find(p => p.id === 'team-member-2'), fallback: "MR" },
-  { name: "Jessica Lee", role: "Lead CPA", avatar: PlaceHolderImages.find(p => p.id === 'team-member-3'), fallback: "JL" },
-  { name: "David Kim", role: "Client Relations Manager", avatar: PlaceHolderImages.find(p => p.id === 'team-member-4'), fallback: "DK" },
-];
 
 const values = [
   { icon: <Target className="h-10 w-10 text-accent" />, title: "Our Mission", description: "To demystify the tax process, making it accessible, affordable, and stress-free for everyone, from individuals to businesses." },
@@ -52,22 +46,6 @@ export default function AboutUsPage() {
               </div>
             </CardContent>
           </Card>
-        </section>
-
-        <section>
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">Meet Our Experts</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {teamMembers.map((member) => (
-              <Card key={member.name} className="text-center p-6 shadow-lg hover:shadow-xl transition-shadow">
-                <Avatar className="mx-auto h-24 w-24 mb-4">
-                  {member.avatar && <AvatarImage src={member.avatar.imageUrl} alt={member.name} />}
-                  <AvatarFallback>{member.fallback}</AvatarFallback>
-                </Avatar>
-                <h3 className="text-lg font-semibold text-primary">{member.name}</h3>
-                <p className="text-accent font-medium">{member.role}</p>
-              </Card>
-            ))}
-          </div>
         </section>
       </div>
     </PublicLayout>
