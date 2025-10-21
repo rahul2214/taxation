@@ -1,38 +1,45 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
   
+    // Helper function to check for admin role via custom claims
     function isAdmin() {
-      return get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == 'admin';
+      return request.auth.token.admin == true;
     }
 
+    // Rules for the customers collection
     match /customers/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      
-      match /taxDocuments/{documentId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      }
+      // Admins can read/write any customer document
+      // Users can only read/write their own document
+      allow read, write: if request.auth.uid == userId || isAdmin();
     }
     
-    match /customers/{wildcard=**} {
-      allow list: if isAdmin();
+    match /customers/{document=**} {
+        allow list: if isAdmin();
     }
-    
+
+    // Rules for appointments
     match /appointments/{appointmentId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null && isAdmin();
+      // Any user (authenticated or guest) can create an appointment
+      allow create;
+      // Only admins can read, update, or delete appointments
+      allow read, update, delete: if isAdmin();
     }
-    
+
+    // Rules for referrals
     match /referrals/{referralId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null && isAdmin();
+      // Any user (authenticated or guest) can create a referral
+      allow create;
+      // Only admins can read, update, or delete referrals
+      allow read, update, delete: if isAdmin();
     }
     
-    match /siteSettings/taxForms {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && isAdmin();
+    // Rules for global site settings
+    match /siteSettings/{document=**} {
+      // Any authenticated user can read the site settings (e.g., to get form URLs)
+      allow get: if request.auth != null;
+      // Only admins can write to the site settings
+      allow write: if isAdmin();
     }
   }
 }
