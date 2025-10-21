@@ -1,24 +1,128 @@
+/**
+ * @fileoverview Firestore Security Rules for TaxEase application.
+ *
+ * Core Philosophy:
+ * This ruleset employs a hybrid security model. User-specific data (tax documents) is strictly controlled by ownership.
+ * Public resources (appointments, referrals, site settings) have more permissive read access but still enforce security on write operations.
+ *
+ * Data Structure:
+ * - /customers/{customerId}: Stores customer profiles. Customers can only access their own profiles.
+ * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents. Only the owner customer can manage these.
+ * - /appointments/{appointmentId}: Stores appointment requests. Anyone can create, but updates/deletes are restricted.
+ * - /referrals/{referralId}: Stores referrals. Anyone can create, but updates/deletes are restricted.
+ * - /siteSettings/taxForms: Stores site-wide settings. Read access is public, write access is denied.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed for privacy.
+ * - Appointments and referrals can be created by anyone (including unauthenticated users), but modification is restricted.
+ * - Site settings (tax forms) are publicly readable but not writable via the client.
+ *
+ * Denormalization for Authorization:
+ * - The current data model already denormalizes ownership of TaxDocuments via the path /customers/{customerId}/taxDocuments/{taxDocumentId}.
+ *   No additional denormalization is required.
+ *
+ * Structural Segregation:
+ * - Public resources (appointments, referrals) are stored in top-level collections separate from private user data.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    match /customers/{userId} {
-      // Allow any authenticated user to read the customer list.
-      // The admin UI is protected by client-side role checks.
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == userId;
-      allow update, delete: if request.auth.uid == userId;
+
+    /**
+     * @description Controls access to customer profiles.
+     * @path /customers/{customerId}
+     * @allow (create) - Authenticated user can create their own profile if the customerId matches their UID.
+     * @allow (get, list) - Authenticated user can read their own profile.
+     * @deny (update, delete) - No one can update or delete a customer profile.
+     * @deny (create) - Creating a document where the `customerId` does not match the authenticated user's `uid` is denied.
+     * @principle Enforces document ownership for reads and self-creation, disallows modifications.
+     */
+    match /customers/{customerId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      allow get: if isSignedIn() && isOwner(customerId);
+      allow list: if isSignedIn() && isOwner(customerId);
+      allow create: if isSignedIn() && isOwner(customerId) && request.resource.data.id == customerId;
+      allow update: if false;
+      allow delete: if false;
     }
-    
+
+    /**
+     * @description Controls access to tax documents within a customer's profile.
+     * @path /customers/{customerId}/taxDocuments/{taxDocumentId}
+     * @allow (create) - Authenticated user can create tax documents under their own profile.
+     * @allow (get, list) - Authenticated user can read tax documents under their own profile.
+     * @allow (update, delete) - Authenticated user can update or delete tax documents under their own profile.
+     * @deny (create) - Creating a tax document under another user's profile is denied.
+     * @deny (update, delete) - Updating or deleting a document that does not exist.
+     * @principle Enforces document ownership for all operations on tax documents.
+     */
+    match /customers/{customerId}/taxDocuments/{taxDocumentId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(customerId);
+      allow list: if isSignedIn() && isOwner(customerId);
+      allow create: if isSignedIn() && isOwner(customerId);
+      allow update: if isExistingOwner(customerId);
+      allow delete: if isExistingOwner(customerId);
+    }
+
+    /**
+     * @description Controls access to appointments. Allows anyone to create appointments, but restricts modifications.
+     * @path /appointments/{appointmentId}
+     * @allow (create) - Anyone can create an appointment.
+     * @allow (get, list) - Anyone can read appointments.
+     * @deny (update, delete) - No one can update or delete appointments through the client.
+     * @principle Permits public creation and reading of appointments, restricts modifications.
+     */
     match /appointments/{appointmentId} {
+      allow get, list: if true;
       allow create: if true;
-      allow read, update: if request.auth != null;
+      allow update: if false;
+      allow delete: if false;
     }
-    
+
+    /**
+     * @description Controls access to referrals. Allows anyone to create referrals, but restricts modifications.
+     * @path /referrals/{referralId}
+     * @allow (create) - Anyone can create a referral.
+     * @allow (get, list) - Anyone can read referrals.
+     * @deny (update, delete) - No one can update or delete referrals through the client.
+     * @principle Permits public creation and reading of referrals, restricts modifications.
+     */
     match /referrals/{referralId} {
+      allow get, list: if true;
       allow create: if true;
-      allow read, update: if request.auth != null;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to site settings (tax forms). Read access is public, write access is denied.
+     * @path /siteSettings/taxForms
+     * @allow (get) - Anyone can read the site settings.
+     * @deny (create, update, delete, list) - No one can create, update, delete, or list site settings through the client.
+     * @principle Permits public reading of site settings, restricts modifications.
+     */
+    match /siteSettings/taxForms {
+      allow get: if true;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
