@@ -22,7 +22,7 @@ import { DocumentData } from "firebase/firestore";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
-  { href: "/dashboard/tax-info", label: "Tax Info", icon: <Info /> },
+  { href: "/dashboard/tax-info", label: "Tax Documents", icon: <Info /> },
   { href: "/dashboard/upload", label: "Upload Documents", icon: <Upload /> },
   { href: "/dashboard/final-documents", label: "Final Documents", icon: <FileDown /> },
 ];

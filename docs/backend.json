@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Customer": {
@@ -35,6 +36,16 @@
           "type": "string",
           "description": "Date when the customer signed up.",
           "format": "date-time"
+        },
+        "currentYearFormUrl": {
+          "type": "string",
+          "description": "URL for the current year's tax form in Firebase Storage.",
+          "format": "uri"
+        },
+        "priorYearFormUrl": {
+          "type": "string",
+          "description": "URL for the prior year's tax form in Firebase Storage.",
+          "format": "uri"
         }
       },
       "required": [
