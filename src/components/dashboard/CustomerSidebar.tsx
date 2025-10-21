@@ -22,7 +22,7 @@ import { DocumentData } from "firebase/firestore";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
-  { href: "/dashboard/tax-info", label: "Tax Documents", icon: <Info /> },
+  { href: "/dashboard/tax-info", label: "Tax Information", icon: <Info /> },
   { href: "/dashboard/upload", label: "Upload Documents", icon: <Upload /> },
   { href: "/dashboard/final-documents", label: "Final Documents", icon: <FileDown /> },
 ];
@@ -35,6 +35,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   const { isMobile } = useSidebar();
   
   const handleLogout = async () => {
+    if(!auth) return;
     try {
       await signOut(auth);
       router.push('/');
