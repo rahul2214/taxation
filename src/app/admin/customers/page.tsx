@@ -132,7 +132,6 @@ export default function CustomersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewProfile(customer)}>View Profile</DropdownMenuItem>
-                        <DropdownMenuItem>View Documents</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">Suspend Account</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
