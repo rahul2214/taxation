@@ -33,6 +33,17 @@ export function initializeFirebase() {
       if (process.env.NODE_ENV === "production") {
         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
+      if (!firebaseConfig.projectId) {
+        console.error("Firebase config is not set. Please add your Firebase project configuration to the .env file.");
+        // We are returning a dummy object here to avoid crashing the app.
+        // The app will not work correctly until the Firebase config is set.
+        return {
+          firebaseApp: null,
+          auth: null,
+          firestore: null,
+          storage: null
+        }
+      }
       firebaseApp = initializeApp(firebaseConfig);
     }
 
@@ -44,6 +55,14 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  if (!firebaseApp) {
+    return {
+        firebaseApp: null,
+        auth: null,
+        firestore: null,
+        storage: null
+    };
+  }
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
