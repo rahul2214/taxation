@@ -15,14 +15,14 @@ import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 export default function TaxInfoPage() {
-  const { firestore, user } = useFirebase();
+  const { firestore } = useFirebase();
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, `customers/${user.uid}`);
-  }, [user, firestore]);
+  const formsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, `siteSettings/taxForms`);
+  }, [firestore]);
 
-  const { data: userData, isLoading } = useDoc(userDocRef);
+  const { data: formsData, isLoading } = useDoc(formsDocRef);
 
   return (
     <div className="space-y-6">
@@ -51,9 +51,9 @@ export default function TaxInfoPage() {
                   <p className="font-semibold">Current Year Form</p>
                   <p className="text-sm text-muted-foreground">The most recent tax information form provided by our team.</p>
                 </div>
-                {userData?.currentYearFormUrl ? (
+                {formsData?.currentYearFormUrl ? (
                   <Button asChild variant="outline">
-                    <a href={userData.currentYearFormUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={formsData.currentYearFormUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>
@@ -67,9 +67,9 @@ export default function TaxInfoPage() {
                   <p className="font-semibold">Prior Year Form</p>
                   <p className="text-sm text-muted-foreground">The tax information form from the previous year.</p>
                 </div>
-                {userData?.priorYearFormUrl ? (
+                {formsData?.priorYearFormUrl ? (
                   <Button asChild variant="outline">
-                    <a href={userData.priorYearFormUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={formsData.priorYearFormUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>

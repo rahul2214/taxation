@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   SidebarMenuBadge,
 } from "@/components/ui/sidebar";
-import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard } from "lucide-react";
+import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard, FileUp } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
@@ -46,7 +46,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount }
     { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck />, badge: pendingAppointmentsCount },
     { href: "/admin/referrals", label: "Referrals", icon: <UsersRound />, badge: pendingReferralsCount },
     { href: "/admin/customers", label: "Customers", icon: <Users /> },
-    { href: "/admin/documents", label: "Tax Documents", icon: <FileText /> },
+    { href: "/admin/documents", label: "Site Forms", icon: <FileUp /> },
   ];
 
 

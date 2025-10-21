@@ -1,99 +1,140 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
+"use client";
+
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Download, CheckCircle, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, File as FileIcon } from "lucide-react";
+import { useState, ChangeEvent, useEffect } from "react";
+import { useFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
-const documents = [
-  { id: "DOC001", client: "John Smith", document: "W-2 Form", uploaded: "2024-03-15", status: "Verified" },
-  { id: "DOC002", client: "Jane Doe", document: "1099-MISC", uploaded: "2024-03-18", status: "Verified" },
-  { id: "DOC003", client: "Peter Jones", document: "Form 1098-T", uploaded: "2024-03-20", status: "Pending" },
-  { id: "DOC004", client: "Mary Johnson", document: "Donation Receipts", uploaded: "2024-03-22", status: "Pending" },
-  { id: "DOC005", client: "David Lee", document: "W-2 Form", uploaded: "2024-03-25", status: "Requires Attention" },
-];
-
-const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
-    "Verified": "default",
-    "Pending": "secondary",
-    "Requires Attention": "destructive",
+type UploadingFile = {
+  name: string;
+  progress: number;
+  error?: string;
 };
 
-const statusIcon: { [key: string]: React.ReactNode } = {
-    "Verified": <CheckCircle className="h-4 w-4 text-green-500" />,
-    "Pending": null,
-    "Requires Attention": <AlertTriangle className="h-4 w-4 text-destructive" />,
-}
+type FormType = 'currentYearFormUrl' | 'priorYearFormUrl';
 
-export default function DocumentsPage() {
+export default function SiteFormsPage() {
+  const { firestore } = useFirebase();
+  const { toast } = useToast();
+
+  const formsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'siteSettings', 'taxForms') : null, [firestore]);
+  const { data: formsData, isLoading: isLoadingForms } = useDoc(formsDocRef);
+
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  const [currentYearUrl, setCurrentYearUrl] = useState<string | null>(null);
+  const [priorYearUrl, setPriorYearUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (formsData) {
+      setCurrentYearUrl(formsData.currentYearFormUrl || null);
+      setPriorYearUrl(formsData.priorYearFormUrl || null);
+    }
+  }, [formsData]);
+
+  const uploadFile = (file: File, formType: FormType) => {
+    const storage = getStorage();
+    const storageRef = ref(storage, `global_forms/${formType}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    const newUpload: UploadingFile = { name: file.name, progress: 0 };
+    setUploadingFiles(prev => [...prev, newUpload]);
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
+      },
+      (error) => {
+        console.error("Upload failed:", error);
+        setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, error: error.message } : f));
+        toast({
+            variant: "destructive",
+            title: "Upload Failed",
+            description: `Could not upload ${file.name}.`,
+        });
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          if (formsDocRef) {
+            await setDoc(formsDocRef, { [formType]: downloadURL }, { merge: true });
+
+            setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
+            toast({
+                title: "Upload Successful",
+                description: `${file.name} has been uploaded.`,
+            });
+            
+            if (formType === 'currentYearFormUrl') {
+                setCurrentYearUrl(downloadURL);
+            } else {
+                setPriorYearUrl(downloadURL);
+            }
+          }
+        });
+      }
+    );
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, formType: FormType) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadFile(file, formType);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Customer Tax Documents</CardTitle>
-        <CardDescription>Review and manage all uploaded tax documents.</CardDescription>
+        <CardTitle>Global Site Forms</CardTitle>
+        <CardDescription>Upload and manage forms that are downloadable by all users.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Doc ID</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Document Type</TableHead>
-              <TableHead>Uploaded On</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead><span className="sr-only">Actions</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map((doc) => (
-              <TableRow key={doc.id}>
-                <TableCell className="font-medium">{doc.id}</TableCell>
-                <TableCell>{doc.client}</TableCell>
-                <TableCell>{doc.document}</TableCell>
-                <TableCell>{doc.uploaded}</TableCell>
-                <TableCell>
-                    <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant[doc.status] || "default"}>{doc.status}</Badge>
-                        {statusIcon[doc.status]}
+      <CardContent className="grid gap-6 py-4">
+        {isLoadingForms ? (
+             <div className="flex justify-center items-center h-24">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        ) : (
+        <>
+            <div className="space-y-2">
+                <Label htmlFor="currentYearForm">Current Year Form</Label>
+                <Input id="currentYearForm" type="file" onChange={(e) => handleFileChange(e, 'currentYearFormUrl')} />
+                {currentYearUrl && <a href={currentYearUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"><FileIcon className="h-3 w-3" /> View/Download Current Form</a>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="priorYearForm">Prior Year Form</Label>
+                <Input id="priorYearForm" type="file" onChange={(e) => handleFileChange(e, 'priorYearFormUrl')} />
+                {priorYearUrl && <a href={priorYearUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"><FileIcon className="h-3 w-3" /> View/Download Current Form</a>}
+            </div>
+        </>
+        )}
+        {uploadingFiles.length > 0 && (
+            <div className="mt-4 space-y-2">
+                {uploadingFiles.map((file, index) => (
+                    <div key={index} className="p-2 border rounded-md">
+                        <div className="flex justify-between items-center">
+                            <p className="text-sm font-medium truncate">{file.name}</p>
+                            {file.error && <p className="text-xs text-destructive">{file.error}</p>}
+                        </div>
+                        <Progress value={file.progress} className="h-2 mt-1" />
                     </div>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem><Download className="mr-2 h-4 w-4" />Download</DropdownMenuItem>
-                      <DropdownMenuItem>Mark as Verified</DropdownMenuItem>
-                      <DropdownMenuItem>Request Correction</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                ))}
+            </div>
+        )}
       </CardContent>
     </Card>
   );

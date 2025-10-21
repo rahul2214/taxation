@@ -36,16 +36,6 @@
           "type": "string",
           "description": "Date when the customer signed up.",
           "format": "date-time"
-        },
-        "currentYearFormUrl": {
-          "type": "string",
-          "description": "URL for the current year's tax form in Firebase Storage.",
-          "format": "uri"
-        },
-        "priorYearFormUrl": {
-          "type": "string",
-          "description": "URL for the prior year's tax form in Firebase Storage.",
-          "format": "uri"
         }
       },
       "required": [
@@ -175,6 +165,24 @@
         "referralDate",
         "status"
       ]
+    },
+    "SiteSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SiteSettings",
+      "type": "object",
+      "description": "Represents global settings for the site, such as downloadable forms.",
+      "properties": {
+        "currentYearFormUrl": {
+          "type": "string",
+          "description": "URL for the current year's global tax form.",
+          "format": "uri"
+        },
+        "priorYearFormUrl": {
+          "type": "string",
+          "description": "URL for the prior year's global tax form.",
+          "format": "uri"
+        }
+      }
     }
   },
   "auth": {
@@ -252,8 +260,18 @@
             }
           ]
         }
+      },
+      {
+        "path": "/siteSettings/taxForms",
+        "definition": {
+          "entityName": "SiteSettings",
+          "schema": {
+            "$ref": "#/backend/entities/SiteSettings"
+          },
+          "description": "A single document to hold URLs for global downloadable forms."
+        }
       }
     ],
-    "reasoning": "The Firestore structure has been updated to use top-level collections for appointments and referrals. This simplifies data access for administrative purposes and allows for more flexible security rules, such as permitting unauthenticated users to create appointments or referrals. Customer-specific data like tax documents remains in a subcollection for clear ownership and security."
+    "reasoning": "The Firestore structure has been updated to use top-level collections for appointments and referrals. This simplifies data access for administrative purposes and allows for more flexible security rules, such as permitting unauthenticated users to create appointments or referrals. Customer-specific data like tax documents remains in a subcollection for clear ownership and security. A new `siteSettings` collection has been added to store global configuration like downloadable form URLs."
   }
 }
