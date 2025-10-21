@@ -1,147 +1,38 @@
-/**
- * @fileoverview Firestore Security Rules for TaxEase application.
- *
- * Core Philosophy:
- * This ruleset prioritizes secure data access based on user roles and ownership,
- * while keeping the data model flexible for prototyping. It enforces strict
- * authorization for write operations and provides controlled read access.
- *
- * Data Structure:
- * - /customers/{customerId}: Stores customer profiles.  `customerId` matches the Firebase auth UID for logged-in users.
- * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents owned by a customer.
- * - /appointments/{appointmentId}: Stores appointment requests, accessible for creation by all users.
- * - /referrals/{referralId}: Stores referrals, accessible for creation by all users.
- * - /siteSettings/taxForms: Stores global site settings like downloadable form URLs, publicly readable.
- *
- * Key Security Decisions:
- * - Customers can only read and write their own profile data and tax documents.
- * - Unauthenticated users can create appointments and referrals.
- * - Listing the `/customers` collection is denied to prevent information disclosure.
- * - The `siteSettings` document is publicly readable.
- *
- * Denormalization for Authorization:
- *  - Customer ID is used in the path for customer-owned documents (/customers/{customerId}/taxDocuments/{taxDocumentId})
- *  - A top-level collection is used for public resources (appointments, referrals, and siteSettings)
- *
- * Structural Segregation:
- * - Public resources (appointments, referrals) are in top-level collections for simplified access.
- * - Private user data (taxDocuments) is in user-scoped subcollections for secure ownership.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Checks if the user is signed in.
-     * @param {request} request The incoming request object.
-     * @returns {boolean} True if the user is signed in, false otherwise.
-     * @example isSignedIn() == true when request.auth != null
-     */
-    function isSignedIn() {
-      return request.auth != null;
+  
+    function isAdmin() {
+      return get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @param {string} userId The user ID to compare against.
-     * @returns {boolean} True if the user ID matches the authenticated user ID, false otherwise.
-     * @example isOwner('user123') == true when request.auth.uid == 'user123'
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    match /customers/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      match /taxDocuments/{documentId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
-
-    /**
-     * @description Checks if the authenticated user is the owner of the existing document.
-     * @param {string} userId The user ID to compare against.
-     * @returns {boolean} True if the user ID matches the authenticated user ID and the document exists, false otherwise.
-     * @example isExistingOwner('user123') == true when request.auth.uid == 'user123' and resource != null
-     */
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+    
+    match /customers/{wildcard=**} {
+      allow list: if isAdmin();
     }
-
-    /**
-     * @description Customer profiles are stored here.
-     * @path /customers/{customerId}
-     * @allow (create) User 'user123' can create their profile if signed in as 'user123'.
-     * @allow (get) User 'user123' can read their profile if signed in as 'user123'.
-     * @allow (update) User 'user123' can update their profile if signed in as 'user123'.
-     * @allow (delete) User 'user123' can delete their profile if signed in as 'user123'.
-     * @deny (create) User 'user456' cannot create a profile for 'user123'.
-     * @deny (list) Listing the customers collection is not allowed.
-     * @principle Enforces document ownership for writes, restricts listing of customer data.
-     */
-    match /customers/{customerId} {
-      //  list is denied per instructions
-      allow get: if isOwner(customerId);
-      allow list: if false;
-      allow create: if isOwner(customerId) && request.resource.data.id == customerId;
-      allow update: if isExistingOwner(customerId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(customerId);
-    }
-
-    /**
-     * @description Tax documents owned by a specific customer.
-     * @path /customers/{customerId}/taxDocuments/{taxDocumentId}
-     * @allow (create) User 'user123' can create a tax document under their profile.
-     * @allow (get) User 'user123' can read a tax document under their profile.
-     * @allow (update) User 'user123' can update a tax document under their profile.
-     * @allow (delete) User 'user123' can delete a tax document under their profile.
-     * @deny (create) User 'user456' cannot create a tax document for 'user123'.
-     * @deny (list) User 'user456' cannot list tax documents under 'user123' profile.
-     * @principle Enforces document ownership, restricts access to a user's own data tree.
-     */
-    match /customers/{customerId}/taxDocuments/{taxDocumentId} {
-      allow get: if isOwner(customerId);
-      allow list: if isOwner(customerId);
-      allow create: if isOwner(customerId) && request.resource.data.customerId == customerId;
-      allow update: if isExistingOwner(customerId) && request.resource.data.customerId == resource.data.customerId;
-      allow delete: if isExistingOwner(customerId);
-    }
-
-    /**
-     * @description Top-level collection for appointment requests. Accessible for creation by all users.
-     * @path /appointments/{appointmentId}
-     * @allow (create) Any user, signed in or not, can create an appointment.
-     * @allow (get) Any user, signed in or not, can read any appointment.
-     * @deny (update) Updating an appointment is not allowed. // TODO: Add role-based authorization if needed.
-     * @deny (delete) Deleting an appointment is not allowed. // TODO: Add role-based authorization if needed.
-     * @principle Allows unauthenticated users to create appointments, restricts updates and deletes.
-     */
+    
     match /appointments/{appointmentId} {
-      allow get, list: if true;
       allow create: if true;
-      allow update, delete: if false;
+      allow read, update, delete: if request.auth != null && isAdmin();
     }
-
-    /**
-     * @description Top-level collection for referrals. Accessible for creation by all users.
-     * @path /referrals/{referralId}
-     * @allow (create) Any user, signed in or not, can create a referral.
-     * @allow (get) Any user, signed in or not, can read any referral.
-     * @deny (update) Updating a referral is not allowed. // TODO: Add role-based authorization if needed.
-     * @deny (delete) Deleting a referral is not allowed. // TODO: Add role-based authorization if needed.
-     * @principle Allows unauthenticated users to create referrals, restricts updates and deletes.
-     */
+    
     match /referrals/{referralId} {
-      allow get, list: if true;
       allow create: if true;
-      allow update, delete: if false;
+      allow read, update, delete: if request.auth != null && isAdmin();
     }
-
-    /**
-     * @description A single document to hold URLs for global downloadable forms. Publicly readable.
-     * @path /siteSettings/taxForms
-     * @allow (get) Any user, signed in or not, can read the site settings.
-     * @deny (create) No one can create a site settings document.
-     * @deny (update) No one can update the site settings document. // TODO: Add role-based authorization if needed.
-     * @deny (delete) No one can delete the site settings document. // TODO: Add role-based authorization if needed.
-     * @principle Allows public read access, restricts writes.
-     */
+    
     match /siteSettings/taxForms {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
     }
   }
 }
