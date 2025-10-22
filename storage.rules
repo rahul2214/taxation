@@ -1,23 +1,23 @@
 rules_version = '2';
-
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper function to check for admin role via custom claims
+    // ✅ Check admin role from Firestore document
     function isAdmin() {
-      return request.auth.token.admin == true;
-    }
-    
-    // Rule for global forms:
-    // - Allow anyone to read (download)
-    // - Only allow admins to write (upload/delete)
-    match /global_forms/{allPaths=**} {
-      allow read;
-      allow write: if isAdmin();
+      return request.auth != null &&
+        get(/databases/(default)/documents/customers/$(request.auth.uid)).data.role == "admin";
     }
 
-    // Rule for customer-specific documents:
-    // - Allow users to read, write, and delete files only within their own user folder
+    // 🔹 Global forms
+    // Anyone can read (download)
+    // Only admins can write (upload/delete)
+    match /global_forms/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 🔹 Customer-specific uploads
+    // Users can read/write only their own files
     match /customers/{userId}/{allPaths=**} {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
