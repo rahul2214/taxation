@@ -77,6 +77,10 @@ export default function LoginPage() {
     setIsLoggingIn(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back! Redirecting you to your dashboard...",
+      });
       // The useEffect will handle the redirection
     } catch (error: any) {
        toast({
@@ -157,8 +161,13 @@ export default function LoginPage() {
         });
         
         setShowWelcomeDialog(true);
+      } else {
+        toast({
+            title: "Login Successful",
+            description: "Welcome back! Redirecting you to your dashboard...",
+        });
       }
-      // The useEffect will handle redirection for existing users.
+      // The useEffect will handle redirection for existing users if toast is shown.
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -310,4 +319,3 @@ export default function LoginPage() {
   );
 }
 
-    
