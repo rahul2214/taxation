@@ -23,9 +23,10 @@ import { useToast } from "@/hooks/use-toast";
 type AdminSidebarProps = {
   pendingAppointmentsCount: number;
   pendingReferralsCount: number;
+  pendingDocumentsCount: number;
 };
 
-export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount }: AdminSidebarProps) {
+export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, pendingDocumentsCount }: AdminSidebarProps) {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
   const { auth } = useFirebase();
@@ -57,7 +58,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount }
     { href: "/admin/appointments", label: "Appointments", icon: <CalendarCheck />, badge: pendingAppointmentsCount },
     { href: "/admin/referrals", label: "Referrals", icon: <UsersRound />, badge: pendingReferralsCount },
     { href: "/admin/customers", label: "Customers", icon: <Users /> },
-    { href: "/admin/tax-documents", label: "Tax Documents", icon: <FileText /> },
+    { href: "/admin/tax-documents", label: "Tax Documents", icon: <FileText />, badge: pendingDocumentsCount },
     { href: "/admin/documents", label: "Site Forms", icon: <FileUp /> },
   ];
 
@@ -88,7 +89,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount }
             >
               <Link href={item.href}>
                 {item.label}
-                {item.badge > 0 && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
+                {item.badge != null && item.badge > 0 && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
