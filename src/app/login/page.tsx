@@ -208,6 +208,10 @@ export default function LoginPage() {
                     <Label htmlFor="login-password">Password</Label>
                     <Input id="login-password" type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
                   </div>
+                  <Button type="submit" className="w-full" disabled={isLoggingIn || isGoogleLoading}>
+                    {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                  </Button>
                    <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
@@ -219,10 +223,6 @@ export default function LoginPage() {
                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoggingIn || isGoogleLoading}>
                     {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
                      Sign in with Google
-                  </Button>
-                  <Button type="submit" className="w-full" disabled={isLoggingIn || isGoogleLoading}>
-                    {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isLoggingIn ? 'Logging in...' : 'Login'}
                   </Button>
                 </form>
               </CardContent>
@@ -266,6 +266,10 @@ export default function LoginPage() {
                     <Label htmlFor="signup-confirm-password">Confirm Password</Label>
                     <Input id="signup-confirm-password" type="password" required value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)}/>
                   </div>
+                  <Button type="submit" className="w-full" disabled={isSigningUp || isGoogleLoading}>
+                    {isSigningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isSigningUp ? 'Signing Up...' : 'Sign Up'}
+                  </Button>
                    <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
@@ -278,10 +282,6 @@ export default function LoginPage() {
                      {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
                      Sign up with Google
                   </Button>
-                  <Button type="submit" className="w-full" disabled={isSigningUp || isGoogleLoading}>
-                    {isSigningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isSigningUp ? 'Signing Up...' : 'Sign Up'}
-                  </Button>
                 </form>
               </CardContent>
             </Card>
@@ -291,5 +291,3 @@ export default function LoginPage() {
     </PublicLayout>
   );
 }
-
-    
