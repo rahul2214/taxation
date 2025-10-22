@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -39,7 +40,7 @@ export default function UploadPage() {
   const { toast } = useToast();
 
   const [taxYear, setTaxYear] = useState<string>(new Date().getFullYear().toString());
-  const [documentType, setDocumentType] = useState<string>("Individual");
+  const [documentType, setDocumentType] = useState<string>("W-2");
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
 
   const taxDocsCollection = useMemoFirebase(() => {
@@ -101,7 +102,9 @@ export default function UploadPage() {
               uploadDate: serverTimestamp(),
               taxYear: parseInt(taxYear),
               status: "Pending",
-              mimeType: file.type
+              mimeType: file.type,
+              category: 'Customer Upload',
+              uploader: 'customer'
             });
             setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
             toast({
@@ -147,10 +150,12 @@ export default function UploadPage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
+  const documentTypes = ["W-2", "1099-NEC", "1099-MISC", "1099-INT", "1099-DIV", "1098-T", "Tax Return Draft", "Other"];
+
   return (
     <div className="space-y-6">
        <div>
-        <h1 className="text-2xl font-bold tracking-tight">Upload Documents</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Upload Your Documents</h1>
         <p className="text-muted-foreground">Securely upload your tax documents for processing.</p>
       </div>
 
@@ -181,8 +186,7 @@ export default function UploadPage() {
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Individual">Individual</SelectItem>
-                                    <SelectItem value="Business">Business</SelectItem>
+                                    {documentTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -232,7 +236,7 @@ export default function UploadPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Uploaded Files</CardTitle>
+          <CardTitle>My Uploaded Files</CardTitle>
           <CardDescription>
             Here are the documents you've uploaded.
           </CardDescription>
@@ -256,7 +260,7 @@ export default function UploadPage() {
                             </TableCell>
                         </TableRow>
                     )}
-                    {uploadedFiles && uploadedFiles.map((file) => (
+                    {uploadedFiles && uploadedFiles.filter(f => f.uploader === 'customer').map((file) => (
                         <TableRow key={file.id}>
                             <TableCell className="font-medium flex items-center gap-2">
                                 <File className="h-4 w-4 text-muted-foreground" />
@@ -275,9 +279,9 @@ export default function UploadPage() {
                             </TableCell>
                         </TableRow>
                     ))}
-                    {!isLoading && (!uploadedFiles || uploadedFiles.length === 0) && (
+                    {!isLoading && (!uploadedFiles || uploadedFiles.filter(f => f.uploader === 'customer').length === 0) && (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground">No documents uploaded yet.</TableCell>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">You haven't uploaded any documents yet.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>

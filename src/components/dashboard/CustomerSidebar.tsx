@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ShieldCheck, User, Info, Upload, FileDown, LogOut, Settings } from "lucide-react";
+import { ShieldCheck, User, Info, Upload, FileDown, LogOut, Settings, Files } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase } from "@/firebase";
 import { cn } from "@/lib/utils";
@@ -23,9 +23,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
-  { href: "/dashboard/tax-info", label: "Tax Information", icon: <Info /> },
+  { href: "/dashboard/documents", label: "All Documents", icon: <Files /> },
   { href: "/dashboard/upload", label: "Upload Documents", icon: <Upload /> },
-  { href: "/dashboard/final-documents", label: "Final Documents", icon: <FileDown /> },
+  { href: "/dashboard/tax-info", label: "Tax Forms", icon: <Info /> },
 ];
 
 export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {

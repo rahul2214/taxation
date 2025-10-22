@@ -50,7 +50,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TaxDocument",
       "type": "object",
-      "description": "Represents a tax document uploaded by a customer.",
+      "description": "Represents a tax document uploaded by a customer or admin.",
       "properties": {
         "id": {
           "type": "string",
@@ -76,11 +76,21 @@
         },
         "documentType": {
           "type": "string",
-          "description": "Type of the tax document (e.g., W-2, 1099)."
+          "description": "Type of the tax document (e.g., W-2, 1099, Tax Estimation, Final Return)."
         },
         "taxYear": {
           "type": "number",
           "description": "The tax year that this document applies to"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the document, indicating its role in the workflow.",
+          "enum": ["Customer Upload", "Tax Estimation", "Tax Return Draft", "Final Document"]
+        },
+        "uploader": {
+          "type": "string",
+          "description": "Indicates who uploaded the document.",
+          "enum": ["customer", "admin"]
         }
       },
       "required": [
@@ -89,7 +99,9 @@
         "documentName",
         "uploadDate",
         "fileUrl",
-        "documentType"
+        "documentType",
+        "category",
+        "uploader"
       ]
     },
     "Appointment": {
@@ -276,5 +288,3 @@
     "reasoning": "The Firestore structure has been updated to use top-level collections for appointments and referrals. This simplifies data access for administrative purposes and allows for more flexible security rules, such as permitting unauthenticated users to create appointments or referrals. Customer-specific data like tax documents remains in a subcollection for clear ownership and security. A new `siteSettings` collection has been added to store global configuration like downloadable form URLs."
   }
 }
-
-    
