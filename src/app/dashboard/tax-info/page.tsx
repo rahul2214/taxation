@@ -33,13 +33,7 @@ export default function TaxInfoPage() {
       <Separator />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Download Tax Information Documents</CardTitle>
-          <CardDescription>
-            Access the latest and previous year tax information forms below.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-24">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
