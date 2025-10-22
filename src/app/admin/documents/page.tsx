@@ -48,7 +48,8 @@ export default function SiteFormsPage() {
 
   const uploadFile = (file: File, formType: FormType) => {
     const storage = getStorage();
-    const storageRef = ref(storage, `global_forms/${formType}_${file.name}`);
+    // Using a more generic path that an admin is likely to have access to.
+    const storageRef = ref(storage, `global_forms/${formType}_${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     const newUpload: UploadingFile = { name: file.name, progress: 0 };
@@ -65,7 +66,7 @@ export default function SiteFormsPage() {
         toast({
             variant: "destructive",
             title: "Upload Failed",
-            description: `Could not upload ${file.name}.`,
+            description: `Could not upload ${file.name}. Please check storage permissions.`,
         });
       },
       () => {
