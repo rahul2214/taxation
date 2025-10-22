@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -11,9 +12,17 @@ import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { Separator } from "@/components/ui/separator";
+
+const GoogleIcon = () => (
+    <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 76.2C313.6 113.4 283.5 96 248 96c-88.8 0-160.1 71.9-160.1 160.1s71.3 160.1 160.1 160.1c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path>
+    </svg>
+);
+
 
 export default function LoginPage() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
@@ -31,6 +40,8 @@ export default function LoginPage() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
 
   const checkRoleAndRedirect = async (user: any) => {
     if (!firestore) return;
@@ -120,6 +131,47 @@ export default function LoginPage() {
     }
   }
 
+   const handleGoogleSignIn = async () => {
+    if (!auth || !firestore) return;
+    setIsGoogleLoading(true);
+
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const additionalUserInfo = getAdditionalUserInfo(result);
+
+      if (additionalUserInfo?.isNewUser) {
+        const nameParts = user.displayName?.split(" ") || [];
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+        
+        await setDoc(doc(firestore, "customers", user.uid), {
+          firstName,
+          lastName,
+          email: user.email,
+          phone: user.phoneNumber,
+          signupDate: serverTimestamp(),
+          role: "user",
+        });
+        
+        toast({
+            title: "Account Created!",
+            description: "Welcome to Polaris Tax Services.",
+        });
+      }
+      // The useEffect will handle redirection for both new and existing users.
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Sign-In Failed",
+        description: error.message || "Could not sign you in with Google.",
+      });
+      setIsGoogleLoading(false);
+    }
+  };
+
   if (isUserLoading || user) {
     return (
         <div className="flex min-h-screen items-center justify-center">
@@ -147,20 +199,34 @@ export default function LoginPage() {
                 <CardDescription>Enter your credentials to access your account.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" placeholder="m@example.com" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Input id="login-password" type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoggingIn}>
-                    {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                <div className="space-y-4">
+                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoggingIn || isGoogleLoading}>
+                    {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                     Sign in with Google
                   </Button>
-                </form>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                  </div>
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
+                      <Input id="login-email" type="email" placeholder="m@example.com" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">Password</Label>
+                      <Input id="login-password" type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoggingIn || isGoogleLoading}>
+                      {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      {isLoggingIn ? 'Logging in...' : 'Login'}
+                    </Button>
+                  </form>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -171,42 +237,56 @@ export default function LoginPage() {
                 <CardDescription>Get started with Polaris Tax Services in just a few steps.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSignup} className="space-y-4">
-                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-first-name">First Name</Label>
-                      <Input id="signup-first-name" type="text" placeholder="John" required value={signupFirstName} onChange={(e) => setSignupFirstName(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                      <Label htmlFor="signup-last-name">Last Name</Label>
-                      <Input id="signup-last-name" type="text" placeholder="Doe" required value={signupLastName} onChange={(e) => setSignupLastName(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Phone Number</Label>
-                    <Input id="signup-phone" type="tel" placeholder="(123) 456-7890" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" placeholder="m@example.com" required value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="signup-referral-email">Referral Email (Optional)</Label>
-                    <Input id="signup-referral-email" type="email" placeholder="friend@example.com" value={signupReferralEmail} onChange={(e) => setSignupReferralEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input id="signup-password" type="password" required value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                    <Input id="signup-confirm-password" type="password" required value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)}/>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSigningUp}>
-                    {isSigningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isSigningUp ? 'Signing Up...' : 'Sign Up'}
+                <div className="space-y-4">
+                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningUp || isGoogleLoading}>
+                     {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                     Sign up with Google
                   </Button>
-                </form>
+                   <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                  </div>
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-first-name">First Name</Label>
+                        <Input id="signup-first-name" type="text" placeholder="John" required value={signupFirstName} onChange={(e) => setSignupFirstName(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-last-name">Last Name</Label>
+                        <Input id="signup-last-name" type="text" placeholder="Doe" required value={signupLastName} onChange={(e) => setSignupLastName(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-phone">Phone Number</Label>
+                      <Input id="signup-phone" type="tel" placeholder="(123) 456-7890" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input id="signup-email" type="email" placeholder="m@example.com" required value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-referral-email">Referral Email (Optional)</Label>
+                      <Input id="signup-referral-email" type="email" placeholder="friend@example.com" value={signupReferralEmail} onChange={(e) => setSignupReferralEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input id="signup-password" type="password" required value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                      <Input id="signup-confirm-password" type="password" required value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)}/>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isSigningUp || isGoogleLoading}>
+                      {isSigningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      {isSigningUp ? 'Signing Up...' : 'Sign Up'}
+                    </Button>
+                  </form>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -215,3 +295,5 @@ export default function LoginPage() {
     </PublicLayout>
   );
 }
+
+    

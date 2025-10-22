@@ -188,7 +188,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -275,3 +276,5 @@
     "reasoning": "The Firestore structure has been updated to use top-level collections for appointments and referrals. This simplifies data access for administrative purposes and allows for more flexible security rules, such as permitting unauthenticated users to create appointments or referrals. Customer-specific data like tax documents remains in a subcollection for clear ownership and security. A new `siteSettings` collection has been added to store global configuration like downloadable form URLs."
   }
 }
+
+    
