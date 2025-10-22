@@ -23,9 +23,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
-  { href: "/dashboard/documents", label: "My Documents", icon: <Files /> },
-  { href: "/dashboard/upload", label: "Upload Documents", icon: <Upload /> },
   { href: "/dashboard/tax-info", label: "Tax Forms", icon: <Info /> },
+  { href: "/dashboard/upload", label: "Upload Documents", icon: <Upload /> },
+  { href: "/dashboard/documents", label: "My Documents", icon: <Files /> },
 ];
 
 export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {
