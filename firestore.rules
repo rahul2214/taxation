@@ -2,130 +2,136 @@
  * @fileoverview Firestore Security Rules for TaxEase application.
  *
  * Core Philosophy:
- * This ruleset prioritizes secure data access based on a combination of user authentication and data ownership. It aims to balance security with the need for public accessibility where appropriate.
+ * This ruleset prioritizes secure data access based on a combination of
+ * ownership and public availability, tailored to the specific collection.
  *
  * Data Structure:
- * - /customers/{customerId}: Stores customer profiles. Access is restricted to the owner (the customer themselves).
- * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents. Access is restricted to the owner customer.
- * - /appointments/{appointmentId}: Stores appointment requests. Public creation is allowed, but updates and deletes are not permitted, which might require further refinement in future versions.
- * - /referrals/{referralId}: Stores referrals. Public creation is allowed, but updates and deletes are not permitted, which might require further refinement in future versions.
- * - /siteSettings/taxForms: Stores global site settings. Read-only access for all users.
+ * - /customers/{customerId}: Stores customer profiles. Access is restricted to the owner.
+ * - /customers/{customerId}/taxDocuments/{taxDocumentId}: Stores tax documents. Access is restricted to the owner.
+ * - /appointments/{appointmentId}: Stores appointment requests. Public reads, but only authenticated users can create them.
+ * - /referrals/{referralId}: Stores referrals. Public reads, but only authenticated users can create them.
+ * - /siteSettings/taxForms: Stores global settings. Publicly readable, no writes allowed.
  *
  * Key Security Decisions:
- * - User listing is generally disallowed to protect user privacy.
- * - Public read access is granted to the /appointments and /referrals collections to allow open creation.
+ * - Customers can only access their own profile data and tax documents.
+ * - Appointments and Referrals can be created by any authenticated user.
+ * - Listing of all referrals is not allowed.
+ * - Global site settings are publicly readable.
  *
- * Denormalization for Authorization:
- * - The 'customerId' in the /customers/{customerId}/taxDocuments/{taxDocumentId} path is used to enforce ownership, preventing unauthorized access to tax documents.
+ * Denormalization for Authorization: N/A
+ * This ruleset avoids `get()` calls by relying on path-based authorization and validating the `customerId` field on `create` operations.
+ *
+ * Structural Segregation:
+ * Publicly accessible data (global settings) is stored in a separate collection from private user data (customer profiles and tax documents).
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages customer profiles, ensuring only the authenticated user can access their own data.
+     * @description Controls access to customer profiles.
      * @path /customers/{customerId}
-     * @allow (create) Signed-in user creates their own profile (customerId matches auth.uid).
-     * @allow (get, list, update, delete) Signed-in user accesses their own profile (customerId matches auth.uid).
-     * @deny (create) Signed-in user attempts to create a profile with a mismatched customerId.
-     * @deny (get, list, update, delete) Signed-in user attempts to access another user's profile.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create, update, delete): Authenticated user with UID matching the customerId can perform these operations.
+     * @allow (get, list): Authenticated user with UID matching the customerId can perform these operations.
+     * @deny (create, update, delete): Authenticated user with UID not matching the customerId cannot perform these operations.
+     * @deny (get, list): Authenticated user with UID not matching the customerId cannot perform these operations.
+     * @principle Enforces document ownership: Only the user with the matching UID can access their profile.
      */
     match /customers/{customerId} {
-      // Utility function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Utility function to check if the user is the owner of the resource
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
-
-      // Utility function to check if the user is the owner of the resource and the resource exists
       function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(customerId);
-      allow list: if false; // Listing all customers is not permitted.
-      allow create: if isSignedIn() && isOwner(customerId) && request.resource.data.id == customerId;
-      allow update: if isExistingOwner(customerId) && request.resource.data.id == resource.data.id; //Enforce immutable id
+      allow list: if false; // Prevent listing all customers
+
+      allow create: if isOwner(customerId) && request.resource.data.id == customerId;
+      allow update: if isExistingOwner(customerId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(customerId);
     }
 
     /**
-     * @description Manages tax documents for a specific customer, ensuring only the customer can access their own documents.
+     * @description Controls access to tax documents uploaded by customers.
      * @path /customers/{customerId}/taxDocuments/{taxDocumentId}
-     * @allow (create) Signed-in user creates a tax document under their customer profile (customerId matches auth.uid).
-     * @allow (get, list, update, delete) Signed-in user accesses a tax document under their customer profile (customerId matches auth.uid).
-     * @deny (create) Signed-in user attempts to create a tax document under another user's profile.
-     * @deny (get, list, update, delete) Signed-in user attempts to access a tax document under another user's profile.
-     * @principle Enforces document ownership for all operations, using path-based authorization.
+     * @allow (create, update, delete): Authenticated user with UID matching the customerId can perform these operations.
+     * @allow (get, list): Authenticated user with UID matching the customerId can perform these operations.
+     * @deny (create, update, delete): Authenticated user with UID not matching the customerId cannot perform these operations.
+     * @deny (get, list): Authenticated user with UID not matching the customerId cannot perform these operations.
+     * @principle Enforces document ownership: Only the owner can access their tax documents.
      */
     match /customers/{customerId}/taxDocuments/{taxDocumentId} {
-      // Utility function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
       }
-
-      // Utility function to check if the user is the owner of the resource
-      function isOwner(customerId) {
-        return request.auth.uid == customerId;
-      }
-
-       // Utility function to check if the user is the owner of the resource and the resource exists
-      function isExistingOwner(customerId) {
-        return isOwner(customerId) && resource != null;
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(customerId);
       allow list: if isOwner(customerId);
-      allow create: if isSignedIn() && isOwner(customerId) && request.resource.data.customerId == customerId;
-      allow update: if isExistingOwner(customerId) && request.resource.data.customerId == resource.data.customerId; //Enforce immutable customerId
+
+      allow create: if isOwner(customerId) && request.resource.data.customerId == customerId;
+      allow update: if isExistingOwner(customerId) && resource.data.customerId == customerId;
       allow delete: if isExistingOwner(customerId);
     }
 
     /**
-     * @description Manages appointments. Allows public creation, but restricts updates and deletes.
+     * @description Controls access to appointments.
      * @path /appointments/{appointmentId}
-     * @allow (create) Any user (signed-in or not) can create an appointment.
-     * @deny (get, list, update, delete) No user can retrieve, list, update, or delete an appointment.
-     * @principle Allows public creation for appointments, but restricts further modifications.
+     * @allow (create): Any authenticated user can create an appointment.
+     * @allow (get, list): Public read access for all appointments.
+     * @deny (update, delete): No updates or deletes allowed.
+     * @principle Allows public reads and authenticated creates for appointments.
      */
     match /appointments/{appointmentId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get: if true;
-      allow list: if false;
-      allow create: if true;
+      allow list: if true;
+
+      allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Manages referrals. Allows public creation, but restricts updates and deletes.
+     * @description Controls access to referrals.
      * @path /referrals/{referralId}
-     * @allow (create) Any user (signed-in or not) can create a referral.
-     * @deny (get, list, update, delete) No user can retrieve, list, update, or delete a referral.
-     * @principle Allows public creation for referrals, but restricts further modifications.
+     * @allow (create): Any authenticated user can create a referral.
+     * @allow (get): Public read access for individual referrals.
+     * @deny (list): Listing all referrals is not allowed
+     * @deny (update, delete): No updates or deletes allowed.
+     * @principle Allows public reads and authenticated creates for referrals.
      */
     match /referrals/{referralId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get: if true;
       allow list: if false;
-      allow create: if true;
+
+      allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Manages site settings, providing public read-only access.
+     * @description Controls access to site settings (tax forms).
      * @path /siteSettings/taxForms
-     * @allow (get, list) Any user (signed-in or not) can read site settings.
-     * @deny (create, update, delete) No user can create, update, or delete site settings.
-     * @principle Provides public read access to site settings, restricting write access.
+     * @allow (get): Public read access to site settings.
+     * @deny (create, update, delete, list): No writes or listing allowed.
+     * @principle Allows public reads for global site settings.
      */
     match /siteSettings/taxForms {
       allow get: if true;
-      allow list: if true;
+      allow list: if false;
+
       allow create: if false;
       allow update: if false;
       allow delete: if false;
