@@ -18,6 +18,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 type AdminSidebarProps = {
   pendingAppointmentsCount: number;
@@ -29,15 +30,25 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount }
   const { isMobile } = useSidebar();
   const { auth } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogout = async () => {
     try {
       if(auth) {
         await signOut(auth);
+        toast({
+            title: "Logged Out",
+            description: "You have been successfully signed out.",
+        });
       }
       router.push('/');
     } catch (error) {
       console.error("Logout Error:", error);
+       toast({
+        variant: "destructive",
+        title: "Logout Failed",
+        description: "There was an error while logging out.",
+      });
     }
   };
 

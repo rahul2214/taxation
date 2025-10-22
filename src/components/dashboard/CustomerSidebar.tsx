@@ -19,6 +19,7 @@ import { useFirebase } from "@/firebase";
 import { cn } from "@/lib/utils";
 import { signOut } from "firebase/auth";
 import { DocumentData } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { href: "/dashboard/account", label: "My Account", icon: <User /> },
@@ -31,6 +32,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   const pathname = usePathname();
   const { auth, user, isUserLoading } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
   
   const { isMobile } = useSidebar();
   
@@ -38,9 +40,18 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
     if(!auth) return;
     try {
       await signOut(auth);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully signed out.",
+      });
       router.push('/');
     } catch (error) {
       console.error("Logout Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Logout Failed",
+        description: "There was an error while logging out.",
+      });
     }
   };
 
