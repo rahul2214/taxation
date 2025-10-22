@@ -27,8 +27,8 @@ export default function TaxInfoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Your Tax Information</h1>
-        <p className="text-muted-foreground">Download your tax information documents here.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Download Tax Information Documents</h1>
+        <p className="text-muted-foreground">Access the latest and previous year tax information forms below.</p>
       </div>
       <Separator />
 
