@@ -41,8 +41,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { MoreHorizontal, Loader2, Download, File as FileIcon, Upload } from "lucide-react";
-import { useState, useEffect, useMemo, ChangeEvent } from "react";
+import { MoreHorizontal, Loader2, Download, Upload } from "lucide-react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, collectionGroup, query, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
@@ -100,42 +100,63 @@ export default function TaxDocumentsPage() {
     if (!firestore) return;
     setIsLoading(true);
 
-    const customerMap = new Map<string, Customer>();
+    try {
+      const customerMap = new Map<string, Customer>();
 
-    // 1. Get all customers
-    const customerSnapshot = await getDocs(collection(firestore, 'customers'));
-    customerSnapshot.forEach(doc => {
-      customerMap.set(doc.id, {
-        id: doc.id,
-        firstName: doc.data().firstName,
-        lastName: doc.data().lastName,
-        documents: []
+      // 1. Get all customers
+      const customerSnapshot = await getDocs(collection(firestore, 'customers'));
+      customerSnapshot.forEach(doc => {
+        const data = doc.data();
+        // Ensure we don't list admins as customers with documents
+        if (data.role !== 'admin') {
+          customerMap.set(doc.id, {
+            id: doc.id,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            documents: []
+          });
+        }
       });
-    });
 
-    // 2. Get all tax documents
-    const docsQuery = query(collectionGroup(firestore, 'taxDocuments'));
-    const querySnapshot = await getDocs(docsQuery);
+      // 2. Get all tax documents from the collection group
+      const docsQuery = query(collectionGroup(firestore, 'taxDocuments'));
+      const querySnapshot = await getDocs(docsQuery);
 
-    querySnapshot.forEach(d => {
-      const docData = d.data() as Omit<TaxDocument, 'id' | 'customerId'>;
-      const customerId = d.ref.parent.parent!.id;
-      const customer = customerMap.get(customerId);
-      if (customer) {
-        customer.documents.push({
-          id: d.id,
-          customerId,
-          ...docData
-        } as TaxDocument);
-      }
-    });
+      querySnapshot.forEach(d => {
+        const docData = d.data() as Omit<TaxDocument, 'id' | 'customerId'>;
+        const customerId = d.ref.parent.parent!.id;
+        const customer = customerMap.get(customerId);
+        if (customer) {
+          customer.documents.push({
+            id: d.id,
+            customerId,
+            ...docData
+          } as TaxDocument);
+        }
+      });
+      
+      // Sort documents by date for each customer
+      customerMap.forEach(customer => {
+        customer.documents.sort((a, b) => {
+           const dateA = a.uploadDate instanceof Date ? a.uploadDate.getTime() : (a.uploadDate?.seconds ?? 0) * 1000;
+           const dateB = b.uploadDate instanceof Date ? b.uploadDate.getTime() : (b.uploadDate?.seconds ?? 0) * 1000;
+           return dateB - dateA;
+        });
+      });
 
-    setCustomers(Array.from(customerMap.values()));
-    setIsLoading(false);
+      setCustomers(Array.from(customerMap.values()));
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({ variant: "destructive", title: "Fetch Failed", description: "Could not load customer and document data." });
+    } finally {
+        setIsLoading(false);
+    }
   };
   
   useEffect(() => {
-    fetchDocsAndCustomers();
+    if (firestore) {
+      fetchDocsAndCustomers();
+    }
   }, [firestore]);
   
 
@@ -154,6 +175,9 @@ export default function TaxDocumentsPage() {
   
   const openUploadDialog = (customer: Customer) => {
     setSelectedCustomer(customer);
+    setUploadDocumentName("");
+    setFileToUpload(null);
+    setUploadingFiles([]);
     setIsUploadDialogOpen(true);
   };
   
@@ -187,15 +211,15 @@ export default function TaxDocumentsPage() {
       },
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          if (firestore) {
+          if (firestore && selectedCustomer) {
             const taxDocsCollection = collection(firestore, 'customers', selectedCustomer.id, 'taxDocuments');
             await addDoc(taxDocsCollection, {
               documentName: uploadDocumentName,
               fileUrl: downloadURL,
-              documentType: uploadCategory, // Or more specific if needed
+              documentType: uploadCategory, // This field is now correctly mapped
               uploadDate: serverTimestamp(),
               taxYear: new Date().getFullYear(),
-              status: "Pending",
+              status: "Pending", // Admin uploads can be pending review by customer
               category: uploadCategory,
               uploader: "admin"
             });
@@ -212,7 +236,7 @@ export default function TaxDocumentsPage() {
     );
   };
 
-  const formatDate = (date: { seconds: number; nanoseconds: number } | Date) => {
+  const formatDate = (date: { seconds: number; nanoseconds: number } | Date | undefined) => {
     if (!date) return "N/A";
     if (date instanceof Date) return date.toLocaleDateString();
     if (date.seconds) return new Date(date.seconds * 1000).toLocaleDateString();
@@ -242,7 +266,7 @@ export default function TaxDocumentsPage() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="flex justify-end mb-2">
+                  <div className="flex justify-end mb-4">
                     <Button size="sm" onClick={() => openUploadDialog(customer)}>
                         <Upload className="mr-2 h-4 w-4"/>
                         Upload for {customer.firstName}
@@ -254,7 +278,7 @@ export default function TaxDocumentsPage() {
                         <TableHead>Document</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Uploader</TableHead>
-                        <TableHead>Uploaded</TableHead>
+                        <TableHead>Uploaded On</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -278,17 +302,18 @@ export default function TaxDocumentsPage() {
                               <DropdownMenuTrigger asChild>
                                 <Button aria-haspopup="true" size="icon" variant="ghost">
                                   <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Actions</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <a href={docItem.fileUrl} target="_blank" rel="noopener noreferrer">
+                                  <a href={docItem.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                     <Download className="mr-2 h-4 w-4" />Download
                                   </a>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Verified')} disabled={docItem.status === 'Verified'}>Mark as Verified</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Requires Attention')} disabled={docItem.status === 'Requires Attention'}>Mark as Requires Attention</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Pending')} disabled={docItem.status === 'Pending'}>Mark as Pending</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Pending')} disabled={docItem.status === 'Pending'}>Revert to Pending</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -308,39 +333,42 @@ export default function TaxDocumentsPage() {
     </Card>
 
     <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Upload Document for {selectedCustomer?.firstName}</DialogTitle>
-                <DialogDescription>Select a file and specify its details.</DialogDescription>
+                <DialogDescription>Select a file and specify its details to upload for this customer.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                     <Label htmlFor="doc-name">Document Name</Label>
-                    <Input id="doc-name" value={uploadDocumentName} onChange={(e) => setUploadDocumentName(e.target.value)} placeholder="e.g., Final Tax Return 2023"/>
+                    <Input id="doc-name" value={uploadDocumentName} onChange={(e) => setUploadDocumentName(e.target.value)} placeholder="e.g., Tax Estimation 2023"/>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="doc-category">Category</Label>
+                    <Label htmlFor="doc-category">Document Category</Label>
                      <select id="doc-category" value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value as TaxDocument['category'])} className="w-full h-10 border-input bg-background rounded-md border px-3 py-2 text-sm">
                         <option value="Tax Estimation">Tax Estimation</option>
                         <option value="Final Document">Final Document</option>
-                    </select>
+                     </select>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="file-upload">File</Label>
                     <Input id="file-upload" type="file" onChange={handleFileChange} />
                 </div>
                 {uploadingFiles.map((file, index) => (
-                    <div key={index}>
+                    <div key={index} className="mt-2">
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-sm font-medium truncate">{file.name}</p>
+                            {file.error && <p className="text-xs text-destructive">{file.error}</p>}
+                        </div>
                         <Progress value={file.progress} className="h-2" />
-                        {file.error && <p className="text-sm text-destructive mt-1">{file.error}</p>}
                     </div>
                 ))}
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAdminUpload} disabled={uploadingFiles.length > 0}>
+                <Button onClick={handleAdminUpload} disabled={uploadingFiles.some(f => f.progress < 100 && !f.error)}>
                     {uploadingFiles.length > 0 ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
-                    Upload
+                    Upload to Customer
                 </Button>
             </DialogFooter>
         </DialogContent>
@@ -348,3 +376,5 @@ export default function TaxDocumentsPage() {
     </>
   );
 }
+
+    
