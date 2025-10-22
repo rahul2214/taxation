@@ -154,7 +154,7 @@ export default function TaxDocumentsPage() {
     if (firestore) {
       fetchDocsAndCustomers();
     }
-  }, [firestore]);
+  }, [firestore, toast]);
   
 
   const handleStatusChange = async (document: TaxDocument, newStatus: DocumentStatus) => {
@@ -191,7 +191,7 @@ export default function TaxDocumentsPage() {
     }
 
     const storage = getStorage();
-    const storageRef = ref(storage, `customers/${selectedCustomer.id}/documents/${Date.now()}_${fileToUpload.name}`);
+    const storageRef = ref(storage, `admin_uploads/${selectedCustomer.id}/${Date.now()}_${fileToUpload.name}`);
     const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
     
     const newUpload: UploadingFile = { name: fileToUpload.name, progress: 0 };
