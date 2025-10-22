@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -41,10 +42,13 @@ export default function LoginPage() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
 
   const checkRoleAndRedirect = async (user: any) => {
     if (!firestore) return;
+    setIsRedirecting(true);
     const userDocRef = doc(firestore, "customers", user.uid);
     try {
       const userDoc = await getDoc(userDocRef);
@@ -60,10 +64,12 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      checkRoleAndRedirect(user);
+    if (!isUserLoading && user && !showWelcomeDialog) {
+        if(!isRedirecting) {
+            checkRoleAndRedirect(user);
+        }
     }
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router, firestore, showWelcomeDialog, isRedirecting]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +86,6 @@ export default function LoginPage() {
       });
       setIsLoggingIn(false);
     }
-    // No need for finally block, useEffect will take over
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -112,13 +117,9 @@ export default function LoginPage() {
       if (signupReferralEmail) {
         // You can add referral logic here if needed in the future
       }
-
-      toast({
-        title: "Account Created!",
-        description: "Welcome to Polaris Tax Services.",
-      });
-
-      // Let the useEffect handle redirection
+      
+      setShowWelcomeDialog(true);
+      // Let the welcome dialog handle redirection
     } catch (error: any) {
       console.error("Signup Error:", error);
       toast({
@@ -155,12 +156,9 @@ export default function LoginPage() {
           role: "user",
         });
         
-        toast({
-            title: "Account Created!",
-            description: "Welcome to Polaris Tax Services.",
-        });
+        setShowWelcomeDialog(true);
       }
-      // The useEffect will handle redirection for both new and existing users.
+      // The useEffect will handle redirection for existing users.
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -168,11 +166,12 @@ export default function LoginPage() {
         title: "Sign-In Failed",
         description: error.message || "Could not sign you in with Google.",
       });
-      setIsGoogleLoading(false);
+    } finally {
+        setIsGoogleLoading(false);
     }
   };
 
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && !showWelcomeDialog) || isRedirecting) {
     return (
         <div className="flex min-h-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -288,6 +287,27 @@ export default function LoginPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+       <Dialog open={showWelcomeDialog} onOpenChange={(open) => { if(!open) setShowWelcomeDialog(false)}}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Welcome to Polaris Tax Services!</DialogTitle>
+                <DialogDescription>
+                    Your account has been successfully created. You can now access your dashboard.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button onClick={() => {
+                    setShowWelcomeDialog(false);
+                    if(user) checkRoleAndRedirect(user);
+                }}>
+                    Go to Dashboard
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+       </Dialog>
     </PublicLayout>
   );
 }
+
+    
