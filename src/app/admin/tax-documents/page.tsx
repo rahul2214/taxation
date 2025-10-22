@@ -45,7 +45,7 @@ import { MoreHorizontal, Loader2, Download, Upload } from "lucide-react";
 import { useState, useEffect, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { collection, doc, updateDoc, collectionGroup, query, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 type DocumentStatus = "Verified" | "Pending" | "Requires Attention";
@@ -107,7 +107,6 @@ export default function TaxDocumentsPage() {
       const customerSnapshot = await getDocs(collection(firestore, 'customers'));
       customerSnapshot.forEach(doc => {
         const data = doc.data();
-        // Ensure we don't list admins as customers with documents
         if (data.role !== 'admin') {
           customerMap.set(doc.id, {
             id: doc.id,
@@ -118,32 +117,30 @@ export default function TaxDocumentsPage() {
         }
       });
 
-      // 2. Get all tax documents from the collection group
-      const docsQuery = query(collectionGroup(firestore, 'taxDocuments'));
-      const querySnapshot = await getDocs(docsQuery);
-
-      querySnapshot.forEach(d => {
-        const docData = d.data() as Omit<TaxDocument, 'id' | 'customerId'>;
-        const customerId = d.ref.parent.parent!.id;
-        const customer = customerMap.get(customerId);
-        if (customer) {
-          customer.documents.push({
+      // 2. For each customer, fetch their tax documents
+      for (const [customerId, customerData] of customerMap.entries()) {
+        const docsCollectionRef = collection(firestore, 'customers', customerId, 'taxDocuments');
+        const docsSnapshot = await getDocs(docsCollectionRef);
+        const docs: TaxDocument[] = [];
+        docsSnapshot.forEach(d => {
+          const docData = d.data() as Omit<TaxDocument, 'id'| 'customerId'>;
+          docs.push({
             id: d.id,
-            customerId,
+            customerId: customerId,
             ...docData
           } as TaxDocument);
-        }
-      });
-      
-      // Sort documents by date for each customer
-      customerMap.forEach(customer => {
-        customer.documents.sort((a, b) => {
+        });
+        
+        // Sort documents by date
+        docs.sort((a, b) => {
            const dateA = a.uploadDate instanceof Date ? a.uploadDate.getTime() : (a.uploadDate?.seconds ?? 0) * 1000;
            const dateB = b.uploadDate instanceof Date ? b.uploadDate.getTime() : (b.uploadDate?.seconds ?? 0) * 1000;
            return dateB - dateA;
         });
-      });
 
+        customerData.documents = docs;
+      }
+      
       setCustomers(Array.from(customerMap.values()));
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -216,10 +213,10 @@ export default function TaxDocumentsPage() {
             await addDoc(taxDocsCollection, {
               documentName: uploadDocumentName,
               fileUrl: downloadURL,
-              documentType: uploadCategory, // This field is now correctly mapped
+              documentType: uploadCategory,
               uploadDate: serverTimestamp(),
               taxYear: new Date().getFullYear(),
-              status: "Pending", // Admin uploads can be pending review by customer
+              status: "Pending",
               category: uploadCategory,
               uploader: "admin"
             });
