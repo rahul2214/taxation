@@ -1,14 +1,19 @@
 import { supabase, isSupabaseConfigured } from './client';
 
 export interface CustomerRecord {
-  id: string; // Firebase Auth UID
+  id: string; // Firebase / Supabase Auth UID
   first_name?: string;
   last_name?: string;
   email: string;
   phone?: string;
   address?: string;
   role?: string;
+  referral_code?: string;
+  wallet_balance?: number;
+  referred_by?: string;
   signup_date?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface TaxDocumentRecord {
@@ -41,10 +46,24 @@ export interface ReferralRecord {
   referrer_id?: string | null;
   referrer_name?: string;
   referrer_email?: string;
+  referred_id?: string | null;
   referred_email: string;
   referred_name?: string;
+  referral_code?: string;
+  reward_amount?: number;
   status?: string;
   referral_date?: string;
+  created_at?: string;
+}
+
+export interface WalletTransactionRecord {
+  id?: string;
+  customer_id: string;
+  amount: number;
+  type: 'referral_bonus' | 'welcome_bonus' | 'service_discount' | 'manual_adjustment';
+  description: string;
+  reference_id?: string;
+  created_at?: string;
 }
 
 export interface SiteSettingsRecord {
@@ -66,25 +85,122 @@ export interface AdminRecord {
 // -------------------------------------------------------------
 // Customers Service
 // -------------------------------------------------------------
+
+export function generateReferralCode(firstName?: string, email?: string): string {
+  const cleanName = (firstName || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const cleanEmail = (email || '').split('@')[0].replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const prefix = cleanName.slice(0, 5) || cleanEmail.slice(0, 5) || 'POLARIS';
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}-${randomSuffix}`;
+}
+
 export async function upsertCustomer(customer: CustomerRecord) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('customers')
-    .upsert({
-      id: customer.id,
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      role: customer.role || 'customer',
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
 
-  if (error) throw error;
-  return data;
+  const fullPayload: any = {
+    id: customer.id,
+    first_name: customer.first_name,
+    last_name: customer.last_name,
+    email: customer.email,
+    phone: customer.phone,
+    address: customer.address,
+    role: customer.role || 'customer',
+    updated_at: new Date().toISOString(),
+  };
+
+  if (customer.referral_code !== undefined) fullPayload.referral_code = customer.referral_code;
+  if (customer.wallet_balance !== undefined) fullPayload.wallet_balance = customer.wallet_balance;
+  if (customer.referred_by !== undefined) fullPayload.referred_by = customer.referred_by;
+
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .upsert(fullPayload)
+      .select()
+      .single();
+
+    if (error) {
+      // If error code is 42703 (column does not exist), retry with core fields
+      if (error.code === '42703') {
+        const corePayload = {
+          id: customer.id,
+          first_name: customer.first_name,
+          last_name: customer.last_name,
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address,
+          role: customer.role || 'customer',
+          updated_at: new Date().toISOString(),
+        };
+        const fallback = await supabase
+          .from('customers')
+          .upsert(corePayload)
+          .select()
+          .single();
+        if (fallback.error) throw fallback.error;
+        return fallback.data;
+      }
+      throw error;
+    }
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function getCustomerByReferralCode(codeOrEmail: string): Promise<CustomerRecord | null> {
+  if (!isSupabaseConfigured || !codeOrEmail.trim()) return null;
+  const clean = codeOrEmail.trim();
+
+  // Try matching referral_code
+  try {
+    const { data: byCode, error: errCode } = await supabase
+      .from('customers')
+      .select('*')
+      .ilike('referral_code', clean)
+      .maybeSingle();
+
+    if (!errCode && byCode) return byCode;
+  } catch (_) {}
+
+  // Fallback try matching email
+  try {
+    const { data: byEmail, error: errEmail } = await supabase
+      .from('customers')
+      .select('*')
+      .ilike('email', clean.toLowerCase())
+      .maybeSingle();
+
+    if (!errEmail && byEmail) return byEmail;
+  } catch (_) {}
+
+  return null;
+}
+
+export async function ensureCustomerReferralCode(
+  customerId: string,
+  firstName?: string,
+  email?: string
+): Promise<string> {
+  if (!isSupabaseConfigured || !customerId) return '';
+
+  try {
+    const existing = await getCustomer(customerId);
+    if (existing?.referral_code) {
+      return existing.referral_code;
+    }
+
+    const newCode = generateReferralCode(firstName || existing?.first_name, email || existing?.email);
+    await supabase
+      .from('customers')
+      .update({ referral_code: newCode })
+      .eq('id', customerId);
+
+    return newCode;
+  } catch (e) {
+    console.warn('ensureCustomerReferralCode fallback:', e);
+    return generateReferralCode(firstName, email);
+  }
 }
 
 export async function getCustomer(id: string): Promise<CustomerRecord | null> {
@@ -231,27 +347,54 @@ export async function getReferrals(referrerId?: string): Promise<ReferralRecord[
 
 export async function createReferral(referral: ReferralRecord) {
   if (!isSupabaseConfigured) return null;
-  let payload = { ...referral };
-  const { data, error } = await supabase
-    .from('referrals')
-    .insert([payload])
-    .select()
-    .single();
+  let payload: any = { ...referral };
 
-  if (error && error.code === '23503') {
-    // FK violation fallback if customer record does not exist
-    payload.referrer_id = null;
-    const retry = await supabase
+  try {
+    const { data, error } = await supabase
       .from('referrals')
       .insert([payload])
       .select()
       .single();
-    if (retry.error) throw retry.error;
-    return retry.data;
-  }
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      // FK violation fallback if customer record does not exist
+      if (error.code === '23503') {
+        payload.referrer_id = null;
+        payload.referred_id = null;
+        const retry = await supabase
+          .from('referrals')
+          .insert([payload])
+          .select()
+          .single();
+        if (retry.error) throw retry.error;
+        return retry.data;
+      }
+      // If error code is 42703 (columns do not exist yet before migration), fallback to core columns
+      if (error.code === '42703') {
+        const corePayload = {
+          referrer_id: payload.referrer_id,
+          referrer_name: payload.referrer_name,
+          referrer_email: payload.referrer_email,
+          referred_name: payload.referred_name,
+          referred_email: payload.referred_email,
+          status: payload.status || 'Pending',
+          referral_date: payload.referral_date || new Date().toISOString(),
+        };
+        const retry = await supabase
+          .from('referrals')
+          .insert([corePayload])
+          .select()
+          .single();
+        if (retry.error) throw retry.error;
+        return retry.data;
+      }
+      throw error;
+    }
+    return data;
+  } catch (err) {
+    console.warn("createReferral notice:", err);
+    return null;
+  }
 }
 
 export async function updateReferralStatus(id: string, status: string) {
@@ -265,6 +408,166 @@ export async function updateReferralStatus(id: string, status: string) {
 
   if (error) throw error;
   return data;
+}
+
+// -------------------------------------------------------------
+// Wallet & Referral Rewards Service
+// -------------------------------------------------------------
+
+export async function getWalletBalance(customerId: string): Promise<number> {
+  if (!isSupabaseConfigured || !customerId) return 0;
+  try {
+    const cust = await getCustomer(customerId);
+    return Number(cust?.wallet_balance || 0);
+  } catch (err) {
+    console.warn("getWalletBalance error:", err);
+    return 0;
+  }
+}
+
+export async function addWalletTransaction(tx: WalletTransactionRecord) {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const { data, error } = await supabase
+      .from('wallet_transactions')
+      .insert([{
+        customer_id: tx.customer_id,
+        amount: tx.amount,
+        type: tx.type,
+        description: tx.description,
+        reference_id: tx.reference_id,
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '42P01') {
+        console.warn("wallet_transactions table not yet created in Supabase.");
+        return null;
+      }
+      throw error;
+    }
+    return data;
+  } catch (e) {
+    console.warn("addWalletTransaction notice:", e);
+    return null;
+  }
+}
+
+export async function getWalletTransactions(customerId: string): Promise<WalletTransactionRecord[]> {
+  if (!isSupabaseConfigured || !customerId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('wallet_transactions')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.code === '42P01') return [];
+      throw error;
+    }
+    return data || [];
+  } catch (e) {
+    console.warn("getWalletTransactions notice:", e);
+    return [];
+  }
+}
+
+export async function creditCustomerWallet(
+  customerId: string,
+  amount: number,
+  type: WalletTransactionRecord['type'],
+  description: string,
+  referenceId?: string
+) {
+  if (!isSupabaseConfigured || !customerId || amount <= 0) return 0;
+
+  try {
+    // 1. Get current balance
+    const cust = await getCustomer(customerId);
+    const currentBalance = Number(cust?.wallet_balance || 0);
+    const newBalance = Number((currentBalance + amount).toFixed(2));
+
+    // 2. Update wallet balance
+    const { error: updateErr } = await supabase
+      .from('customers')
+      .update({ wallet_balance: newBalance })
+      .eq('id', customerId);
+
+    if (updateErr) {
+      console.warn("creditCustomerWallet update notice:", updateErr);
+    }
+
+    // 3. Record ledger transaction
+    await addWalletTransaction({
+      customer_id: customerId,
+      amount,
+      type,
+      description,
+      reference_id: referenceId,
+    });
+
+    return newBalance;
+  } catch (err) {
+    console.warn("creditCustomerWallet error:", err);
+    return 0;
+  }
+}
+
+export async function processReferralReward({
+  referrer,
+  newUserId,
+  newUserName,
+  newUserEmail,
+  referralCodeUsed,
+  rewardAmount = 25.0,
+}: {
+  referrer: CustomerRecord;
+  newUserId: string;
+  newUserName: string;
+  newUserEmail: string;
+  referralCodeUsed: string;
+  rewardAmount?: number;
+}) {
+  if (!isSupabaseConfigured) return;
+
+  try {
+    // 1. Credit Referrer Wallet
+    await creditCustomerWallet(
+      referrer.id,
+      rewardAmount,
+      'referral_bonus',
+      `Referral bonus: ${newUserName} signed up using your code ${referralCodeUsed}`,
+      newUserId
+    );
+
+    // 2. Credit New User Wallet
+    await creditCustomerWallet(
+      newUserId,
+      rewardAmount,
+      'welcome_bonus',
+      `Welcome credit: $${rewardAmount.toFixed(2)} bonus for joining with code ${referralCodeUsed}`,
+      referrer.id
+    );
+
+    // 3. Create or Update Referral Record in database
+    await createReferral({
+      referrer_id: referrer.id,
+      referrer_name: `${referrer.first_name || ''} ${referrer.last_name || ''}`.trim() || referrer.email,
+      referrer_email: referrer.email,
+      referred_id: newUserId,
+      referred_name: newUserName,
+      referred_email: newUserEmail,
+      referral_code: referralCodeUsed,
+      reward_amount: rewardAmount,
+      status: 'Rewarded',
+      referral_date: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Error processing referral reward:", err);
+  }
 }
 
 // -------------------------------------------------------------

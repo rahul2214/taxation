@@ -53,6 +53,8 @@ type Customer = {
   } | string;
   signupDate: { seconds: number, nanoseconds: number } | Date;
   role?: string;
+  referralCode?: string;
+  walletBalance?: number;
 };
 
 
@@ -83,6 +85,8 @@ export default function CustomersPage() {
             address: r.address || undefined,
             signupDate: new Date(r.signup_date || Date.now()),
             role: r.role || "user",
+            referralCode: r.referral_code,
+            walletBalance: r.wallet_balance !== undefined ? Number(r.wallet_balance) : 0,
           }));
         setSupabaseCustomers(mapped);
       } catch (err) {
@@ -222,6 +226,16 @@ export default function CustomersPage() {
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Joined</span>
                         <span className="col-span-3 text-sm">{formatDate(selectedCustomer.signupDate)}</span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Coupon Code</span>
+                        <span className="col-span-3 text-sm font-mono font-bold text-primary">{selectedCustomer.referralCode || 'N/A'}</span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Wallet Balance</span>
+                        <span className="col-span-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                          ${(selectedCustomer.walletBalance ?? 0).toFixed(2)}
+                        </span>
                     </div>
                 </div>
             )}

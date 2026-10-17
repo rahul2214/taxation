@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS public.customers (
     phone TEXT,
     address TEXT,
     role TEXT NOT NULL DEFAULT 'customer',      -- 'customer' or 'admin'
+    referral_code TEXT UNIQUE,                 -- Unique coupon / referral code (e.g. POLARIS-7B4K)
+    wallet_balance NUMERIC(10, 2) NOT NULL DEFAULT 0.00, -- Available credit balance
+    referred_by TEXT,                          -- Customer ID or code who referred this user
     signup_date TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -23,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
 -- Index for quick lookups
 CREATE INDEX IF NOT EXISTS idx_customers_email ON public.customers(email);
 CREATE INDEX IF NOT EXISTS idx_customers_role ON public.customers(role);
+CREATE INDEX IF NOT EXISTS idx_customers_referral_code ON public.customers(referral_code);
 
 -- 2. TAX DOCUMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.tax_documents (
@@ -67,17 +71,36 @@ CREATE TABLE IF NOT EXISTS public.referrals (
     referrer_id TEXT REFERENCES public.customers(id) ON DELETE SET NULL,
     referrer_name TEXT,
     referrer_email TEXT,
+    referred_id TEXT REFERENCES public.customers(id) ON DELETE SET NULL,
     referred_email TEXT NOT NULL,
     referred_name TEXT,
+    referral_code TEXT,                        -- Coupon / referral code used
+    reward_amount NUMERIC(10, 2) NOT NULL DEFAULT 25.00, -- Bonus reward amount
     status TEXT NOT NULL DEFAULT 'Pending',    -- 'Pending', 'Accepted', 'Rewarded'
     referral_date TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer_id ON public.referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_referred_id ON public.referrals(referred_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_code ON public.referrals(referral_code);
 CREATE INDEX IF NOT EXISTS idx_referrals_status ON public.referrals(status);
 
--- 5. SITE SETTINGS TABLE
+-- 5. WALLET TRANSACTIONS TABLE
+CREATE TABLE IF NOT EXISTS public.wallet_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id TEXT NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    amount NUMERIC(10, 2) NOT NULL,
+    type TEXT NOT NULL,                         -- 'referral_bonus', 'welcome_bonus', 'service_discount', 'manual_adjustment'
+    description TEXT,
+    reference_id TEXT,                          -- e.g. referral id or invoice id
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_tx_customer ON public.wallet_transactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_tx_created ON public.wallet_transactions(created_at);
+
+-- 6. SITE SETTINGS TABLE
 CREATE TABLE IF NOT EXISTS public.site_settings (
     id TEXT PRIMARY KEY DEFAULT 'global',
     current_year_form_url TEXT,
@@ -117,6 +140,7 @@ ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read of site settings
 DROP POLICY IF EXISTS "Allow public read site_settings" ON public.site_settings;
@@ -152,5 +176,11 @@ CREATE POLICY "Allow anon read/write referrals"
 DROP POLICY IF EXISTS "Allow anon read/write admins" ON public.admins;
 CREATE POLICY "Allow anon read/write admins"
     ON public.admins FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon read/write wallet_transactions" ON public.wallet_transactions;
+CREATE POLICY "Allow anon read/write wallet_transactions"
+    ON public.wallet_transactions FOR ALL
     USING (true)
     WITH CHECK (true);

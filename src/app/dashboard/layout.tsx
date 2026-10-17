@@ -60,7 +60,7 @@ export default function DashboardLayout({
   
   return (
     <SidebarProvider>
-      <CustomerSidebar userData={userData || supabaseUserData} />
+      <CustomerSidebar userData={{ ...(userData || {}), ...(supabaseUserData || {}) }} />
       <SidebarInset>
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </SidebarInset>

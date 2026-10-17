@@ -66,7 +66,7 @@ export default function ReferralsPage() {
       const mapped: Referral[] = records.map((rec) => {
         let normalizedStatus: ReferralStatus = "Pending";
         const s = (rec.status || "").toLowerCase();
-        if (s === "completed") normalizedStatus = "Completed";
+        if (s === "completed" || s === "rewarded") normalizedStatus = "Completed";
         else if (s === "expired") normalizedStatus = "Expired";
 
         return {
