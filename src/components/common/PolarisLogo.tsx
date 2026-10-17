@@ -17,88 +17,107 @@ export function PolarisLogo({ className, size = 32, ...props }: PolarisLogoProps
       {...props}
     >
       <defs>
-        <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0B132B" />
-          <stop offset="50%" stopColor="#1C2541" />
-          <stop offset="100%" stopColor="#1E293B" />
+        <linearGradient id="crestShieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#141B34" />
+          <stop offset="45%" stopColor="#0F172A" />
+          <stop offset="100%" stopColor="#070B16" />
         </linearGradient>
 
-        <linearGradient id="logoShieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="crestBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#38BDF8" />
-          <stop offset="50%" stopColor="#0EA5E9" />
-          <stop offset="100%" stopColor="#14B8A6" />
+          <stop offset="50%" stopColor="#06B6D4" />
+          <stop offset="100%" stopColor="#10B981" />
         </linearGradient>
 
-        <linearGradient id="logoShieldFill" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#1E3A8A" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#0F172A" stopOpacity="0.95" />
-        </linearGradient>
-
-        <linearGradient id="logoStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="polarisFacetLight" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="60%" stopColor="#E0F2FE" />
+          <stop offset="100%" stopColor="#E0F2FE" />
+        </linearGradient>
+
+        <linearGradient id="polarisFacetMid" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#BAE6FD" />
           <stop offset="100%" stopColor="#38BDF8" />
         </linearGradient>
 
-        <linearGradient id="logoStarAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2DD4BF" />
-          <stop offset="100%" stopColor="#06B6D4" />
+        <linearGradient id="polarisFacetDark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#0284C7" />
+          <stop offset="100%" stopColor="#0369A1" />
         </linearGradient>
 
-        <linearGradient id="logoCheckGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="polarisGrowthGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#34D399" />
-          <stop offset="100%" stopColor="#10B981" />
+          <stop offset="50%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#059669" />
         </linearGradient>
+
+        <linearGradient id="polarisGrowthDark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#047857" />
+        </linearGradient>
+
+        <filter id="polarisBloom" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
       </defs>
 
-      <rect width="512" height="512" rx="120" fill="url(#logoBgGrad)" />
-      <rect width="504" height="504" x="4" y="4" rx="116" fill="none" stroke="url(#logoShieldBorder)" strokeWidth="6" strokeOpacity="0.3" />
-
+      {/* Security Crest / Shield of Tax Defense */}
       <path
-        d="M 256 95 C 310 95, 370 110, 395 130 C 395 245, 345 345, 256 415 C 167 345, 117 245, 117 130 C 142 110, 202 95, 256 95 Z"
-        fill="url(#logoShieldFill)"
-        stroke="url(#logoShieldBorder)"
+        d="M 256 36 C 278 48, 350 72, 420 86 C 428 206, 386 338, 256 468 C 126 338, 84 206, 92 86 C 162 72, 234 48, 256 36 Z"
+        fill="url(#crestShieldGrad)"
+        stroke="url(#crestBorderGrad)"
         strokeWidth="12"
         strokeLinejoin="round"
       />
 
+      {/* Inner Shield Contour */}
       <path
-        d="M 256 120 C 298 120, 346 132, 368 148 C 368 238, 328 320, 256 382 C 184 320, 144 238, 144 148 C 166 132, 214 120, 256 120 Z"
+        d="M 256 64 C 274 74, 336 94, 396 106 C 404 204, 368 314, 256 428 C 144 314, 108 204, 116 106 C 176 94, 238 74, 256 64 Z"
         fill="none"
-        stroke="url(#logoShieldBorder)"
+        stroke="url(#crestBorderGrad)"
         strokeWidth="3"
-        strokeOpacity="0.4"
+        strokeOpacity="0.35"
       />
 
-      <g transform="rotate(45, 256, 235)">
-        <path
-          d="M 256 175 Q 256 235, 196 235 Q 256 235, 256 295 Q 256 235, 316 235 Q 256 235, 256 175 Z"
-          fill="url(#logoStarAccent)"
-          opacity="0.85"
-        />
-      </g>
+      {/* Ambient Starlight Glow */}
+      <circle cx="256" cy="220" r="110" fill="#0EA5E9" opacity="0.14" filter="url(#polarisBloom)" />
 
+      {/* Secondary Diagonal Compass Rays (NE, SE, SW, NW) */}
+      <polygon points="256,220 316,160 270,206" fill="url(#polarisGrowthGrad)" />
+      <polygon points="256,220 316,160 270,234" fill="url(#polarisGrowthDark)" />
+      <polygon points="256,220 316,280 270,234" fill="url(#polarisGrowthDark)" />
+      <polygon points="256,220 316,280 242,248" fill="url(#polarisGrowthGrad)" />
+      <polygon points="256,220 196,280 242,248" fill="url(#polarisGrowthGrad)" />
+      <polygon points="256,220 196,280 242,206" fill="url(#polarisGrowthDark)" />
+      <polygon points="256,220 196,160 242,206" fill="url(#polarisGrowthDark)" />
+      <polygon points="256,220 196,160 270,206" fill="url(#polarisGrowthGrad)" />
+
+      {/* Primary Polaris North Star (North, East, South, West) */}
+      <polygon points="256,100 256,220 238,220" fill="url(#polarisFacetLight)" />
+      <polygon points="256,100 274,220 256,220" fill="url(#polarisFacetMid)" />
+      <polygon points="376,220 256,202 256,220" fill="url(#polarisFacetLight)" />
+      <polygon points="376,220 256,220 256,238" fill="url(#polarisFacetDark)" />
+      <polygon points="256,340 274,220 256,220" fill="url(#polarisFacetMid)" />
+      <polygon points="256,340 256,220 238,220" fill="url(#polarisFacetDark)" />
+      <polygon points="136,220 256,220 256,202" fill="url(#polarisFacetLight)" />
+      <polygon points="136,220 256,238 256,220" fill="url(#polarisFacetMid)" />
+
+      {/* Radiant Diamond Star Center */}
+      <polygon points="256,204 272,220 256,236 240,220" fill="#FFFFFF" filter="url(#polarisBloom)" />
+      <circle cx="256" cy="220" r="5" fill="#38BDF8" />
+
+      {/* Ascending Tax Return Growth Vector Arc */}
       <path
-        d="M 256 135 Q 256 235, 156 235 Q 256 235, 256 335 Q 256 235, 356 235 Q 256 235, 256 135 Z"
-        fill="url(#logoStarGrad)"
-      />
-
-      <circle cx="256" cy="235" r="18" fill="#FFFFFF" />
-      <circle cx="256" cy="235" r="10" fill="#38BDF8" />
-      <circle cx="256" cy="235" r="5" fill="#FFFFFF" />
-
-      <path
-        d="M 195 285 L 240 330 L 330 230"
+        d="M 175 365 C 215 395, 238 405, 256 405 C 285 405, 315 375, 345 315"
         fill="none"
-        stroke="url(#logoCheckGrad)"
-        strokeWidth="20"
+        stroke="url(#polarisGrowthGrad)"
+        strokeWidth="12"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
       <path
-        d="M 195 285 L 240 330 L 330 230"
+        d="M 330 315 L 348 312 L 348 332"
         fill="none"
-        stroke="#FFFFFF"
+        stroke="url(#polarisGrowthGrad)"
         strokeWidth="12"
         strokeLinecap="round"
         strokeLinejoin="round"
