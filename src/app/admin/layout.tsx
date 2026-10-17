@@ -1,4 +1,3 @@
-
 "use client";
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -9,7 +8,14 @@ import { doc, collection, query, where, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { getCustomer, getAppointments, getReferrals, getTaxDocuments, getAdminById, getAdminByEmail } from "@/lib/supabase/services";
+import {
+  getCustomer,
+  getAppointments,
+  getReferrals,
+  getTaxDocuments,
+  getAdminById,
+  getAdminByEmail,
+} from "@/lib/supabase/services";
 
 export default function AdminLayout({
   children,
@@ -20,20 +26,20 @@ export default function AdminLayout({
   const { user, isUserLoading, firestore } = useFirebase();
   const router = useRouter();
 
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
+  const isLoginPage = pathname === "/admin/login";
 
+  // All hooks called unconditionally in every render
   const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (isLoginPage || !user || !firestore) return null;
     return doc(firestore, `customers/${user.uid}`);
-  }, [user, firestore]);
+  }, [isLoginPage, user, firestore]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
   const [isSupabaseAdmin, setIsSupabaseAdmin] = useState<boolean | null>(null);
   const [sbCounts, setSbCounts] = useState({ apts: 0, refs: 0, docs: 0 });
 
   useEffect(() => {
+    if (isLoginPage) return;
     async function checkAdminAndCounts() {
       if (!user) return;
       try {
@@ -52,8 +58,8 @@ export default function AdminLayout({
         }
 
         // 3. Check localStorage admin session
-        if (!isAdm && typeof window !== 'undefined') {
-          const stored = localStorage.getItem('polaris_admin_session');
+        if (!isAdm && typeof window !== "undefined") {
+          const stored = localStorage.getItem("polaris_admin_session");
           if (stored) {
             try {
               const parsed = JSON.parse(stored);
@@ -67,7 +73,7 @@ export default function AdminLayout({
         // 4. Fallback: check customers table if role is admin
         if (!isAdm && user.uid) {
           const c = await getCustomer(user.uid);
-          if (c?.role === 'admin') isAdm = true;
+          if (c?.role === "admin") isAdm = true;
         }
 
         setIsSupabaseAdmin(isAdm);
@@ -78,9 +84,9 @@ export default function AdminLayout({
           getTaxDocuments(),
         ]);
         setSbCounts({
-          apts: apts.filter(a => a.status?.toLowerCase() === 'pending').length,
-          refs: refs.filter(r => r.status?.toLowerCase() === 'pending').length,
-          docs: docs.filter(d => d.status?.toLowerCase() === 'pending').length,
+          apts: apts.filter((a) => a.status?.toLowerCase() === "pending").length,
+          refs: refs.filter((r) => r.status?.toLowerCase() === "pending").length,
+          docs: docs.filter((d) => d.status?.toLowerCase() === "pending").length,
         });
       } catch (err) {
         console.error("Error in Supabase admin verification/counts:", err);
@@ -90,17 +96,17 @@ export default function AdminLayout({
     if (user) {
       checkAdminAndCounts();
     }
-  }, [user]);
+  }, [isLoginPage, user]);
 
   const pendingAppointmentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'appointments'), where('status', '==', 'Pending'));
-  }, [firestore]);
+    if (isLoginPage || !firestore) return null;
+    return query(collection(firestore, "appointments"), where("status", "==", "Pending"));
+  }, [isLoginPage, firestore]);
 
   const pendingReferralsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'referrals'), where('status', '==', 'Pending'));
-  }, [firestore]);
+    if (isLoginPage || !firestore) return null;
+    return query(collection(firestore, "referrals"), where("status", "==", "Pending"));
+  }, [isLoginPage, firestore]);
 
   const { data: pendingAppointments, isLoading: appointmentsLoading } = useCollection(pendingAppointmentsQuery);
   const { data: pendingReferrals, isLoading: referralsLoading } = useCollection(pendingReferralsQuery);
@@ -109,14 +115,20 @@ export default function AdminLayout({
   const [documentsCountLoading, setDocumentsCountLoading] = useState(false);
 
   useEffect(() => {
+    if (isLoginPage) return;
     const fetchPendingDocuments = async () => {
       if (!firestore) return;
       setDocumentsCountLoading(true);
       try {
-        const customersSnapshot = await getDocs(query(collection(firestore, 'customers'), where('role', '!=', 'admin')));
+        const customersSnapshot = await getDocs(
+          query(collection(firestore, "customers"), where("role", "!=", "admin"))
+        );
         let count = 0;
         for (const customerDoc of customersSnapshot.docs) {
-          const docsQuery = query(collection(firestore, 'customers', customerDoc.id, 'taxDocuments'), where('status', '==', 'Pending'));
+          const docsQuery = query(
+            collection(firestore, "customers", customerDoc.id, "taxDocuments"),
+            where("status", "==", "Pending")
+          );
           const docsSnapshot = await getDocs(docsQuery);
           count += docsSnapshot.size;
         }
@@ -129,24 +141,31 @@ export default function AdminLayout({
     };
 
     fetchPendingDocuments();
-  }, [firestore]);
+  }, [isLoginPage, firestore]);
 
-  const isAdmin = userData?.role === 'admin' || isSupabaseAdmin === true;
+  const isAdmin = userData?.role === "admin" || isSupabaseAdmin === true;
   const isCheckingAdmin = isUserLoading || (isUserDataLoading && isSupabaseAdmin === null);
 
   useEffect(() => {
+    if (isLoginPage) return;
     if (isCheckingAdmin) return;
 
     if (!user) {
-      router.push('/admin/login');
+      router.push("/admin/login");
       return;
     }
 
     if (user && isSupabaseAdmin !== null && !isAdmin) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
-  }, [isCheckingAdmin, user, isAdmin, isSupabaseAdmin, router]);
+  }, [isLoginPage, isCheckingAdmin, user, isAdmin, isSupabaseAdmin, router]);
 
+  // If navigating to admin login page, render children without sidebar shell
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  // Loading indicator while verifying admin permissions
   if (isCheckingAdmin || !isAdmin) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -154,10 +173,10 @@ export default function AdminLayout({
       </div>
     );
   }
-  
+
   return (
     <SidebarProvider>
-      <AdminSidebar 
+      <AdminSidebar
         pendingAppointmentsCount={(pendingAppointments?.length || 0) + sbCounts.apts}
         pendingReferralsCount={(pendingReferrals?.length || 0) + sbCounts.refs}
         pendingDocumentsCount={pendingDocumentsCount + sbCounts.docs}
