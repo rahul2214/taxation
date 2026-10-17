@@ -27,6 +27,7 @@ type AdminSidebarProps = {
 };
 
 import { supabase } from "@/lib/supabase/client";
+import { apiCache } from "@/lib/supabase/services";
 
 export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, pendingDocumentsCount }: AdminSidebarProps) {
   const pathname = usePathname();
@@ -37,6 +38,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
 
   const handleLogout = async () => {
     try {
+      apiCache.clear();
       if (typeof window !== 'undefined') {
         localStorage.removeItem('polaris_admin_session');
         window.dispatchEvent(new Event('polaris_admin_auth_changed'));

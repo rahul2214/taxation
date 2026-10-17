@@ -1,4 +1,7 @@
 import { supabase, isSupabaseConfigured } from './client';
+import { apiCache, CacheOptions } from '../cache/api-cache';
+
+export { apiCache, type CacheOptions };
 
 export interface CustomerRecord {
   id: string; // Supabase Auth UUID
@@ -148,9 +151,23 @@ export async function upsertCustomer(customer: CustomerRecord) {
           .select()
           .single();
         if (fallback.error) throw fallback.error;
+        
+        // Cache invalidation and population
+        apiCache.invalidate('customers:all');
+        if (fallback.data) {
+          apiCache.set(`customer:${customer.id}`, fallback.data, 120_000);
+          if (fallback.data.userid) apiCache.set(`customer:${fallback.data.userid}`, fallback.data, 120_000);
+        }
         return fallback.data;
       }
       throw error;
+    }
+
+    // Invalidate and refresh cache
+    apiCache.invalidate('customers:all');
+    if (data) {
+      apiCache.set(`customer:${customer.id}`, data, 120_000);
+      if (data.userid) apiCache.set(`customer:${data.userid}`, data, 120_000);
     }
     return data;
   } catch (err) {
@@ -158,24 +175,36 @@ export async function upsertCustomer(customer: CustomerRecord) {
   }
 }
 
-export async function getCustomerByReferralCode(code: string): Promise<CustomerRecord | null> {
+export async function getCustomerByReferralCode(
+  code: string,
+  options?: CacheOptions
+): Promise<CustomerRecord | null> {
   if (!isSupabaseConfigured || !code?.trim()) return null;
   const clean = code.trim().toUpperCase();
 
-  // Match strictly by referral_code only (no email logic)
-  try {
-    const { data: byCode, error: errCode } = await supabase
-      .from('customers')
-      .select('*')
-      .ilike('referral_code', clean)
-      .maybeSingle();
+  return apiCache.getOrFetch(
+    `customer_ref_code:${clean}`,
+    async () => {
+      try {
+        const { data: byCode, error: errCode } = await supabase
+          .from('customers')
+          .select('*')
+          .ilike('referral_code', clean)
+          .maybeSingle();
 
-    if (!errCode && byCode) return byCode;
-  } catch (e) {
-    console.warn("getCustomerByReferralCode notice:", e);
-  }
-
-  return null;
+        if (!errCode && byCode) {
+          // Cross-populate customer caches
+          if (byCode.id) apiCache.set(`customer:${byCode.id}`, byCode, 120_000);
+          if (byCode.userid) apiCache.set(`customer:${byCode.userid}`, byCode, 120_000);
+          return byCode;
+        }
+      } catch (e) {
+        console.warn("getCustomerByReferralCode notice:", e);
+      }
+      return null;
+    },
+    { ttlMs: 60_000, ...options }
+  );
 }
 
 export async function ensureCustomerReferralCode(
@@ -197,6 +226,8 @@ export async function ensureCustomerReferralCode(
       .update({ referral_code: newCode })
       .eq('id', customerId);
 
+    // Invalidate cache
+    apiCache.invalidate(`customer:${customerId}`);
     return newCode;
   } catch (e) {
     console.warn('ensureCustomerReferralCode fallback:', e);
@@ -204,53 +235,98 @@ export async function ensureCustomerReferralCode(
   }
 }
 
-export async function getCustomer(idOrUserid: string | number): Promise<CustomerRecord | null> {
+export async function getCustomer(
+  idOrUserid: string | number,
+  options?: CacheOptions
+): Promise<CustomerRecord | null> {
   if (!isSupabaseConfigured || !idOrUserid) return null;
-  const isNumeric = typeof idOrUserid === 'number' || (!isNaN(Number(idOrUserid)) && !idOrUserid.toString().includes('-'));
+  const cacheKey = `customer:${idOrUserid}`;
 
-  let query = supabase.from('customers').select('*');
-  if (isNumeric) {
-    query = query.eq('userid', Number(idOrUserid));
-  } else {
-    query = query.eq('id', idOrUserid);
-  }
+  return apiCache.getOrFetch(
+    cacheKey,
+    async () => {
+      const isNumeric =
+        typeof idOrUserid === 'number' ||
+        (!isNaN(Number(idOrUserid)) && !idOrUserid.toString().includes('-'));
 
-  const { data, error } = await query.maybeSingle();
+      let query = supabase.from('customers').select('*');
+      if (isNumeric) {
+        query = query.eq('userid', Number(idOrUserid));
+      } else {
+        query = query.eq('id', idOrUserid);
+      }
 
-  if (error) {
-    if (error.code === 'PGRST116') return null; // Not found
-    throw error;
-  }
-  return data;
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
+
+      // Cross-populate both id and userid caches
+      if (data) {
+        if (data.id && String(data.id) !== String(idOrUserid)) {
+          apiCache.set(`customer:${data.id}`, data, 120_000);
+        }
+        if (data.userid && String(data.userid) !== String(idOrUserid)) {
+          apiCache.set(`customer:${data.userid}`, data, 120_000);
+        }
+      }
+
+      return data;
+    },
+    { ttlMs: 120_000, ...options } // 2 minutes TTL with deduplication
+  );
 }
 
-export async function getCustomerByUserid(userid: number): Promise<CustomerRecord | null> {
-  return getCustomer(userid);
+export async function getCustomerByUserid(
+  userid: number,
+  options?: CacheOptions
+): Promise<CustomerRecord | null> {
+  return getCustomer(userid, options);
 }
 
-export async function getAllCustomers(): Promise<CustomerRecord[]> {
+export async function getAllCustomers(options?: CacheOptions): Promise<CustomerRecord[]> {
   if (!isSupabaseConfigured) return [];
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return data || [];
+  return apiCache.getOrFetch(
+    'customers:all',
+    async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    { ttlMs: 45_000, ...options } // 45 seconds TTL
+  );
 }
 
 // -------------------------------------------------------------
 // Tax Documents Service
 // -------------------------------------------------------------
-export async function getTaxDocuments(customerId?: string): Promise<TaxDocumentRecord[]> {
+export async function getTaxDocuments(
+  customerId?: string,
+  options?: CacheOptions
+): Promise<TaxDocumentRecord[]> {
   if (!isSupabaseConfigured) return [];
-  let query = supabase.from('tax_documents').select('*');
-  if (customerId) {
-    query = query.eq('customer_id', customerId);
-  }
-  const { data, error } = await query.order('upload_date', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  const cacheKey = `tax_docs:${customerId || 'all'}`;
+
+  return apiCache.getOrFetch(
+    cacheKey,
+    async () => {
+      let query = supabase.from('tax_documents').select('*');
+      if (customerId) {
+        query = query.eq('customer_id', customerId);
+      }
+      const { data, error } = await query.order('upload_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    { ttlMs: 30_000, ...options }
+  );
 }
 
 export async function createTaxDocument(doc: TaxDocumentRecord) {
@@ -262,6 +338,7 @@ export async function createTaxDocument(doc: TaxDocumentRecord) {
     .single();
 
   if (error) throw error;
+  apiCache.invalidate('tax_docs');
   return data;
 }
 
@@ -275,6 +352,7 @@ export async function updateTaxDocumentStatus(id: string, status: string) {
     .single();
 
   if (error) throw error;
+  apiCache.invalidate('tax_docs');
   return data;
 }
 
@@ -286,21 +364,33 @@ export async function deleteTaxDocument(id: string) {
     .eq('id', id);
 
   if (error) throw error;
+  apiCache.invalidate('tax_docs');
   return data;
 }
 
 // -------------------------------------------------------------
 // Appointments Service
 // -------------------------------------------------------------
-export async function getAppointments(customerId?: string): Promise<AppointmentRecord[]> {
+export async function getAppointments(
+  customerId?: string,
+  options?: CacheOptions
+): Promise<AppointmentRecord[]> {
   if (!isSupabaseConfigured) return [];
-  let query = supabase.from('appointments').select('*');
-  if (customerId) {
-    query = query.eq('customer_id', customerId);
-  }
-  const { data, error } = await query.order('appointment_date', { ascending: true });
-  if (error) throw error;
-  return data || [];
+  const cacheKey = `appointments:${customerId || 'all'}`;
+
+  return apiCache.getOrFetch(
+    cacheKey,
+    async () => {
+      let query = supabase.from('appointments').select('*');
+      if (customerId) {
+        query = query.eq('customer_id', customerId);
+      }
+      const { data, error } = await query.order('appointment_date', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    { ttlMs: 30_000, ...options }
+  );
 }
 
 export async function createAppointment(appointment: AppointmentRecord) {
@@ -321,10 +411,12 @@ export async function createAppointment(appointment: AppointmentRecord) {
       .select()
       .single();
     if (retry.error) throw retry.error;
+    apiCache.invalidate('appointments');
     return retry.data;
   }
 
   if (error) throw error;
+  apiCache.invalidate('appointments');
   return data;
 }
 
@@ -338,66 +430,78 @@ export async function updateAppointmentStatus(id: string, status: string) {
     .single();
 
   if (error) throw error;
+  apiCache.invalidate('appointments');
   return data;
 }
 
 // -------------------------------------------------------------
 // Referrals Service (Derived from customers table & wallet ledger)
 // -------------------------------------------------------------
-export async function getReferrals(referrerId?: string): Promise<ReferralRecord[]> {
+export async function getReferrals(
+  referrerId?: string,
+  options?: CacheOptions
+): Promise<ReferralRecord[]> {
   if (!isSupabaseConfigured) return [];
-  try {
-    let query = supabase.from('customers').select('*');
-    if (referrerId) {
-      const referrer = await getCustomer(referrerId);
-      const searchVals = [referrerId];
-      if (referrer?.userid != null) {
-        searchVals.push(String(referrer.userid));
+  const cacheKey = `referrals:${referrerId || 'all'}`;
+
+  return apiCache.getOrFetch(
+    cacheKey,
+    async () => {
+      try {
+        let query = supabase.from('customers').select('*');
+        if (referrerId) {
+          const referrer = await getCustomer(referrerId, options);
+          const searchVals = [referrerId];
+          if (referrer?.userid != null) {
+            searchVals.push(String(referrer.userid));
+          }
+          query = query.in('referred_by', searchVals);
+        } else {
+          query = query.not('referred_by', 'is', null);
+        }
+
+        const { data: referredUsers, error } = await query.order('created_at', { ascending: false });
+        if (error) {
+          if (error.code === '42703' || error.code === '42P01') return [];
+          throw error;
+        }
+
+        if (!referredUsers || referredUsers.length === 0) return [];
+
+        const allCustomers = await getAllCustomers(options);
+        const customerMap = new Map<string, CustomerRecord>();
+        allCustomers.forEach(c => {
+          customerMap.set(c.id, c);
+          if (c.userid != null) customerMap.set(String(c.userid), c);
+        });
+
+        const currentReward = await getReferralRewardAmount(options);
+        return referredUsers.map(u => {
+          const ref = u.referred_by ? customerMap.get(u.referred_by) : null;
+          return {
+            id: u.id,
+            referrer_id: ref?.id,
+            referrer_userid: ref?.userid,
+            referrer_name: ref ? `${ref.first_name || ''} ${ref.last_name || ''}`.trim() || ref.email : (u.referred_by ? `User #${u.referred_by}` : 'Referrer'),
+            referrer_email: ref?.email || '',
+            referred_id: u.id,
+            referred_userid: u.userid,
+            referred_name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+            referred_email: u.email,
+            referral_code: ref?.referral_code,
+            reward_amount: currentReward,
+            status: 'Rewarded',
+            referral_date: u.signup_date || u.created_at,
+            created_at: u.created_at,
+          };
+        });
+      } catch (err) {
+        console.warn("getReferrals notice:", err);
+        return [];
       }
-      query = query.in('referred_by', searchVals);
-    } else {
-      query = query.not('referred_by', 'is', null);
-    }
-
-    const { data: referredUsers, error } = await query.order('created_at', { ascending: false });
-    if (error) {
-      if (error.code === '42703' || error.code === '42P01') return [];
-      throw error;
-    }
-
-    if (!referredUsers || referredUsers.length === 0) return [];
-
-    const allCustomers = await getAllCustomers();
-    const customerMap = new Map<string, CustomerRecord>();
-    allCustomers.forEach(c => {
-      customerMap.set(c.id, c);
-      if (c.userid != null) customerMap.set(String(c.userid), c);
-    });
-
-    const currentReward = await getReferralRewardAmount();
-    return referredUsers.map(u => {
-      const ref = u.referred_by ? customerMap.get(u.referred_by) : null;
-      return {
-        id: u.id,
-        referrer_id: ref?.id,
-        referrer_userid: ref?.userid,
-        referrer_name: ref ? `${ref.first_name || ''} ${ref.last_name || ''}`.trim() || ref.email : (u.referred_by ? `User #${u.referred_by}` : 'Referrer'),
-        referrer_email: ref?.email || '',
-        referred_id: u.id,
-        referred_userid: u.userid,
-        referred_name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
-        referred_email: u.email,
-        referral_code: ref?.referral_code,
-        reward_amount: currentReward,
-        status: 'Rewarded',
-        referral_date: u.signup_date || u.created_at,
-        created_at: u.created_at,
-      };
-    });
-  } catch (err) {
-    console.warn("getReferrals notice:", err);
-    return [];
-  }
+    },
+    { ttlMs: 30_000, ...options }
+  );
 }
 
 export async function createReferral(_referral: ReferralRecord) {
@@ -413,15 +517,26 @@ export async function updateReferralStatus(_id: string, _status: string) {
 // Wallet & Referral Rewards Service
 // -------------------------------------------------------------
 
-export async function getWalletBalance(customerId: string): Promise<number> {
+export async function getWalletBalance(
+  customerId: string,
+  options?: CacheOptions
+): Promise<number> {
   if (!isSupabaseConfigured || !customerId) return 0;
-  try {
-    const cust = await getCustomer(customerId);
-    return Number(cust?.wallet_balance || 0);
-  } catch (err) {
-    console.warn("getWalletBalance error:", err);
-    return 0;
-  }
+  const cacheKey = `wallet_balance:${customerId}`;
+
+  return apiCache.getOrFetch(
+    cacheKey,
+    async () => {
+      try {
+        const cust = await getCustomer(customerId, options);
+        return Number(cust?.wallet_balance || 0);
+      } catch (err) {
+        console.warn("getWalletBalance error:", err);
+        return 0;
+      }
+    },
+    { ttlMs: 30_000, ...options }
+  );
 }
 
 export async function addWalletTransaction(tx: WalletTransactionRecord) {
@@ -459,10 +574,14 @@ export async function addWalletTransaction(tx: WalletTransactionRecord) {
           .select()
           .single();
         if (fallback.error) throw fallback.error;
+        apiCache.invalidate(`wallet_txs:${tx.customer_id}`);
+        apiCache.invalidate('wallet_txs');
         return fallback.data;
       }
       throw error;
     }
+    apiCache.invalidate(`wallet_txs:${tx.customer_id}`);
+    apiCache.invalidate('wallet_txs');
     return data;
   } catch (e) {
     console.warn("addWalletTransaction notice:", e);
@@ -470,24 +589,35 @@ export async function addWalletTransaction(tx: WalletTransactionRecord) {
   }
 }
 
-export async function getWalletTransactions(customerId: string): Promise<WalletTransactionRecord[]> {
+export async function getWalletTransactions(
+  customerId: string,
+  options?: CacheOptions
+): Promise<WalletTransactionRecord[]> {
   if (!isSupabaseConfigured || !customerId) return [];
-  try {
-    const { data, error } = await supabase
-      .from('wallet_transactions')
-      .select('*')
-      .eq('customer_id', customerId)
-      .order('created_at', { ascending: false });
+  const cacheKey = `wallet_txs:${customerId}`;
 
-    if (error) {
-      if (error.code === '42P01') return [];
-      throw error;
-    }
-    return data || [];
-  } catch (e) {
-    console.warn("getWalletTransactions notice:", e);
-    return [];
-  }
+  return apiCache.getOrFetch(
+    cacheKey,
+    async () => {
+      try {
+        const { data, error } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .eq('customer_id', customerId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          if (error.code === '42P01') return [];
+          throw error;
+        }
+        return data || [];
+      } catch (e) {
+        console.warn("getWalletTransactions notice:", e);
+        return [];
+      }
+    },
+    { ttlMs: 30_000, ...options }
+  );
 }
 
 export async function creditCustomerWallet(
@@ -500,8 +630,8 @@ export async function creditCustomerWallet(
   if (!isSupabaseConfigured || !customerId || amount <= 0) return 0;
 
   try {
-    // 1. Get current balance
-    const cust = await getCustomer(customerId);
+    // 1. Get current balance (force refresh or direct fetch)
+    const cust = await getCustomer(customerId, { forceRefresh: true });
     const currentBalance = Number(cust?.wallet_balance || 0);
     const newBalance = Number((currentBalance + amount).toFixed(2));
 
@@ -514,6 +644,13 @@ export async function creditCustomerWallet(
     if (updateErr) {
       console.warn("creditCustomerWallet update notice:", updateErr);
     }
+
+    // Invalidate caches for customer balance and related listings
+    apiCache.invalidate(`customer:${customerId}`);
+    if (cust?.userid) apiCache.invalidate(`customer:${cust.userid}`);
+    apiCache.invalidate('customers:all');
+    apiCache.invalidate(`wallet_balance:${customerId}`);
+    apiCache.invalidate('referrals');
 
     // 3. Record ledger transaction
     await addWalletTransaction({
@@ -532,20 +669,26 @@ export async function creditCustomerWallet(
   }
 }
 
-export async function getReferralRewardAmount(): Promise<number> {
+export async function getReferralRewardAmount(options?: CacheOptions): Promise<number> {
   if (!isSupabaseConfigured) return 25.0;
-  try {
-    const settings = await getSiteSettings();
-    if (settings?.referral_reward_amount != null) {
-      const val = Number(settings.referral_reward_amount);
-      if (!isNaN(val) && val >= 0) {
-        return val;
+  return apiCache.getOrFetch(
+    'referral_reward_amount',
+    async () => {
+      try {
+        const settings = await getSiteSettings(options);
+        if (settings?.referral_reward_amount != null) {
+          const val = Number(settings.referral_reward_amount);
+          if (!isNaN(val) && val >= 0) {
+            return val;
+          }
+        }
+      } catch (err) {
+        console.warn("getReferralRewardAmount fallback to 25.0:", err);
       }
-    }
-  } catch (err) {
-    console.warn("getReferralRewardAmount fallback to 25.0:", err);
-  }
-  return 25.0;
+      return 25.0;
+    },
+    { ttlMs: 300_000, ...options } // 5 minutes TTL
+  );
 }
 
 export async function processReferralReward({
@@ -595,24 +738,30 @@ export async function processReferralReward({
 // -------------------------------------------------------------
 // Site Settings Service
 // -------------------------------------------------------------
-export async function getSiteSettings(): Promise<SiteSettingsRecord | null> {
+export async function getSiteSettings(options?: CacheOptions): Promise<SiteSettingsRecord | null> {
   if (!isSupabaseConfigured) return null;
-  try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('*')
-      .eq('id', 'global')
-      .maybeSingle();
+  return apiCache.getOrFetch(
+    'site_settings:global',
+    async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('*')
+          .eq('id', 'global')
+          .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116' || error.code === '42P01') return null;
-      throw error;
-    }
-    return data;
-  } catch (err) {
-    console.warn("getSiteSettings notice:", err);
-    return null;
-  }
+        if (error) {
+          if (error.code === 'PGRST116' || error.code === '42P01') return null;
+          throw error;
+        }
+        return data;
+      } catch (err) {
+        console.warn("getSiteSettings notice:", err);
+        return null;
+      }
+    },
+    { ttlMs: 300_000, ...options } // 5 minutes TTL
+  );
 }
 
 export async function updateSiteSettings(settings: Partial<SiteSettingsRecord>) {
@@ -630,58 +779,90 @@ export async function updateSiteSettings(settings: Partial<SiteSettingsRecord>) 
     .single();
 
   if (error) throw error;
+  apiCache.invalidate('site_settings');
+  apiCache.invalidate('referral_reward_amount');
   return data;
 }
 
 // -------------------------------------------------------------
 // Admins Service
 // -------------------------------------------------------------
-export async function getAdminByEmail(email: string): Promise<AdminRecord | null> {
+export async function getAdminByEmail(
+  email: string,
+  options?: CacheOptions
+): Promise<AdminRecord | null> {
   if (!isSupabaseConfigured) return null;
-  try {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('*')
-      .ilike('email', email.trim())
-      .maybeSingle();
+  const clean = email.trim().toLowerCase();
 
-    if (error) {
-      if (error.code === 'PGRST116' || error.code === '42P01') return null;
-      throw error;
-    }
-    return data;
-  } catch (err: any) {
-    if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
-      console.warn("Notice: public.admins table does not exist in Supabase yet. Please run the schema.sql in Supabase SQL Editor.");
-      return null;
-    }
-    throw err;
-  }
+  return apiCache.getOrFetch(
+    `admin_email:${clean}`,
+    async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admins')
+          .select('*')
+          .ilike('email', clean)
+          .maybeSingle();
+
+        if (error) {
+          if (error.code === 'PGRST116' || error.code === '42P01') return null;
+          throw error;
+        }
+        if (data?.id) {
+          apiCache.set(`admin_id:${data.id}`, data, 300_000);
+        }
+        return data;
+      } catch (err: any) {
+        if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
+          console.warn("Notice: public.admins table does not exist in Supabase yet. Please run the schema.sql in Supabase SQL Editor.");
+          return null;
+        }
+        throw err;
+      }
+    },
+    { ttlMs: 300_000, ...options }
+  );
 }
 
-export async function getAdminById(id: string): Promise<AdminRecord | null> {
+export async function getAdminById(
+  id: string,
+  options?: CacheOptions
+): Promise<AdminRecord | null> {
   if (!isSupabaseConfigured) return null;
-  try {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116' || error.code === '42P01') return null;
-      throw error;
-    }
-    return data;
-  } catch (err: any) {
-    if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
-      return null;
-    }
-    throw err;
-  }
+  return apiCache.getOrFetch(
+    `admin_id:${id}`,
+    async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (error) {
+          if (error.code === 'PGRST116' || error.code === '42P01') return null;
+          throw error;
+        }
+        if (data?.email) {
+          apiCache.set(`admin_email:${data.email.toLowerCase().trim()}`, data, 300_000);
+        }
+        return data;
+      } catch (err: any) {
+        if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
+          return null;
+        }
+        throw err;
+      }
+    },
+    { ttlMs: 300_000, ...options }
+  );
 }
 
-export async function verifyAdminCredentials(email: string, password: string): Promise<{ admin: AdminRecord | null; error?: string }> {
+export async function verifyAdminCredentials(
+  email: string,
+  password: string
+): Promise<{ admin: AdminRecord | null; error?: string }> {
   if (!isSupabaseConfigured) return { admin: null, error: "Database is not connected." };
   try {
     const admin = await getAdminByEmail(email);
@@ -704,22 +885,29 @@ export async function verifyAdminCredentials(email: string, password: string): P
   }
 }
 
-export async function getAllAdmins(): Promise<AdminRecord[]> {
+export async function getAllAdmins(options?: CacheOptions): Promise<AdminRecord[]> {
   if (!isSupabaseConfigured) return [];
-  try {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('id, email, name, role, created_at, updated_at')
-      .order('created_at', { ascending: false });
 
-    if (error) {
-      if (error.code === '42P01') return [];
-      throw error;
-    }
-    return data || [];
-  } catch (err) {
-    return [];
-  }
+  return apiCache.getOrFetch(
+    'admins:all',
+    async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admins')
+          .select('id, email, name, role, created_at, updated_at')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          if (error.code === '42P01') return [];
+          throw error;
+        }
+        return data || [];
+      } catch (err) {
+        return [];
+      }
+    },
+    { ttlMs: 60_000, ...options }
+  );
 }
 
 export async function createOrUpdateAdmin(admin: AdminRecord) {
@@ -740,6 +928,9 @@ export async function createOrUpdateAdmin(admin: AdminRecord) {
     .single();
 
   if (error) throw error;
+  apiCache.invalidate('admin_email');
+  apiCache.invalidate('admin_id');
+  apiCache.invalidate('admins:all');
   return data;
 }
 
@@ -751,5 +942,9 @@ export async function deleteAdmin(id: string) {
     .eq('id', id);
 
   if (error) throw error;
+  apiCache.invalidate('admin_email');
+  apiCache.invalidate('admin_id');
+  apiCache.invalidate('admins:all');
   return data;
 }
+

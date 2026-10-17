@@ -30,7 +30,7 @@ const menuItems = [
 ];
 
 import { supabase } from "@/lib/supabase/client";
-import { getReferralRewardAmount } from "@/lib/supabase/services";
+import { getReferralRewardAmount, apiCache } from "@/lib/supabase/services";
 import { useState, useEffect } from "react";
 
 export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {
@@ -48,6 +48,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   
   const handleLogout = async () => {
     try {
+      apiCache.clear();
       await supabase.auth.signOut();
       toast({
         title: "Logged Out",
