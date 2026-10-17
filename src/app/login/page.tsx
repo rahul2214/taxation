@@ -137,14 +137,18 @@ export default function LoginPage() {
 
       const newUserId = data.user?.id;
       if (newUserId) {
-        await upsertCustomer({
-          id: newUserId,
-          first_name: signupFirstName.trim(),
-          last_name: signupLastName.trim(),
-          email: cleanEmail,
-          phone: signupPhone.trim(),
-          role: "customer",
-        });
+        try {
+          await upsertCustomer({
+            id: newUserId,
+            first_name: signupFirstName.trim(),
+            last_name: signupLastName.trim(),
+            email: cleanEmail,
+            phone: signupPhone.trim(),
+            role: "customer",
+          });
+        } catch (profileErr) {
+          console.warn("Profile upsert notice:", profileErr);
+        }
 
         if (signupReferralEmail.trim()) {
           try {
@@ -168,10 +172,30 @@ export default function LoginPage() {
       setShowWelcomeDialog(true);
     } catch (error: any) {
       console.error("Signup Error:", error);
+      let userFriendlyMessage = error.message || "There was a problem creating your account.";
+      const errorMsgLower = (error.message || "").toLowerCase();
+      const errorCode = error.code || "";
+
+      if (
+        errorCode === "over_email_send_rate_limit" ||
+        errorMsgLower.includes("rate limit") ||
+        error.status === 429
+      ) {
+        userFriendlyMessage =
+          "Email verification rate limit reached. Tip: In your Supabase Dashboard under Authentication -> Providers -> Email, disable 'Confirm email' for instant signups without email limits.";
+      } else if (
+        errorMsgLower.includes("invalid") ||
+        errorCode === "email_address_invalid" ||
+        errorCode === "email_address_not_authorized"
+      ) {
+        userFriendlyMessage =
+          `Supabase could not verify "${cleanEmail}". In Supabase Dashboard -> Authentication -> Providers -> Email, turn OFF "Confirm email" for instant account creation, or configure a custom SMTP provider (e.g. Resend).`;
+      }
+
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error.message || "There was a problem creating your account.",
+        description: userFriendlyMessage,
       });
     } finally {
       setIsSigningUp(false);
@@ -434,7 +458,11 @@ export default function LoginPage() {
             <Button
               onClick={() => {
                 setShowWelcomeDialog(false);
-                if (user) checkRoleAndRedirect(user);
+                if (user) {
+                  checkRoleAndRedirect(user);
+                } else {
+                  router.push("/dashboard");
+                }
               }}
             >
               Go to Dashboard
