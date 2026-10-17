@@ -24,14 +24,25 @@ import { UploadCloud, File, X, Loader2 } from "lucide-react";
 import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp, doc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { getTaxDocuments, createTaxDocument, deleteTaxDocument } from "@/lib/supabase/services";
 
 type UploadingFile = {
   name: string;
   progress: number;
   error?: string;
+};
+
+type TaxDocItem = {
+  id: string;
+  documentName: string;
+  taxYear: number;
+  documentType: string;
+  status: string;
+  uploader: string;
+  fileUrl: string;
 };
 
 export default function UploadPage() {
@@ -43,12 +54,60 @@ export default function UploadPage() {
   const [documentType, setDocumentType] = useState<string>("W-2");
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
 
+  const [supabaseFiles, setSupabaseFiles] = useState<TaxDocItem[]>([]);
+  const [isSbLoading, setIsSbLoading] = useState(true);
+
+  const fetchSupabaseFiles = async () => {
+    if (!user) return;
+    try {
+      const docs = await getTaxDocuments(user.uid);
+      const mapped: TaxDocItem[] = docs.map(d => ({
+        id: d.id || "",
+        documentName: d.document_name,
+        taxYear: d.tax_year || new Date().getFullYear(),
+        documentType: d.document_type,
+        status: d.status || "Pending",
+        uploader: d.uploader,
+        fileUrl: d.file_url,
+      }));
+      setSupabaseFiles(mapped);
+    } catch (err) {
+      console.error("Error fetching Supabase user docs:", err);
+    } finally {
+      setIsSbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchSupabaseFiles();
+    }
+  }, [user]);
+
   const taxDocsCollection = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return collection(firestore, `customers/${user.uid}/taxDocuments`);
   }, [user, firestore]);
 
-  const { data: uploadedFiles, isLoading } = useCollection(taxDocsCollection);
+  const { data: fsFiles, isLoading: isFsLoading } = useCollection(taxDocsCollection);
+
+  const mergedFilesMap = new Map<string, TaxDocItem>();
+  if (fsFiles) {
+    fsFiles.forEach((f: any) => {
+      mergedFilesMap.set(f.id, {
+        id: f.id,
+        documentName: f.documentName,
+        taxYear: f.taxYear,
+        documentType: f.documentType,
+        status: f.status,
+        uploader: f.uploader,
+        fileUrl: f.fileUrl,
+      });
+    });
+  }
+  supabaseFiles.forEach(f => mergedFilesMap.set(f.id, f));
+  const uploadedFiles = Array.from(mergedFilesMap.values());
+  const isLoading = (isFsLoading && firestore) && isSbLoading;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -58,7 +117,7 @@ export default function UploadPage() {
   };
 
   const handleUpload = () => {
-    if (fileToUpload && user && firestore) {
+    if (fileToUpload && user) {
       const newUpload: UploadingFile = { name: fileToUpload.name, progress: 0 };
       setUploadingFiles(prev => [...prev, newUpload]);
       uploadFile(fileToUpload, user.uid);
@@ -93,7 +152,25 @@ export default function UploadPage() {
         });
       },
       () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          // 1. Save in Supabase
+          try {
+            await createTaxDocument({
+              customer_id: userId,
+              document_name: file.name,
+              file_url: downloadURL,
+              document_type: documentType,
+              tax_year: parseInt(taxYear, 10),
+              status: "Pending",
+              category: 'Customer Upload',
+              uploader: 'customer',
+            });
+            fetchSupabaseFiles();
+          } catch (sbErr) {
+            console.warn("Supabase document creation warning:", sbErr);
+          }
+
+          // 2. Save in Firestore if configured
           if (taxDocsCollection) {
             addDocumentNonBlocking(taxDocsCollection, {
               documentName: file.name,
@@ -106,39 +183,43 @@ export default function UploadPage() {
               category: 'Customer Upload',
               uploader: 'customer'
             });
-            setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
-            toast({
-                title: "Upload Successful",
-                description: `${file.name} has been uploaded.`,
-            });
           }
+
+          setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
+          toast({
+              title: "Upload Successful",
+              description: `${file.name} has been uploaded.`,
+          });
         });
       }
     );
   };
   
   const handleDelete = async (fileId: string, fileUrl: string) => {
-      if (!user || !firestore) return;
-      
-      const docRef = doc(firestore, `customers/${user.uid}/taxDocuments`, fileId);
-      const storage = getStorage();
-      const fileRef = ref(storage, fileUrl);
-      
+      // Delete in Supabase
       try {
-        await deleteObject(fileRef);
-        deleteDocumentNonBlocking(docRef);
-        toast({
-            title: "File Deleted",
-            description: "The file has been successfully deleted.",
-        });
-      } catch (error) {
-        console.error("Error deleting file:", error);
-        toast({
-            variant: "destructive",
-            title: "Deletion Failed",
-            description: "Could not delete the file.",
-        });
+        await deleteTaxDocument(fileId);
+        fetchSupabaseFiles();
+      } catch (sbErr) {}
+
+      // Delete in Firestore / Storage
+      if (user && firestore) {
+        const docRef = doc(firestore, `customers/${user.uid}/taxDocuments`, fileId);
+        const storage = getStorage();
+        const fileRef = ref(storage, fileUrl);
+        
+        try {
+          await deleteObject(fileRef);
+          deleteDocumentNonBlocking(docRef);
+        } catch (error) {
+          console.error("Error deleting file:", error);
+        }
       }
+
+      toast({
+          title: "File Deleted",
+          description: "The file has been successfully deleted.",
+      });
   };
 
   const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {

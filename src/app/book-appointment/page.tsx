@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { useState } from "react";
+import { createAppointment } from "@/lib/supabase/services";
 
 export default function BookAppointmentPage() {
   const { toast } = useToast();
@@ -26,23 +27,43 @@ export default function BookAppointmentPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const appointmentData = {
-      fullName: formData.get("fullName") as string,
-      phone: formData.get("phone") as string,
-      email: formData.get("email") as string,
-      notes: formData.get("notes") as string,
-      status: "Pending" as const,
-      requestDate: serverTimestamp(),
-      customerId: user?.uid || null, // Attach customerId if user is logged in
-    };
+    const fullName = formData.get("fullName") as string;
+    const phone = formData.get("phone") as string;
+    const email = formData.get("email") as string;
+    const notes = (formData.get("notes") as string) || "";
 
     try {
-      const appointmentsCollection = collection(firestore, 'appointments');
-      await addDoc(appointmentsCollection, appointmentData);
+      // Save directly to Supabase DB
+      await createAppointment({
+        name: fullName,
+        phone,
+        email,
+        notes,
+        status: "Pending",
+        appointment_date: new Date().toISOString(),
+        customer_id: user?.uid || null,
+      });
+
+      // Also persist to Firestore if available
+      if (firestore) {
+        try {
+          const appointmentsCollection = collection(firestore, 'appointments');
+          await addDoc(appointmentsCollection, {
+            fullName,
+            phone,
+            email,
+            notes,
+            status: "Pending" as const,
+            requestDate: serverTimestamp(),
+            customerId: user?.uid || null,
+          });
+        } catch (fsErr) {
+          console.warn("Firestore sync optional warning:", fsErr);
+        }
+      }
 
       toast({
         title: "Appointment Requested",

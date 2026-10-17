@@ -51,7 +51,6 @@ export default function GuaranteePage() {
                 width={200} 
                 height={200}
                 className="rounded-full shadow-lg"
-                data-ai-hint={guaranteeSeal.imageHint}
               />
             </div>
           )}

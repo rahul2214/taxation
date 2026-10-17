@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { getSiteSettings } from "@/lib/supabase/services";
 
 export default function TaxInfoPage() {
   const { firestore } = useFirebase();
@@ -22,7 +24,27 @@ export default function TaxInfoPage() {
     return doc(firestore, `siteSettings/taxForms`);
   }, [firestore]);
 
-  const { data: formsData, isLoading } = useDoc(formsDocRef);
+  const { data: formsData, isLoading: isFsLoading } = useDoc(formsDocRef);
+  const [sbSettings, setSbSettings] = useState<{ current_year_form_url?: string | null; prior_year_form_url?: string | null } | null>(null);
+  const [isSbLoading, setIsSbLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const s = await getSiteSettings();
+        setSbSettings(s);
+      } catch (e) {
+        console.error("Error loading Supabase site settings:", e);
+      } finally {
+        setIsSbLoading(false);
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  const currentYearUrl = formsData?.currentYearFormUrl || sbSettings?.current_year_form_url;
+  const priorYearUrl = formsData?.priorYearFormUrl || sbSettings?.prior_year_form_url;
+  const isLoading = (isFsLoading && firestore) && isSbLoading;
 
   return (
     <div className="space-y-6">
@@ -45,9 +67,9 @@ export default function TaxInfoPage() {
                   <p className="font-semibold">Current Year Form</p>
                   <p className="text-sm text-muted-foreground">The most recent tax information form provided by our team.</p>
                 </div>
-                {formsData?.currentYearFormUrl ? (
+                {currentYearUrl ? (
                   <Button asChild variant="outline">
-                    <a href={formsData.currentYearFormUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={currentYearUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>
@@ -61,9 +83,9 @@ export default function TaxInfoPage() {
                   <p className="font-semibold">Prior Year Form</p>
                   <p className="text-sm text-muted-foreground">The tax information form from the previous year.</p>
                 </div>
-                {formsData?.priorYearFormUrl ? (
+                {priorYearUrl ? (
                   <Button asChild variant="outline">
-                    <a href={formsData.priorYearFormUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={priorYearUrl} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>

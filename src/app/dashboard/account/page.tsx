@@ -17,6 +17,7 @@ import { doc, DocumentData } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { updatePassword } from "firebase/auth";
+import { getCustomer, upsertCustomer } from "@/lib/supabase/services";
 
 export default function AccountPage() {
   const { firestore, user } = useFirebase();
@@ -42,31 +43,78 @@ export default function AccountPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   
   useEffect(() => {
+    async function loadCustomerFromSupabase() {
+      if (!user) return;
+      try {
+        const c = await getCustomer(user.uid);
+        if (c) {
+          if (c.first_name) setFirstName(c.first_name);
+          if (c.last_name) setLastName(c.last_name);
+          if (c.phone) setPhone(c.phone);
+          if (c.address && typeof c.address === 'string') {
+            setAddress1(c.address);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading customer from Supabase:", err);
+      }
+    }
+    loadCustomerFromSupabase();
+  }, [user]);
+
+  useEffect(() => {
     if (userData) {
-      setFirstName(userData.firstName || "");
-      setLastName(userData.lastName || "");
-      setPhone(userData.phone || "");
-      setAddress1(userData.address?.line1 || "");
-      setAddress2(userData.address?.line2 || "");
-      setCity(userData.address?.city || "");
-      setState(userData.address?.state || "");
-      setZip(userData.address?.zip || "");
+      if (userData.firstName) setFirstName(userData.firstName);
+      if (userData.lastName) setLastName(userData.lastName);
+      if (userData.phone) setPhone(userData.phone);
+      if (userData.address?.line1) setAddress1(userData.address.line1);
+      if (userData.address?.line2) setAddress2(userData.address.line2);
+      if (userData.address?.city) setCity(userData.address.city);
+      if (userData.address?.state) setState(userData.address.state);
+      if (userData.address?.zip) setZip(userData.address.zip);
     }
   }, [userData]);
   
-  const handleProfileSave = () => {
-    if(userDocRef) {
+  const handleProfileSave = async () => {
+    if (user) {
+      try {
+        await upsertCustomer({
+          id: user.uid,
+          first_name: firstName,
+          last_name: lastName,
+          email: user.email || "",
+          phone,
+        });
+      } catch (sbErr) {
+        console.warn("Supabase profile save warning:", sbErr);
+      }
+    }
+
+    if (userDocRef) {
       updateDocumentNonBlocking(userDocRef, {
         firstName,
         lastName,
         phone
       });
-      toast({ title: "Profile Updated", description: "Your profile information has been saved." });
     }
+    toast({ title: "Profile Updated", description: "Your profile information has been saved." });
   };
 
-  const handleAddressSave = () => {
-     if(userDocRef) {
+  const handleAddressSave = async () => {
+    const fullAddress = [address1, address2, city, state, zip].filter(Boolean).join(", ");
+    if (user) {
+      try {
+        await upsertCustomer({
+          id: user.uid,
+          email: user.email || "",
+          address: fullAddress,
+        });
+      } catch (sbErr) {
+        console.warn("Supabase address save warning:", sbErr);
+      }
+    }
+
+    if (userDocRef) {
       updateDocumentNonBlocking(userDocRef, {
         address: {
           line1: address1,
@@ -76,8 +124,8 @@ export default function AccountPage() {
           zip
         }
       });
-      toast({ title: "Address Updated", description: "Your mailing address has been saved." });
     }
+    toast({ title: "Address Updated", description: "Your mailing address has been saved." });
   };
   
   const handlePasswordUpdate = async () => {

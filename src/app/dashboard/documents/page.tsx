@@ -22,9 +22,10 @@ import {
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { useState, ChangeEvent, useMemo } from "react";
+import { useState, ChangeEvent, useMemo, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { getTaxDocuments, createTaxDocument } from "@/lib/supabase/services";
 
 type TaxDocument = {
   id: string;
@@ -47,13 +48,49 @@ export default function DocumentsWorkflowPage() {
 
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [uploadingFile, setUploadingFile] = useState<UploadingFile | null>(null);
+  const [sbDocuments, setSbDocuments] = useState<TaxDocument[]>([]);
+  const [isSbLoading, setIsSbLoading] = useState(true);
+
+  const fetchSupabaseDocs = async () => {
+    if (!user) return;
+    try {
+      const records = await getTaxDocuments(user.uid);
+      const mapped: TaxDocument[] = records.map(r => ({
+        id: r.id || "",
+        documentName: r.document_name,
+        fileUrl: r.file_url,
+        uploadDate: new Date(r.upload_date || Date.now()),
+        category: (r.category || "Customer Upload") as any,
+        uploader: r.uploader || "customer",
+      }));
+      setSbDocuments(mapped);
+    } catch (err) {
+      console.error("Error loading Supabase documents:", err);
+    } finally {
+      setIsSbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchSupabaseDocs();
+    }
+  }, [user]);
 
   const taxDocsCollection = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return collection(firestore, `customers/${user.uid}/taxDocuments`);
   }, [user, firestore]);
 
-  const { data: documents, isLoading } = useCollection<Omit<TaxDocument, 'id'>>(taxDocsCollection);
+  const { data: fsDocuments, isLoading: isFsLoading } = useCollection<Omit<TaxDocument, 'id'>>(taxDocsCollection);
+
+  const mergedMap = new Map<string, TaxDocument>();
+  if (fsDocuments) {
+    fsDocuments.forEach((d: any) => mergedMap.set(d.id, d));
+  }
+  sbDocuments.forEach(d => mergedMap.set(d.id, d));
+  const documents = Array.from(mergedMap.values());
+  const isLoading = (isFsLoading && firestore) && isSbLoading;
 
   const taxEstimationDoc = useMemo(() => documents?.find(doc => doc.category === 'Tax Estimation'), [documents]);
   const taxReturnDraftDoc = useMemo(() => documents?.find(doc => doc.category === 'Tax Return Draft'), [documents]);
@@ -67,7 +104,7 @@ export default function DocumentsWorkflowPage() {
   };
 
   const handleUpload = () => {
-    if (fileToUpload && user && firestore && taxDocsCollection) {
+    if (fileToUpload && user) {
       const newUpload: UploadingFile = { name: fileToUpload.name, progress: 0 };
       setUploadingFile(newUpload);
 
@@ -85,17 +122,38 @@ export default function DocumentsWorkflowPage() {
           toast({ variant: "destructive", title: "Upload Failed", description: `Could not upload ${fileToUpload.name}.` });
         },
         () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            addDoc(taxDocsCollection, {
-              documentName: fileToUpload.name,
-              fileUrl: downloadURL,
-              documentType: "Tax Return Draft",
-              uploadDate: serverTimestamp(),
-              taxYear: new Date().getFullYear(),
-              status: "Pending",
-              category: 'Tax Return Draft',
-              uploader: 'customer'
-            });
+          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+            // Save in Supabase
+            try {
+              await createTaxDocument({
+                customer_id: user.uid,
+                document_name: fileToUpload.name,
+                file_url: downloadURL,
+                document_type: "Tax Return Draft",
+                tax_year: new Date().getFullYear(),
+                status: "Pending",
+                category: "Tax Return Draft",
+                uploader: "customer",
+              });
+              fetchSupabaseDocs();
+            } catch (sbErr) {
+              console.warn("Supabase document creation warning:", sbErr);
+            }
+
+            // Save in Firestore if configured
+            if (taxDocsCollection) {
+              addDoc(taxDocsCollection, {
+                documentName: fileToUpload.name,
+                fileUrl: downloadURL,
+                documentType: "Tax Return Draft",
+                uploadDate: serverTimestamp(),
+                taxYear: new Date().getFullYear(),
+                status: "Pending",
+                category: 'Tax Return Draft',
+                uploader: 'customer'
+              });
+            }
+
             setUploadingFile(null);
             setFileToUpload(null);
             toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded.` });

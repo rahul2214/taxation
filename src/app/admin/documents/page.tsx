@@ -16,9 +16,10 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, File as FileIcon } from "lucide-react";
 import { useState, ChangeEvent, useEffect } from "react";
-import { useFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getSiteSettings, updateSiteSettings } from "@/lib/supabase/services";
 
 type UploadingFile = {
   name: string;
@@ -40,15 +41,27 @@ export default function SiteFormsPage() {
   const [priorYearUrl, setPriorYearUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    async function loadSettings() {
+      try {
+        const s = await getSiteSettings();
+        if (s?.current_year_form_url) setCurrentYearUrl(s.current_year_form_url);
+        if (s?.prior_year_form_url) setPriorYearUrl(s.prior_year_form_url);
+      } catch (err) {
+        console.error("Error loading Supabase site settings:", err);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
     if (formsData) {
-      setCurrentYearUrl(formsData.currentYearFormUrl || null);
-      setPriorYearUrl(formsData.priorYearFormUrl || null);
+      if (formsData.currentYearFormUrl) setCurrentYearUrl(formsData.currentYearFormUrl);
+      if (formsData.priorYearFormUrl) setPriorYearUrl(formsData.priorYearFormUrl);
     }
   }, [formsData]);
 
   const uploadFile = (file: File, formType: FormType) => {
     const storage = getStorage();
-    // Using a more generic path that an admin is likely to have access to.
     const storageRef = ref(storage, `global_forms/${formType}_${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -71,20 +84,35 @@ export default function SiteFormsPage() {
       },
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          if (formsDocRef) {
-            await setDoc(formsDocRef, { [formType]: downloadURL }, { merge: true });
-
-            setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
-            toast({
-                title: "Upload Successful",
-                description: `${file.name} has been uploaded.`,
+          // 1. Update in Supabase
+          try {
+            await updateSiteSettings({
+              current_year_form_url: formType === 'currentYearFormUrl' ? downloadURL : currentYearUrl,
+              prior_year_form_url: formType === 'priorYearFormUrl' ? downloadURL : priorYearUrl,
             });
-            
-            if (formType === 'currentYearFormUrl') {
-                setCurrentYearUrl(downloadURL);
-            } else {
-                setPriorYearUrl(downloadURL);
+          } catch (sbErr) {
+            console.warn("Supabase site settings update warning:", sbErr);
+          }
+
+          // 2. Update in Firestore if configured
+          if (formsDocRef) {
+            try {
+              await setDoc(formsDocRef, { [formType]: downloadURL }, { merge: true });
+            } catch (fsErr) {
+              console.warn("Firestore site settings update warning:", fsErr);
             }
+          }
+
+          setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
+          toast({
+              title: "Upload Successful",
+              description: `${file.name} has been uploaded.`,
+          });
+          
+          if (formType === 'currentYearFormUrl') {
+              setCurrentYearUrl(downloadURL);
+          } else {
+              setPriorYearUrl(downloadURL);
           }
         });
       }

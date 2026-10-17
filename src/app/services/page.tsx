@@ -83,7 +83,6 @@ export default function ServicesPage() {
                   width={600}
                   height={400}
                   className="w-full h-48 object-cover"
-                  data-ai-hint={service.image.imageHint}
                 />
               )}
               <CardHeader>

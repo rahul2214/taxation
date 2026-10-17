@@ -38,6 +38,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc } from "firebase/firestore";
+import { getAppointments, updateAppointmentStatus, AppointmentRecord } from "@/lib/supabase/services";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
@@ -64,10 +65,63 @@ export default function AppointmentsPage() {
   const { toast } = useToast();
   
   const appointmentsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'appointments') : null, [firestore]);
-  const { data: appointments, isLoading } = useCollection<Omit<Appointment, 'id'>>(appointmentsCollection);
+  const { data: fsAppointments, isLoading: isFsLoading } = useCollection<Omit<Appointment, 'id'>>(appointmentsCollection);
   
+  const [supabaseAppointments, setSupabaseAppointments] = useState<Appointment[]>([]);
+  const [isSbLoading, setIsSbLoading] = useState(true);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const fetchSupabaseAppointments = async () => {
+    try {
+      const records = await getAppointments();
+      const mapped: Appointment[] = records.map((rec) => {
+        let normalizedStatus: AppointmentStatus = "Pending";
+        const s = (rec.status || "").toLowerCase();
+        if (s === "confirmed") normalizedStatus = "Confirmed";
+        else if (s === "completed") normalizedStatus = "Completed";
+        else if (s === "cancelled") normalizedStatus = "Cancelled";
+
+        return {
+          id: rec.id || "",
+          fullName: rec.name || "Client",
+          email: rec.email,
+          phone: rec.phone || "",
+          notes: rec.notes || "",
+          status: normalizedStatus,
+          requestDate: new Date(rec.appointment_date),
+          customerId: rec.customer_id || undefined,
+        };
+      });
+      setSupabaseAppointments(mapped);
+    } catch (err) {
+      console.error("Failed to load appointments from Supabase:", err);
+    } finally {
+      setIsSbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSupabaseAppointments();
+  }, []);
+
+  // Merge appointments, removing duplicate IDs
+  const combinedMap = new Map<string, Appointment>();
+  if (fsAppointments) {
+    fsAppointments.forEach((apt) => {
+      combinedMap.set(apt.id, apt);
+    });
+  }
+  supabaseAppointments.forEach((apt) => {
+    combinedMap.set(apt.id, apt);
+  });
+  const appointments = Array.from(combinedMap.values()).sort((a, b) => {
+    const timeA = a.requestDate instanceof Date ? a.requestDate.getTime() : (a.requestDate?.seconds ?? 0) * 1000;
+    const timeB = b.requestDate instanceof Date ? b.requestDate.getTime() : (b.requestDate?.seconds ?? 0) * 1000;
+    return timeB - timeA;
+  });
+
+  const isLoading = (isFsLoading && firestore) && isSbLoading;
 
   const handleViewDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -75,18 +129,34 @@ export default function AppointmentsPage() {
   };
   
   const handleStatusChange = async (appointment: Appointment, newStatus: AppointmentStatus) => {
-    if (!firestore) return;
-    
-    const appointmentDocRef = doc(firestore, 'appointments', appointment.id);
+    let updated = false;
 
+    // 1. Try updating in Supabase
     try {
-      await updateDoc(appointmentDocRef, { status: newStatus });
+      await updateAppointmentStatus(appointment.id, newStatus.toLowerCase());
+      updated = true;
+      fetchSupabaseAppointments();
+    } catch (sbErr) {
+      // Might be a Firestore-only appointment
+    }
+
+    // 2. Try updating in Firestore
+    if (firestore) {
+      try {
+        const appointmentDocRef = doc(firestore, 'appointments', appointment.id);
+        await updateDoc(appointmentDocRef, { status: newStatus });
+        updated = true;
+      } catch (fsErr) {
+        // Might be a Supabase-only appointment
+      }
+    }
+
+    if (updated) {
       toast({
         title: "Status Updated",
         description: `Appointment for ${appointment.fullName} has been marked as ${newStatus}.`
       });
-    } catch (error) {
-      console.error("Error updating status:", error);
+    } else {
       toast({
         variant: "destructive",
         title: "Update Failed",

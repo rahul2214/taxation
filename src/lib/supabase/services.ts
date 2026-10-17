@@ -129,6 +129,30 @@ export async function createTaxDocument(doc: TaxDocumentRecord) {
   return data;
 }
 
+export async function updateTaxDocumentStatus(id: string, status: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('tax_documents')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTaxDocument(id: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('tax_documents')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return data;
+}
+
 // -------------------------------------------------------------
 // Appointments Service
 // -------------------------------------------------------------
@@ -145,11 +169,24 @@ export async function getAppointments(customerId?: string): Promise<AppointmentR
 
 export async function createAppointment(appointment: AppointmentRecord) {
   if (!isSupabaseConfigured) return null;
+  let payload = { ...appointment };
   const { data, error } = await supabase
     .from('appointments')
-    .insert([appointment])
+    .insert([payload])
     .select()
     .single();
+
+  if (error && error.code === '23503') {
+    // FK violation fallback if customer record does not exist
+    payload.customer_id = null;
+    const retry = await supabase
+      .from('appointments')
+      .insert([payload])
+      .select()
+      .single();
+    if (retry.error) throw retry.error;
+    return retry.data;
+  }
 
   if (error) throw error;
   return data;
@@ -177,16 +214,42 @@ export async function getReferrals(referrerId?: string): Promise<ReferralRecord[
   if (referrerId) {
     query = query.eq('referrer_id', referrerId);
   }
-  const { data, error } = await query.order('referral_date', { ascending: false });
+  const { data, error } = await query.order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 export async function createReferral(referral: ReferralRecord) {
   if (!isSupabaseConfigured) return null;
+  let payload = { ...referral };
   const { data, error } = await supabase
     .from('referrals')
-    .insert([referral])
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error && error.code === '23503') {
+    // FK violation fallback if customer record does not exist
+    payload.referrer_id = null;
+    const retry = await supabase
+      .from('referrals')
+      .insert([payload])
+      .select()
+      .single();
+    if (retry.error) throw retry.error;
+    return retry.data;
+  }
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateReferralStatus(id: string, status: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('referrals')
+    .update({ status })
+    .eq('id', id)
     .select()
     .single();
 

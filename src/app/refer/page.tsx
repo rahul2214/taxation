@@ -11,6 +11,7 @@ import { useFirebase } from "@/firebase";
 import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { createReferral } from "@/lib/supabase/services";
 
 export default function ReferPage() {
   const { firestore, user } = useFirebase();
@@ -19,27 +20,47 @@ export default function ReferPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firestore) return;
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const referralData = {
-      referrerName: formData.get("your-name") as string,
-      referrerEmail: formData.get("your-email") as string,
-      referredName: formData.get("friend-name") as string,
-      referredEmail: formData.get("friend-email") as string,
-      referralDate: serverTimestamp(),
-      status: "Pending" as const,
-      referrerId: user?.uid || null, // Attach referrerId if user is logged in
-    };
+    const referrerName = formData.get("your-name") as string;
+    const referrerEmail = formData.get("your-email") as string;
+    const referredName = formData.get("friend-name") as string;
+    const referredEmail = formData.get("friend-email") as string;
 
     try {
-      const referralsCollection = collection(firestore, 'referrals');
-      await addDoc(referralsCollection, referralData);
+      // Save directly to Supabase DB
+      await createReferral({
+        referrer_name: referrerName,
+        referrer_email: referrerEmail,
+        referred_name: referredName,
+        referred_email: referredEmail,
+        status: "Pending",
+        referral_date: new Date().toISOString(),
+        referrer_id: user?.uid || null,
+      });
+
+      // Also persist to Firestore if available
+      if (firestore) {
+        try {
+          const referralsCollection = collection(firestore, 'referrals');
+          await addDoc(referralsCollection, {
+            referrerName,
+            referrerEmail,
+            referredName,
+            referredEmail,
+            referralDate: serverTimestamp(),
+            status: "Pending" as const,
+            referrerId: user?.uid || null,
+          });
+        } catch (fsErr) {
+          console.warn("Firestore sync optional warning:", fsErr);
+        }
+      }
 
       toast({
         title: "Invite Sent!",
-        description: `Your referral to ${referralData.referredName} has been sent. Thank you!`,
+        description: `Your referral to ${referredName} has been sent. Thank you!`,
       });
       (event.target as HTMLFormElement).reset();
     } catch (error) {

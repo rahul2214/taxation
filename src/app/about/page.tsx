@@ -31,7 +31,6 @@ export default function AboutUsPage() {
                 width={1200}
                 height={800}
                 className="w-full h-64 object-cover"
-                data-ai-hint={teamImage.imageHint}
               />
             )}
             <CardContent className="p-8">

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader2, ShieldAlert, ArrowLeft, Lock } from "lucide-react";
+import { getCustomer } from "@/lib/supabase/services";
 
 export default function AdminLoginPage() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
@@ -26,12 +27,23 @@ export default function AdminLoginPage() {
   // If already logged in, check if user is admin and redirect to /admin
   useEffect(() => {
     const verifyExistingAdmin = async () => {
-      if (!isUserLoading && user && firestore) {
+      if (!isUserLoading && user) {
         try {
-          const userDocRef = doc(firestore, "customers", user.uid);
-          const userSnap = await getDoc(userDocRef);
-          if (userSnap.exists() && userSnap.data()?.role === "admin") {
+          // Check Supabase first
+          const sbCustomer = await getCustomer(user.uid);
+          if (sbCustomer?.role === "admin") {
             router.push("/admin");
+            return;
+          }
+
+          // Check Firestore
+          if (firestore) {
+            const userDocRef = doc(firestore, "customers", user.uid);
+            const userSnap = await getDoc(userDocRef);
+            if (userSnap.exists() && userSnap.data()?.role === "admin") {
+              router.push("/admin");
+              return;
+            }
           }
         } catch (err) {
           console.error("Error verifying admin role:", err);
@@ -42,30 +54,44 @@ export default function AdminLoginPage() {
   }, [user, isUserLoading, firestore, router]);
 
   const verifyAdminAndProceed = async (uid: string) => {
-    if (!firestore) {
-      router.push("/admin");
-      return;
-    }
-
-    const userDocRef = doc(firestore, "customers", uid);
-    const userSnap = await getDoc(userDocRef);
-
-    if (userSnap.exists() && userSnap.data()?.role === "admin") {
-      toast({
-        title: "Admin Verified",
-        description: "Welcome to the Polaris Tax Admin Console.",
-      });
-      router.push("/admin");
-    } else {
-      if (auth) {
-        await signOut(auth);
+    try {
+      // Check Supabase first
+      const sbCustomer = await getCustomer(uid);
+      if (sbCustomer?.role === "admin") {
+        toast({
+          title: "Admin Verified",
+          description: "Welcome to the Polaris Tax Admin Console.",
+        });
+        router.push("/admin");
+        return;
       }
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "This account does not have administrator privileges.",
-      });
+
+      // Check Firestore
+      if (firestore) {
+        const userDocRef = doc(firestore, "customers", uid);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists() && userSnap.data()?.role === "admin") {
+          toast({
+            title: "Admin Verified",
+            description: "Welcome to the Polaris Tax Admin Console.",
+          });
+          router.push("/admin");
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
     }
+
+    // If neither DB has role admin
+    if (auth) {
+      await signOut(auth);
+    }
+    toast({
+      variant: "destructive",
+      title: "Access Denied",
+      description: "This account does not have administrator privileges.",
+    });
   };
 
   const handleAdminEmailLogin = async (e: React.FormEvent) => {

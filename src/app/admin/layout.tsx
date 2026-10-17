@@ -9,6 +9,8 @@ import { doc, collection, query, where, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
+import { getCustomer, getAppointments, getReferrals, getTaxDocuments } from "@/lib/supabase/services";
+
 export default function AdminLayout({
   children,
 }: {
@@ -28,6 +30,39 @@ export default function AdminLayout({
   }, [user, firestore]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+  const [isSupabaseAdmin, setIsSupabaseAdmin] = useState<boolean | null>(null);
+  const [sbCounts, setSbCounts] = useState({ apts: 0, refs: 0, docs: 0 });
+
+  useEffect(() => {
+    async function checkAdminAndCounts() {
+      if (!user) return;
+      try {
+        const c = await getCustomer(user.uid);
+        if (c?.role === 'admin') {
+          setIsSupabaseAdmin(true);
+        } else {
+          setIsSupabaseAdmin(false);
+        }
+
+        const [apts, refs, docs] = await Promise.all([
+          getAppointments(),
+          getReferrals(),
+          getTaxDocuments(),
+        ]);
+        setSbCounts({
+          apts: apts.filter(a => a.status?.toLowerCase() === 'pending').length,
+          refs: refs.filter(r => r.status?.toLowerCase() === 'pending').length,
+          docs: docs.filter(d => d.status?.toLowerCase() === 'pending').length,
+        });
+      } catch (err) {
+        console.error("Error in Supabase admin verification/counts:", err);
+        setIsSupabaseAdmin(false);
+      }
+    }
+    if (user) {
+      checkAdminAndCounts();
+    }
+  }, [user]);
 
   const pendingAppointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -43,7 +78,7 @@ export default function AdminLayout({
   const { data: pendingReferrals, isLoading: referralsLoading } = useCollection(pendingReferralsQuery);
 
   const [pendingDocumentsCount, setPendingDocumentsCount] = useState(0);
-  const [documentsCountLoading, setDocumentsCountLoading] = useState(true);
+  const [documentsCountLoading, setDocumentsCountLoading] = useState(false);
 
   useEffect(() => {
     const fetchPendingDocuments = async () => {
@@ -68,25 +103,23 @@ export default function AdminLayout({
     fetchPendingDocuments();
   }, [firestore]);
 
-
-  const isLoading = isUserLoading || isUserDataLoading || appointmentsLoading || referralsLoading || documentsCountLoading;
-  const isAdmin = userData?.role === 'admin';
+  const isAdmin = userData?.role === 'admin' || isSupabaseAdmin === true;
+  const isCheckingAdmin = isUserLoading || (isUserDataLoading && isSupabaseAdmin === null);
 
   useEffect(() => {
-    if (isUserLoading || isUserDataLoading) return;
+    if (isCheckingAdmin) return;
 
     if (!user) {
       router.push('/admin/login');
       return;
     }
 
-    if (user && userData && !isAdmin) {
+    if (user && isSupabaseAdmin !== null && !isAdmin) {
       router.push('/dashboard');
     }
+  }, [isCheckingAdmin, user, isAdmin, isSupabaseAdmin, router]);
 
-  }, [isUserLoading, isUserDataLoading, user, userData, isAdmin, router]);
-
-  if (isLoading || !isAdmin) {
+  if (isCheckingAdmin || !isAdmin) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -97,9 +130,9 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <AdminSidebar 
-        pendingAppointmentsCount={pendingAppointments?.length || 0}
-        pendingReferralsCount={pendingReferrals?.length || 0}
-        pendingDocumentsCount={pendingDocumentsCount}
+        pendingAppointmentsCount={(pendingAppointments?.length || 0) + sbCounts.apts}
+        pendingReferralsCount={(pendingReferrals?.length || 0) + sbCounts.refs}
+        pendingDocumentsCount={pendingDocumentsCount + sbCounts.docs}
       />
       <SidebarInset>
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>

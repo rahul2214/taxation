@@ -33,9 +33,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { MoreHorizontal, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
+import { getAllCustomers, CustomerRecord } from "@/lib/supabase/services";
 
 type Customer = {
   id: string;
@@ -49,7 +50,7 @@ type Customer = {
     city: string;
     state: string;
     zip: string;
-  };
+  } | string;
   signupDate: { seconds: number, nanoseconds: number } | Date;
   role?: string;
 };
@@ -62,7 +63,50 @@ export default function CustomersPage() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
 
   const customersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'customers'), where('role', '!=', 'admin')) : null, [firestore]);
-  const { data: customers, isLoading } = useCollection<Omit<Customer, 'id'>>(customersQuery);
+  const { data: fsCustomers, isLoading: isFsLoading } = useCollection<Omit<Customer, 'id'>>(customersQuery);
+
+  const [supabaseCustomers, setSupabaseCustomers] = useState<Customer[]>([]);
+  const [isSbLoading, setIsSbLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSupabaseCustomers() {
+      try {
+        const records = await getAllCustomers();
+        const mapped: Customer[] = records
+          .filter(r => r.role !== 'admin')
+          .map(r => ({
+            id: r.id,
+            firstName: r.first_name || "Customer",
+            lastName: r.last_name || "",
+            email: r.email,
+            phone: r.phone || "",
+            address: r.address || undefined,
+            signupDate: new Date(r.signup_date || Date.now()),
+            role: r.role || "user",
+          }));
+        setSupabaseCustomers(mapped);
+      } catch (err) {
+        console.error("Failed to load Supabase customers:", err);
+      } finally {
+        setIsSbLoading(false);
+      }
+    }
+
+    fetchSupabaseCustomers();
+  }, []);
+
+  const mergedCustomersMap = new Map<string, Customer>();
+  if (fsCustomers) {
+    fsCustomers.forEach(c => mergedCustomersMap.set(c.id, c as Customer));
+  }
+  supabaseCustomers.forEach(c => mergedCustomersMap.set(c.id, c));
+  const customers = Array.from(mergedCustomersMap.values()).sort((a, b) => {
+    const timeA = a.signupDate instanceof Date ? a.signupDate.getTime() : (a.signupDate?.seconds ?? 0) * 1000;
+    const timeB = b.signupDate instanceof Date ? b.signupDate.getTime() : (b.signupDate?.seconds ?? 0) * 1000;
+    return timeB - timeA;
+  });
+
+  const isLoading = (isFsLoading && firestore) && isSbLoading;
 
   const handleViewProfile = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -81,6 +125,7 @@ export default function CustomersPage() {
   
   const formatAddress = (address: Customer['address']) => {
     if (!address) return "N/A";
+    if (typeof address === 'string') return address;
     const { line1, line2, city, state, zip } = address;
     let fullAddress = line1;
     if (line2) fullAddress += `, ${line2}`;

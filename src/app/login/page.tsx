@@ -26,6 +26,8 @@ const GoogleIcon = () => (
 );
 
 
+import { upsertCustomer, getCustomer } from "@/lib/supabase/services";
+
 export default function LoginPage() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
@@ -48,16 +50,26 @@ export default function LoginPage() {
 
 
   const checkRoleAndRedirect = async (user: any) => {
-    if (!firestore) return;
     setIsRedirecting(true);
-    const userDocRef = doc(firestore, "customers", user.uid);
     try {
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists() && userDoc.data()?.role === 'admin') {
+      // 1. Check Supabase DB for user role
+      const supabaseUser = await getCustomer(user.uid);
+      if (supabaseUser?.role === 'admin') {
         router.push('/admin');
-      } else {
-        router.push('/dashboard');
+        return;
       }
+
+      // 2. Check Firestore if configured
+      if (firestore) {
+        const userDocRef = doc(firestore, "customers", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data()?.role === 'admin') {
+          router.push('/admin');
+          return;
+        }
+      }
+
+      router.push('/dashboard');
     } catch (error) {
       console.error("Error fetching user role, redirecting to default dashboard:", error);
       router.push('/dashboard');
@@ -103,21 +115,42 @@ export default function LoginPage() {
       });
       return;
     }
-    if (!auth || !firestore) return;
+    if (!auth) return;
     setIsSigningUp(true);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
       const newUser = userCredential.user;
       
-      await setDoc(doc(firestore, "customers", newUser.uid), {
-        firstName: signupFirstName,
-        lastName: signupLastName,
-        email: newUser.email,
-        phone: signupPhone,
-        signupDate: serverTimestamp(),
-        role: "user", // Assign 'user' role by default
-      });
+      // Save customer in Supabase
+      try {
+        await upsertCustomer({
+          id: newUser.uid,
+          first_name: signupFirstName,
+          last_name: signupLastName,
+          email: newUser.email || signupEmail,
+          phone: signupPhone,
+          role: "user",
+        });
+      } catch (sbErr) {
+        console.warn("Supabase customer sync warning:", sbErr);
+      }
+
+      // Also save in Firestore if available
+      if (firestore) {
+        try {
+          await setDoc(doc(firestore, "customers", newUser.uid), {
+            firstName: signupFirstName,
+            lastName: signupLastName,
+            email: newUser.email,
+            phone: signupPhone,
+            signupDate: serverTimestamp(),
+            role: "user", // Assign 'user' role by default
+          });
+        } catch (fsErr) {
+          console.warn("Firestore sync warning:", fsErr);
+        }
+      }
       
       if (signupReferralEmail) {
         // You can add referral logic here if needed in the future
@@ -138,7 +171,7 @@ export default function LoginPage() {
   }
 
    const handleGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
+    if (!auth) return;
     setIsGoogleLoading(true);
 
     const provider = new GoogleAuthProvider();
@@ -152,14 +185,34 @@ export default function LoginPage() {
         const firstName = nameParts[0] || "";
         const lastName = nameParts.slice(1).join(" ") || "";
         
-        await setDoc(doc(firestore, "customers", user.uid), {
-          firstName,
-          lastName,
-          email: user.email,
-          phone: user.phoneNumber,
-          signupDate: serverTimestamp(),
-          role: "user",
-        });
+        // Save customer in Supabase
+        try {
+          await upsertCustomer({
+            id: user.uid,
+            first_name: firstName,
+            last_name: lastName,
+            email: user.email || "",
+            phone: user.phoneNumber || "",
+            role: "user",
+          });
+        } catch (sbErr) {
+          console.warn("Supabase customer sync warning:", sbErr);
+        }
+
+        if (firestore) {
+          try {
+            await setDoc(doc(firestore, "customers", user.uid), {
+              firstName,
+              lastName,
+              email: user.email,
+              phone: user.phoneNumber,
+              signupDate: serverTimestamp(),
+              role: "user",
+            });
+          } catch (fsErr) {
+            console.warn("Firestore sync warning:", fsErr);
+          }
+        }
         
         setShowWelcomeDialog(true);
       } else {

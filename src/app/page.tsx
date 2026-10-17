@@ -295,7 +295,6 @@ export default function Home() {
               fill
               className="object-cover"
               priority
-              data-ai-hint={heroImage.imageHint}
             />
           )}
           <div className="absolute inset-0 bg-primary/70" />
@@ -383,7 +382,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">Our Core Services</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                {serviceImages.personal && <Image src={serviceImages.personal.imageUrl} alt="Individual Tax Filing" width={600} height={400} className="w-full h-48 object-cover" data-ai-hint={serviceImages.personal.imageHint} />}
+                {serviceImages.personal && <Image src={serviceImages.personal.imageUrl} alt="Individual Tax Filing" width={600} height={400} className="w-full h-48 object-cover" />}
                 <CardHeader>
                   <CardTitle>Individual Tax Filing</CardTitle>
                 </CardHeader>
@@ -392,7 +391,7 @@ export default function Home() {
                 </CardContent>
               </Card>
               <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                {serviceImages.business && <Image src={serviceImages.business.imageUrl} alt="Business Tax Services" width={600} height={400} className="w-full h-48 object-cover" data-ai-hint={serviceImages.business.imageHint} />}
+                {serviceImages.business && <Image src={serviceImages.business.imageUrl} alt="Business Tax Services" width={600} height={400} className="w-full h-48 object-cover" />}
                 <CardHeader>
                   <CardTitle>Business Tax Services</CardTitle>
                 </CardHeader>
@@ -401,7 +400,7 @@ export default function Home() {
                 </CardContent>
               </Card>
               <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                {serviceImages.audit && <Image src={serviceImages.audit.imageUrl} alt="IRS Audit Support" width={600} height={400} className="w-full h-48 object-cover" data-ai-hint={serviceImages.audit.imageHint} />}
+                {serviceImages.audit && <Image src={serviceImages.audit.imageUrl} alt="IRS Audit Support" width={600} height={400} className="w-full h-48 object-cover" />}
                 <CardHeader>
                   <CardTitle>IRS Audit Support</CardTitle>
                 </CardHeader>

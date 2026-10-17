@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus } from "@/lib/supabase/services";
 
 type DocumentStatus = "Verified" | "Pending" | "Requires Attention";
 
@@ -97,48 +98,100 @@ export default function TaxDocumentsPage() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
 
   const fetchDocsAndCustomers = async () => {
-    if (!firestore) return;
     setIsLoading(true);
 
     try {
       const customerMap = new Map<string, Customer>();
 
-      // 1. Get all customers
-      const customerSnapshot = await getDocs(collection(firestore, 'customers'));
-      customerSnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.role !== 'admin') {
-          customerMap.set(doc.id, {
-            id: doc.id,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            documents: []
+      // 1. Fetch customers and docs from Supabase
+      try {
+        const sbCustomers = await getAllCustomers();
+        const sbDocs = await getTaxDocuments();
+
+        sbCustomers.forEach(c => {
+          if (c.role !== 'admin') {
+            customerMap.set(c.id, {
+              id: c.id,
+              firstName: c.first_name || "Customer",
+              lastName: c.last_name || "",
+              documents: [],
+            });
+          }
+        });
+
+        sbDocs.forEach(d => {
+          let normalizedCategory: TaxDocument['category'] = "Customer Upload";
+          if (d.category === "Tax Estimation") normalizedCategory = "Tax Estimation";
+          else if (d.category === "Tax Return Draft") normalizedCategory = "Tax Return Draft";
+          else if (d.category === "Final Document") normalizedCategory = "Final Document";
+
+          let normalizedStatus: DocumentStatus = "Pending";
+          if (d.status === "Verified") normalizedStatus = "Verified";
+          else if (d.status === "Requires Attention") normalizedStatus = "Requires Attention";
+
+          const cust = customerMap.get(d.customer_id);
+          if (cust) {
+            cust.documents.push({
+              id: d.id || "",
+              documentName: d.document_name,
+              documentType: d.document_type || "Tax Document",
+              fileUrl: d.file_url,
+              status: normalizedStatus,
+              taxYear: d.tax_year || new Date().getFullYear(),
+              uploadDate: new Date(d.upload_date || Date.now()),
+              customerId: d.customer_id,
+              category: normalizedCategory,
+              uploader: d.uploader || "customer",
+            });
+          }
+        });
+      } catch (sbErr) {
+        console.error("Supabase fetch in tax documents warning:", sbErr);
+      }
+
+      // 2. Fetch customers and docs from Firestore if available
+      if (firestore) {
+        try {
+          const customerSnapshot = await getDocs(collection(firestore, 'customers'));
+          customerSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.role !== 'admin' && !customerMap.has(doc.id)) {
+              customerMap.set(doc.id, {
+                id: doc.id,
+                firstName: data.firstName || "Customer",
+                lastName: data.lastName || "",
+                documents: []
+              });
+            }
           });
+
+          for (const [customerId, customerData] of customerMap.entries()) {
+            const docsCollectionRef = collection(firestore, 'customers', customerId, 'taxDocuments');
+            const docsSnapshot = await getDocs(docsCollectionRef);
+            docsSnapshot.forEach(d => {
+              // Avoid duplicates
+              if (!customerData.documents.some(existing => existing.id === d.id)) {
+                const docData = d.data() as Omit<TaxDocument, 'id'| 'customerId'>;
+                customerData.documents.push({
+                  id: d.id,
+                  customerId: customerId,
+                  ...docData
+                } as TaxDocument);
+              }
+            });
+          }
+        } catch (fsErr) {
+          console.warn("Firestore fetch in tax documents warning:", fsErr);
         }
-      });
+      }
 
-      // 2. For each customer, fetch their tax documents
-      for (const [customerId, customerData] of customerMap.entries()) {
-        const docsCollectionRef = collection(firestore, 'customers', customerId, 'taxDocuments');
-        const docsSnapshot = await getDocs(docsCollectionRef);
-        const docs: TaxDocument[] = [];
-        docsSnapshot.forEach(d => {
-          const docData = d.data() as Omit<TaxDocument, 'id'| 'customerId'>;
-          docs.push({
-            id: d.id,
-            customerId: customerId,
-            ...docData
-          } as TaxDocument);
+      // Sort documents by date descending for all customers
+      for (const cust of customerMap.values()) {
+        cust.documents.sort((a, b) => {
+          const dateA = a.uploadDate instanceof Date ? a.uploadDate.getTime() : (a.uploadDate?.seconds ?? 0) * 1000;
+          const dateB = b.uploadDate instanceof Date ? b.uploadDate.getTime() : (b.uploadDate?.seconds ?? 0) * 1000;
+          return dateB - dateA;
         });
-        
-        // Sort documents by date
-        docs.sort((a, b) => {
-           const dateA = a.uploadDate instanceof Date ? a.uploadDate.getTime() : (a.uploadDate?.seconds ?? 0) * 1000;
-           const dateB = b.uploadDate instanceof Date ? b.uploadDate.getTime() : (b.uploadDate?.seconds ?? 0) * 1000;
-           return dateB - dateA;
-        });
-
-        customerData.documents = docs;
       }
       
       setCustomers(Array.from(customerMap.values()));
@@ -151,21 +204,36 @@ export default function TaxDocumentsPage() {
   };
   
   useEffect(() => {
-    if (firestore) {
-      fetchDocsAndCustomers();
-    }
-  }, [firestore, toast]);
+    fetchDocsAndCustomers();
+  }, [firestore]);
   
 
   const handleStatusChange = async (document: TaxDocument, newStatus: DocumentStatus) => {
-    if (!firestore) return;
-    const docRef = doc(firestore, 'customers', document.customerId, 'taxDocuments', document.id);
+    let updated = false;
+
+    // Try Supabase
     try {
-      await updateDoc(docRef, { status: newStatus });
-      fetchDocsAndCustomers(); // Refetch all data to update UI
+      await updateTaxDocumentStatus(document.id, newStatus);
+      updated = true;
+    } catch (sbErr) {
+      // maybe firestore document
+    }
+
+    // Try Firestore
+    if (firestore) {
+      try {
+        const docRef = doc(firestore, 'customers', document.customerId, 'taxDocuments', document.id);
+        await updateDoc(docRef, { status: newStatus });
+        updated = true;
+      } catch (fsErr) {
+        // maybe supabase document
+      }
+    }
+
+    if (updated) {
+      fetchDocsAndCustomers();
       toast({ title: "Status Updated", description: `Document status has been changed to ${newStatus}.` });
-    } catch (error) {
-      console.error("Error updating status:", error);
+    } else {
       toast({ variant: "destructive", title: "Update Failed", description: "Could not update the document status." });
     }
   };
@@ -208,26 +276,47 @@ export default function TaxDocumentsPage() {
       },
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          if (firestore && selectedCustomer) {
-            const taxDocsCollection = collection(firestore, 'customers', selectedCustomer.id, 'taxDocuments');
-            await addDoc(taxDocsCollection, {
-              documentName: uploadDocumentName,
-              fileUrl: downloadURL,
-              documentType: uploadCategory,
-              uploadDate: serverTimestamp(),
-              taxYear: new Date().getFullYear(),
+          // 1. Save in Supabase
+          try {
+            await createTaxDocument({
+              customer_id: selectedCustomer.id,
+              document_name: uploadDocumentName,
+              file_url: downloadURL,
+              document_type: uploadCategory,
+              tax_year: new Date().getFullYear(),
               status: "Pending",
               category: uploadCategory,
               uploader: "admin"
             });
-            
-            setUploadingFiles(prev => prev.filter(f => f.name !== fileToUpload.name));
-            toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded for ${selectedCustomer.firstName}.` });
-            setIsUploadDialogOpen(false);
-            setFileToUpload(null);
-            setUploadDocumentName("");
-            fetchDocsAndCustomers(); // Refresh data
+          } catch (sbErr) {
+            console.warn("Supabase tax document creation warning:", sbErr);
           }
+
+          // 2. Save in Firestore if configured
+          if (firestore && selectedCustomer) {
+            try {
+              const taxDocsCollection = collection(firestore, 'customers', selectedCustomer.id, 'taxDocuments');
+              await addDoc(taxDocsCollection, {
+                documentName: uploadDocumentName,
+                fileUrl: downloadURL,
+                documentType: uploadCategory,
+                uploadDate: serverTimestamp(),
+                taxYear: new Date().getFullYear(),
+                status: "Pending",
+                category: uploadCategory,
+                uploader: "admin"
+              });
+            } catch (fsErr) {
+              console.warn("Firestore tax document creation warning:", fsErr);
+            }
+          }
+
+          setUploadingFiles(prev => prev.filter(f => f.name !== fileToUpload.name));
+          toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded for ${selectedCustomer.firstName}.` });
+          setIsUploadDialogOpen(false);
+          setFileToUpload(null);
+          setUploadDocumentName("");
+          fetchDocsAndCustomers();
         });
       }
     );
