@@ -33,6 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_customers_email ON public.customers USING btree (
 CREATE INDEX IF NOT EXISTS idx_customers_role ON public.customers USING btree (role) TABLESPACE pg_default;
 CREATE INDEX IF NOT EXISTS idx_customers_referral_code ON public.customers USING btree (referral_code) TABLESPACE pg_default;
 CREATE INDEX IF NOT EXISTS idx_customers_userid ON public.customers USING btree (userid) TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS idx_customers_referred_by ON public.customers USING btree (referred_by) TABLESPACE pg_default;
 
 -- 2. TAX DOCUMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.tax_documents (
