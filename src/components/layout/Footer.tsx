@@ -8,9 +8,8 @@ export function Footer() {
       <div className="container mx-auto px-4 py-8 md:px-6">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col items-start">
-            <Link href="/" className="flex items-center gap-2.5 font-bold text-xl text-primary mb-2">
-              <PolarisLogo size={32} className="h-8 w-8" />
-              <span className="font-headline">Polaris Tax Services</span>
+            <Link href="/" className="flex items-center mb-3 hover:opacity-90 transition-opacity">
+              <PolarisLogo className="h-9 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground">Simplifying your taxes with professional ease.</p>
           </div>

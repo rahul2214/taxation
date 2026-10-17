@@ -68,9 +68,8 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-            <PolarisLogo size={28} className="w-7 h-7" />
-            <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
+          <Link href="/dashboard" className="flex items-center hover:opacity-90 transition-opacity py-1">
+            <PolarisLogo className="h-8 w-auto max-w-[170px]" />
           </Link>
           <SidebarTrigger className="ml-auto" />
         </div>

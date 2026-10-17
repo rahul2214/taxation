@@ -78,12 +78,9 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-            <Link href="/admin" className="flex flex-col items-center w-full gap-1 font-bold text-lg">
-                <div className="flex items-center gap-2">
-                    <PolarisLogo size={28} className="w-7 h-7" />
-                    <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
-                </div>
-                <span className="text-sm font-bold text-sidebar-primary">Admin</span>
+            <Link href="/admin" className="flex flex-col items-center w-full gap-1 hover:opacity-90 transition-opacity py-1">
+                <PolarisLogo className="h-8 w-auto max-w-[170px]" />
+                <span className="text-xs font-bold text-sidebar-primary tracking-wider uppercase">Admin Console</span>
             </Link>
             <SidebarTrigger className="ml-auto" />
         </div>

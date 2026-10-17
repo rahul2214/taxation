@@ -1,133 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <!-- Background Shield Gradient -->
-    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#141B34" />
-      <stop offset="45%" stop-color="#0F172A" />
-      <stop offset="100%" stop-color="#070B16" />
+    <!-- Background Gradient (Deep Navy) -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E214D" />
+      <stop offset="50%" stop-color="#081433" />
+      <stop offset="100%" stop-color="#030816" />
     </linearGradient>
 
-    <!-- Outer Crest Border Gradient (Cyan to Emerald) -->
-    <linearGradient id="crestBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="50%" stop-color="#06B6D4" />
-      <stop offset="100%" stop-color="#10B981" />
+    <!-- Golden Crest Border -->
+    <linearGradient id="goldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="35%" stop-color="#CA8A04" />
+      <stop offset="70%" stop-color="#EAB308" />
+      <stop offset="100%" stop-color="#9A6B05" />
     </linearGradient>
 
-    <!-- Star White-to-Cyan Facet Gradient -->
-    <linearGradient id="facetLight" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="100%" stop-color="#E0F2FE" />
+    <!-- Gold Apex Pyramid Gradient -->
+    <linearGradient id="goldApex" x1="0%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#A16207" />
+      <stop offset="40%" stop-color="#EAB308" />
+      <stop offset="80%" stop-color="#FEF08A" />
+      <stop offset="100%" stop-color="#FFFFFF" />
     </linearGradient>
 
-    <linearGradient id="facetMid" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#BAE6FD" />
-      <stop offset="100%" stop-color="#38BDF8" />
-    </linearGradient>
-
-    <linearGradient id="facetDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0284C7" />
-      <stop offset="100%" stop-color="#0369A1" />
-    </linearGradient>
-
-    <!-- Emerald / Growth Accents for Diagonal Facets & Check -->
-    <linearGradient id="growthGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#34D399" />
-      <stop offset="50%" stop-color="#10B981" />
-      <stop offset="100%" stop-color="#059669" />
-    </linearGradient>
-
-    <linearGradient id="growthDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#047857" />
-    </linearGradient>
-
-    <!-- Glow effect -->
-    <filter id="starBloom" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="8" result="blur" />
+    <!-- Gold Accent Glow -->
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- 1. Security Crest (Shield Silhouette) -->
-  <path d="M 256 36
-           C 278 48, 350 72, 420 86
-           C 428 206, 386 338, 256 468
-           C 126 338, 84 206, 92 86
-           C 162 72, 234 48, 256 36 Z"
-        fill="url(#shieldGrad)"
-        stroke="url(#crestBorder)"
-        stroke-width="12"
-        stroke-linejoin="round"
-  />
+  <!-- 1. Background Rounded Square -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#bgGrad)" stroke="url(#goldBorder)" stroke-width="12" />
 
-  <!-- 2. Inner Shield Contour Line -->
-  <path d="M 256 64
-           C 274 74, 336 94, 396 106
-           C 404 204, 368 314, 256 428
-           C 144 314, 108 204, 116 106
-           C 176 94, 238 74, 256 64 Z"
-        fill="none"
-        stroke="url(#crestBorder)"
-        stroke-width="3"
-        stroke-opacity="0.35"
-  />
+  <!-- 2. The Signature Polaris "A" Mark -->
+  <!-- Left Leg of 'A' -->
+  <polygon points="256,76 182,76 102,388 178,388 206,280 256,280" fill="#FFFFFF" />
 
-  <!-- 3. Ambient Starlight Glow -->
-  <circle cx="256" cy="220" r="110" fill="#0EA5E9" opacity="0.14" filter="url(#starBloom)" />
+  <!-- Right Leg of 'A' -->
+  <polygon points="256,76 330,76 410,388 334,388 306,280 256,280" fill="#E2E8F0" />
 
-  <!-- 4. Secondary Diagonal Compass Facets (NE, SE, SW, NW) -->
-  <!-- NE Ray -->
-  <polygon points="256,220 316,160 270,206" fill="url(#growthGrad)" />
-  <polygon points="256,220 316,160 270,234" fill="url(#growthDark)" />
+  <!-- The Golden Pyramid / Apex (from Polaris Logo) -->
+  <polygon points="256,150 188,388 324,388" fill="url(#goldApex)" filter="url(#goldGlow)" />
 
-  <!-- SE Ray -->
-  <polygon points="256,220 316,280 270,234" fill="url(#growthDark)" />
-  <polygon points="256,220 316,280 242,248" fill="url(#growthGrad)" />
+  <!-- Golden Horizon Bar -->
+  <rect x="156" y="380" width="200" height="14" rx="7" fill="url(#goldBorder)" />
 
-  <!-- SW Ray -->
-  <polygon points="256,220 196,280 242,248" fill="url(#growthGrad)" />
-  <polygon points="256,220 196,280 242,206" fill="url(#growthDark)" />
-
-  <!-- NW Ray -->
-  <polygon points="256,220 196,160 242,206" fill="url(#growthDark)" />
-  <polygon points="256,220 196,160 270,206" fill="url(#growthGrad)" />
-
-  <!-- 5. Primary Polaris North Star Facets (North, East, South, West) -->
-  <!-- North Ray (Pointing toward optimal financial direction) -->
-  <polygon points="256,100 256,220 238,220" fill="url(#facetLight)" />
-  <polygon points="256,100 274,220 256,220" fill="url(#facetMid)" />
-
-  <!-- East Ray -->
-  <polygon points="376,220 256,202 256,220" fill="url(#facetLight)" />
-  <polygon points="376,220 256,220 256,238" fill="url(#facetDark)" />
-
-  <!-- South Ray -->
-  <polygon points="256,340 274,220 256,220" fill="url(#facetMid)" />
-  <polygon points="256,340 256,220 238,220" fill="url(#facetDark)" />
-
-  <!-- West Ray -->
-  <polygon points="136,220 256,220 256,202" fill="url(#facetLight)" />
-  <polygon points="136,220 256,238 256,220" fill="url(#facetMid)" />
-
-  <!-- 6. Brilliant Central Diamond Star Core -->
-  <polygon points="256,204 272,220 256,236 240,220" fill="#FFFFFF" filter="url(#starBloom)" />
-  <circle cx="256" cy="220" r="5" fill="#38BDF8" />
-
-  <!-- 7. Verified Financial Ascending Vector / Growth Ribbon Arc -->
-  <path d="M 175 365
-           C 215 395, 238 405, 256 405
-           C 285 405, 315 375, 345 315"
-        fill="none"
-        stroke="url(#growthGrad)"
-        stroke-width="12"
-        stroke-linecap="round"
-  />
-  <path d="M 330 315 L 348 312 L 348 332"
-        fill="none"
-        stroke="url(#growthGrad)"
-        stroke-width="12"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-  />
+  <!-- Polaris Star Sparkle atop Pyramid -->
+  <path d="M 256 128
+           Q 256 150 274 150
+           Q 256 150 256 172
+           Q 256 150 238 150
+           Q 256 150 256 128 Z"
+        fill="#FFFFFF" />
 </svg>

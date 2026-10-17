@@ -24,9 +24,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2.5 font-bold text-xl text-primary">
-          <PolarisLogo size={32} className="h-8 w-8" />
-          <span className="font-headline">Polaris Tax Services</span>
+        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+          <PolarisLogo className="h-9 md:h-10 w-auto" />
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
           {navLinks.map((link) => (
@@ -57,9 +56,8 @@ export function Header() {
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <SheetDescription className="sr-only">A list of links to navigate the site.</SheetDescription>
               <nav className="grid gap-6 text-lg font-medium mt-10">
-                <Link href="/" className="flex items-center gap-2.5 font-bold text-xl text-primary mb-4" onClick={() => setIsOpen(false)}>
-                  <PolarisLogo size={28} className="h-7 w-7" />
-                  <span className="font-headline">Polaris Tax Services</span>
+                <Link href="/" className="flex items-center hover:opacity-90 transition-opacity mb-4" onClick={() => setIsOpen(false)}>
+                  <PolarisLogo className="h-8 w-auto" />
                 </Link>
                 {navLinks.map((link) => (
                   <Link

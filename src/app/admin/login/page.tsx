@@ -221,9 +221,8 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 text-slate-100">
       {/* Top Bar */}
       <header className="w-full px-6 py-4 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-2.5 text-lg font-bold text-white hover:opacity-90 transition-opacity">
-          <PolarisLogo size={32} className="h-8 w-8" />
-          <span className="font-headline tracking-tight">Polaris Tax Services</span>
+        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+          <PolarisLogo theme="dark" className="h-8 w-auto" />
         </Link>
         <Button asChild variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
           <Link href="/" className="flex items-center gap-1.5">
@@ -236,9 +235,9 @@ export default function AdminLoginPage() {
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md border-slate-800 bg-slate-900/90 backdrop-blur-xl shadow-2xl text-slate-100">
           <CardHeader className="text-center space-y-3 pb-6">
-            <div className="flex justify-center">
+            <div className="flex justify-center mb-2">
               <div className="relative">
-                <PolarisLogo size={56} className="h-14 w-14" />
+                <PolarisLogo theme="dark" className="h-12 w-auto max-w-[240px]" />
                 <div className="absolute -bottom-1 -right-1 bg-amber-500 rounded-full p-1 text-slate-950 shadow-md">
                   <Lock className="h-3 w-3" />
                 </div>
