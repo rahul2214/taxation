@@ -35,10 +35,10 @@ export function initializeFirebase() {
         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
       
-      if (!firebaseConfig.projectId) {
-        // Only log error if we are in the browser or if it's not a build phase
+      if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
+        // Only warn if we are in the browser or if it's not a build phase
         if (!isBuild && !isServer) {
-          console.error("Firebase config is not set. Please add your Firebase project configuration to the .env file.");
+          console.warn("Firebase config is not set. Please add your Firebase project configuration to the .env.local file.");
         }
         
         // Return dummy object during build/server-side to avoid crashing

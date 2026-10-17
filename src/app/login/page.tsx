@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -194,7 +195,7 @@ export default function LoginPage() {
       <div className="container flex min-h-[80vh] items-center justify-center px-4 py-12 md:px-6">
         <Tabs defaultValue="login" className="w-full max-w-md">
           <div className="flex justify-center mb-6">
-            <ShieldCheck className="h-12 w-12 text-accent" />
+            <PolarisLogo size={48} className="h-12 w-12" />
           </div>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>

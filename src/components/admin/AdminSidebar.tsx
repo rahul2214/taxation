@@ -13,7 +13,8 @@ import {
   SidebarTrigger,
   SidebarMenuBadge,
 } from "@/components/ui/sidebar";
-import { ShieldCheck, CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard, FileUp } from "lucide-react";
+import { CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard, FileUp } from "lucide-react";
+import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
@@ -69,7 +70,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
         <div className="flex items-center gap-2">
             <Link href="/admin" className="flex flex-col items-center w-full gap-1 font-bold text-lg">
                 <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-7 h-7 text-sidebar-primary" />
+                    <PolarisLogo size={28} className="w-7 h-7" />
                     <span className="text-sidebar-foreground min-w-max font-headline">Polaris Tax Services</span>
                 </div>
                 <span className="text-sm font-bold text-sidebar-primary">Admin</span>
@@ -83,12 +84,12 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
             <SidebarMenuButton
               asChild
               isActive={pathname === item.href}
-              icon={item.icon}
               tooltip={item.label}
               className={cn(isMobile && "justify-start h-10 p-2")}
             >
               <Link href={item.href}>
-                {item.label}
+                {item.icon}
+                <span>{item.label}</span>
                 {item.badge != null && item.badge > 0 && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
               </Link>
             </SidebarMenuButton>
@@ -98,13 +99,17 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild icon={<Settings />} tooltip="Settings" className={cn(isMobile && "justify-start h-10 p-2")}>
-              <Link href="#">Settings</Link>
+            <SidebarMenuButton asChild tooltip="Settings" className={cn(isMobile && "justify-start h-10 p-2")}>
+              <Link href="#">
+                <Settings />
+                <span>Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} icon={<LogOut />} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
-              Logout
+            <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className={cn(isMobile && "justify-start h-10 p-2")}>
+              <LogOut />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

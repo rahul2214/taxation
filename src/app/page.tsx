@@ -228,9 +228,9 @@ function TaxEstimator() {
   );
 }
 
-const AnimatedCounter = ({ target, duration = 2000, prefix = "", suffix = "" }) => {
+const AnimatedCounter = ({ target, duration = 2000, prefix = "", suffix = "" }: { target: number; duration?: number; prefix?: string; suffix?: string }) => {
   const [count, setCount] = useState(0);
-  const countRef = useRef(null);
+  const countRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -268,7 +268,7 @@ const AnimatedCounter = ({ target, duration = 2000, prefix = "", suffix = "" }) 
     };
   }, [target, duration]);
   
-  const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
+  const formatNumber = (num: number) => new Intl.NumberFormat('en-US').format(num);
 
   return (
     <span ref={countRef} className="text-3xl font-bold text-primary">

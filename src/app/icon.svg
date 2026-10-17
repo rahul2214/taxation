@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="50%" stop-color="#1C2541" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+
+    <!-- Shield Border Gradient -->
+    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#0EA5E9" />
+      <stop offset="100%" stop-color="#14B8A6" />
+    </linearGradient>
+
+    <!-- Shield Inner Fill Gradient -->
+    <linearGradient id="shieldFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- Polaris Star Primary Gradient -->
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="60%" stop-color="#E0F2FE" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+
+    <!-- Polaris Star Accent Gradient -->
+    <linearGradient id="starAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2DD4BF" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+
+    <!-- Checkmark Gradient -->
+    <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="starGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Squircle / Rounded Container -->
+  <rect width="512" height="512" rx="120" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="116" fill="none" stroke="url(#shieldBorder)" stroke-width="4" stroke-opacity="0.3" />
+
+  <!-- Subtle Ambient Glow Behind Shield -->
+  <circle cx="256" cy="245" r="140" fill="#0EA5E9" opacity="0.18" filter="url(#glow)" />
+
+  <!-- Shield Shape Outer/Stroke -->
+  <path d="M 256 95
+           C 310 95, 370 110, 395 130
+           C 395 245, 345 345, 256 415
+           C 167 345, 117 245, 117 130
+           C 142 110, 202 95, 256 95 Z"
+        fill="url(#shieldFill)"
+        stroke="url(#shieldBorder)"
+        stroke-width="12"
+        stroke-linejoin="round"
+  />
+
+  <!-- Inner Shield Trim Line -->
+  <path d="M 256 120
+           C 298 120, 346 132, 368 148
+           C 368 238, 328 320, 256 382
+           C 184 320, 144 238, 144 148
+           C 166 132, 214 120, 256 120 Z"
+        fill="none"
+        stroke="url(#shieldBorder)"
+        stroke-width="3"
+        stroke-opacity="0.4"
+  />
+
+  <!-- Secondary Diagonal Star Flare (45-degree rotation) -->
+  <g transform="rotate(45, 256, 235)">
+    <path d="M 256 175
+             Q 256 235, 196 235
+             Q 256 235, 256 295
+             Q 256 235, 316 235
+             Q 256 235, 256 175 Z"
+          fill="url(#starAccent)"
+          opacity="0.85"
+    />
+  </g>
+
+  <!-- Primary Polaris Star (4-pointed flare) -->
+  <path d="M 256 135
+           Q 256 235, 156 235
+           Q 256 235, 256 335
+           Q 256 235, 356 235
+           Q 256 235, 256 135 Z"
+        fill="url(#starGrad)"
+        filter="url(#starGlow)"
+  />
+
+  <!-- Radiant Center Star Core -->
+  <circle cx="256" cy="235" r="18" fill="#FFFFFF" />
+  <circle cx="256" cy="235" r="10" fill="#38BDF8" />
+  <circle cx="256" cy="235" r="5" fill="#FFFFFF" />
+
+  <!-- Verified Financial Checkmark Badge Arc at Bottom of Shield -->
+  <path d="M 195 285
+           L 240 330
+           L 330 230"
+        fill="none"
+        stroke="url(#checkGrad)"
+        stroke-width="20"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        filter="url(#glow)"
+  />
+  <path d="M 195 285
+           L 240 330
+           L 330 230"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+  />
+</svg>
