@@ -156,11 +156,11 @@ export async function upsertCustomer(customer: CustomerRecord) {
   }
 }
 
-export async function getCustomerByReferralCode(codeOrEmail: string): Promise<CustomerRecord | null> {
-  if (!isSupabaseConfigured || !codeOrEmail.trim()) return null;
-  const clean = codeOrEmail.trim();
+export async function getCustomerByReferralCode(code: string): Promise<CustomerRecord | null> {
+  if (!isSupabaseConfigured || !code?.trim()) return null;
+  const clean = code.trim().toUpperCase();
 
-  // Try matching referral_code
+  // Match strictly by referral_code only (no email logic)
   try {
     const { data: byCode, error: errCode } = await supabase
       .from('customers')
@@ -169,18 +169,9 @@ export async function getCustomerByReferralCode(codeOrEmail: string): Promise<Cu
       .maybeSingle();
 
     if (!errCode && byCode) return byCode;
-  } catch (_) {}
-
-  // Fallback try matching email
-  try {
-    const { data: byEmail, error: errEmail } = await supabase
-      .from('customers')
-      .select('*')
-      .ilike('email', clean.toLowerCase())
-      .maybeSingle();
-
-    if (!errEmail && byEmail) return byEmail;
-  } catch (_) {}
+  } catch (e) {
+    console.warn("getCustomerByReferralCode notice:", e);
+  }
 
   return null;
 }
@@ -349,82 +340,70 @@ export async function updateAppointmentStatus(id: string, status: string) {
 }
 
 // -------------------------------------------------------------
-// Referrals Service
+// Referrals Service (Derived from customers table & wallet ledger)
 // -------------------------------------------------------------
 export async function getReferrals(referrerId?: string): Promise<ReferralRecord[]> {
   if (!isSupabaseConfigured) return [];
-  let query = supabase.from('referrals').select('*');
-  if (referrerId) {
-    query = query.eq('referrer_id', referrerId);
-  }
-  const { data, error } = await query.order('created_at', { ascending: false });
-  if (error) throw error;
-  return data || [];
-}
-
-export async function createReferral(referral: ReferralRecord) {
-  if (!isSupabaseConfigured) return null;
-  let payload: any = { ...referral };
-
   try {
-    const { data, error } = await supabase
-      .from('referrals')
-      .insert([payload])
-      .select()
-      .single();
+    let query = supabase.from('customers').select('*');
+    if (referrerId) {
+      const referrer = await getCustomer(referrerId);
+      const searchVals = [referrerId];
+      if (referrer?.userid != null) {
+        searchVals.push(String(referrer.userid));
+      }
+      query = query.in('referred_by', searchVals);
+    } else {
+      query = query.not('referred_by', 'is', null);
+    }
 
+    const { data: referredUsers, error } = await query.order('created_at', { ascending: false });
     if (error) {
-      // FK violation fallback if customer record does not exist
-      if (error.code === '23503') {
-        payload.referrer_id = null;
-        payload.referred_id = null;
-        const retry = await supabase
-          .from('referrals')
-          .insert([payload])
-          .select()
-          .single();
-        if (retry.error) throw retry.error;
-        return retry.data;
-      }
-      // If error code is 42703 (columns do not exist yet before migration), fallback to core columns
-      if (error.code === '42703') {
-        const corePayload = {
-          referrer_id: payload.referrer_id,
-          referrer_name: payload.referrer_name,
-          referrer_email: payload.referrer_email,
-          referred_name: payload.referred_name,
-          referred_email: payload.referred_email,
-          status: payload.status || 'Pending',
-          referral_date: payload.referral_date || new Date().toISOString(),
-        };
-        const retry = await supabase
-          .from('referrals')
-          .insert([corePayload])
-          .select()
-          .single();
-        if (retry.error) throw retry.error;
-        return retry.data;
-      }
+      if (error.code === '42703' || error.code === '42P01') return [];
       throw error;
     }
-    return data;
+
+    if (!referredUsers || referredUsers.length === 0) return [];
+
+    const allCustomers = await getAllCustomers();
+    const customerMap = new Map<string, CustomerRecord>();
+    allCustomers.forEach(c => {
+      customerMap.set(c.id, c);
+      if (c.userid != null) customerMap.set(String(c.userid), c);
+    });
+
+    return referredUsers.map(u => {
+      const ref = u.referred_by ? customerMap.get(u.referred_by) : null;
+      return {
+        id: u.id,
+        referrer_id: ref?.id,
+        referrer_userid: ref?.userid,
+        referrer_name: ref ? `${ref.first_name || ''} ${ref.last_name || ''}`.trim() || ref.email : (u.referred_by ? `User #${u.referred_by}` : 'Referrer'),
+        referrer_email: ref?.email || '',
+        referred_id: u.id,
+        referred_userid: u.userid,
+        referred_name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+        referred_email: u.email,
+        referral_code: ref?.referral_code,
+        reward_amount: 25.0,
+        status: 'Rewarded',
+        referral_date: u.signup_date || u.created_at,
+        created_at: u.created_at,
+      };
+    });
   } catch (err) {
-    console.warn("createReferral notice:", err);
-    return null;
+    console.warn("getReferrals notice:", err);
+    return [];
   }
 }
 
-export async function updateReferralStatus(id: string, status: string) {
-  if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('referrals')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
+export async function createReferral(_referral: ReferralRecord) {
+  // Referrals operate exclusively via customers.referral_code and customers.referred_by
+  return null;
+}
 
-  if (error) throw error;
-  return data;
+export async function updateReferralStatus(_id: string, _status: string) {
+  return null;
 }
 
 // -------------------------------------------------------------
@@ -585,21 +564,6 @@ export async function processReferralReward({
       `Welcome credit: $${rewardAmount.toFixed(2)} bonus for joining with code ${referralCodeUsed}`,
       referrer.id
     );
-
-    // 3. Create or Update Referral Record in database
-    await createReferral({
-      referrer_id: referrer.id,
-      referrer_userid: referrer.userid,
-      referrer_name: `${referrer.first_name || ''} ${referrer.last_name || ''}`.trim() || referrer.email,
-      referrer_email: referrer.email,
-      referred_id: newUserId,
-      referred_name: newUserName,
-      referred_email: newUserEmail,
-      referral_code: referralCodeUsed,
-      reward_amount: rewardAmount,
-      status: 'Rewarded',
-      referral_date: new Date().toISOString(),
-    });
   } catch (err) {
     console.error("Error processing referral reward:", err);
   }

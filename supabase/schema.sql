@@ -75,32 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_appointments_customer_userid ON public.appointmen
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments(status);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON public.appointments(appointment_date);
 
--- 4. REFERRALS TABLE
-CREATE TABLE IF NOT EXISTS public.referrals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    referrer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
-    referrer_userid BIGINT REFERENCES public.customers(userid) ON DELETE SET NULL,
-    referrer_name TEXT,
-    referrer_email TEXT,
-    referred_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
-    referred_userid BIGINT REFERENCES public.customers(userid) ON DELETE SET NULL,
-    referred_email TEXT NOT NULL,
-    referred_name TEXT,
-    referral_code TEXT,                        -- Coupon / referral code used
-    reward_amount NUMERIC(10, 2) NOT NULL DEFAULT 25.00, -- Bonus reward amount
-    status TEXT NOT NULL DEFAULT 'Pending',    -- 'Pending', 'Accepted', 'Rewarded'
-    referral_date TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_referrals_referrer_id ON public.referrals(referrer_id);
-CREATE INDEX IF NOT EXISTS idx_referrals_referred_id ON public.referrals(referred_id);
-CREATE INDEX IF NOT EXISTS idx_referrals_referrer_userid ON public.referrals(referrer_userid);
-CREATE INDEX IF NOT EXISTS idx_referrals_referred_userid ON public.referrals(referred_userid);
-CREATE INDEX IF NOT EXISTS idx_referrals_code ON public.referrals(referral_code);
-CREATE INDEX IF NOT EXISTS idx_referrals_status ON public.referrals(status);
-
--- 5. WALLET TRANSACTIONS TABLE
+-- 4. WALLET TRANSACTIONS TABLE (Tracks referral bonuses, welcome credits, discounts)
 CREATE TABLE IF NOT EXISTS public.wallet_transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
@@ -153,7 +128,6 @@ ON CONFLICT (email) DO NOTHING;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tax_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
@@ -180,12 +154,6 @@ CREATE POLICY "Allow anon read/write tax_documents"
 DROP POLICY IF EXISTS "Allow anon read/write appointments" ON public.appointments;
 CREATE POLICY "Allow anon read/write appointments"
     ON public.appointments FOR ALL
-    USING (true)
-    WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow anon read/write referrals" ON public.referrals;
-CREATE POLICY "Allow anon read/write referrals"
-    ON public.referrals FOR ALL
     USING (true)
     WITH CHECK (true);
 

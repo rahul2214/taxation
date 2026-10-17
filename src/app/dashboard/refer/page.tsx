@@ -34,14 +34,11 @@ import {
   ArrowUpRight,
   Ticket,
   Coins,
-  Send,
   MessageCircle,
 } from "lucide-react";
 import { useFirebase } from "@/firebase";
-import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import {
-  createReferral,
   getReferrals,
   ReferralRecord,
   getCustomer,
@@ -61,20 +58,8 @@ export default function CustomerReferPage() {
   const [couponCode, setCouponCode] = useState<string>("");
   const [customerUserid, setCustomerUserid] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-
-  // Form states
-  const [friendName, setFriendName] = useState("");
-  const [friendEmail, setFriendEmail] = useState("");
-
-  const referrerName =
-    user?.displayName ||
-    (user as any)?.user_metadata?.first_name ||
-    user?.email?.split("@")[0] ||
-    "Polaris Client";
-  const referrerEmail = user?.email || "";
 
   // Base URL
   const [origin, setOrigin] = useState("");
@@ -84,11 +69,9 @@ export default function CustomerReferPage() {
     }
   }, []);
 
-  // Dedicated invite link using coupon code
+  // Dedicated invite link strictly using unique coupon / referral code
   const referralLink = couponCode
     ? `${origin || "https://www.plrstax.com"}/signup?ref=${encodeURIComponent(couponCode)}`
-    : referrerEmail
-    ? `${origin || "https://www.plrstax.com"}/signup?ref=${encodeURIComponent(referrerEmail)}`
     : "";
 
   const loadDashboardData = async () => {
@@ -165,72 +148,6 @@ export default function CustomerReferPage() {
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!friendName || !friendEmail) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please provide both your friend's name and email address.",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // 1. Create referral in Supabase
-      await createReferral({
-        referrer_id: user?.uid || null,
-        referrer_userid: customerUserid,
-        referrer_name: referrerName,
-        referrer_email: referrerEmail,
-        referred_name: friendName.trim(),
-        referred_email: friendEmail.trim().toLowerCase(),
-        referral_code: couponCode,
-        reward_amount: 25.0,
-        status: "Pending",
-        referral_date: new Date().toISOString(),
-      });
-
-      // 2. Also persist to Firestore if available
-      if (firestore && user) {
-        try {
-          const referralsCol = collection(firestore, "referrals");
-          await addDoc(referralsCol, {
-            referrerId: user.uid,
-            referrerName,
-            referrerEmail,
-            referredName: friendName.trim(),
-            referredEmail: friendEmail.trim().toLowerCase(),
-            referralCode: couponCode,
-            status: "Pending",
-            referralDate: serverTimestamp(),
-          });
-        } catch (fsErr) {
-          console.warn("Firestore sync warning:", fsErr);
-        }
-      }
-
-      toast({
-        title: "Invitation Recorded!",
-        description: `We have registered your referral for ${friendName}. When they file, both of you will receive $25.00!`,
-      });
-
-      setFriendName("");
-      setFriendEmail("");
-      await loadDashboardData();
-    } catch (err: any) {
-      console.error("Error submitting referral:", err);
-      toast({
-        variant: "destructive",
-        title: "Submission Error",
-        description: err.message || "Could not record referral. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // Stats calculation
   const completedReferralsCount = referrals.filter(
     (r) => r.status?.toLowerCase() === "rewarded" || r.status?.toLowerCase() === "completed"
@@ -294,10 +211,10 @@ export default function CustomerReferPage() {
               <span className="text-3xl font-bold tracking-tight text-foreground">
                 {completedReferralsCount}
               </span>
-              <span className="text-xs text-muted-foreground">friends rewarded</span>
+              <span className="text-xs text-muted-foreground">clients referred</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              {referrals.length} total invitations sent
+              {completedReferralsCount} joined with your coupon code
             </p>
           </CardContent>
         </Card>
@@ -473,53 +390,43 @@ export default function CustomerReferPage() {
           </div>
         </div>
 
-        {/* Right: Direct Invite Form */}
-        <Card className="shadow-sm">
+        {/* Right: Referral Program Guidelines */}
+        <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Send className="h-4 w-4 text-primary" /> Invite a Friend Directly
+              <Sparkles className="h-4 w-4 text-primary" /> Referral Program Guidelines
             </CardTitle>
             <CardDescription className="text-xs">
-              Enter a friend's details below to register their referral in our system.
+              Simple, transparent rewards with no complicated forms or caps.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="friend-name" className="text-xs">Friend's Full Name *</Label>
-                <Input
-                  id="friend-name"
-                  placeholder="e.g. Jane Smith"
-                  required
-                  value={friendName}
-                  onChange={(e) => setFriendName(e.target.value)}
-                />
-              </div>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-background/80 p-3.5 space-y-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Ticket className="h-3.5 w-3.5 text-primary" /> Unique Coupon Code
+              </span>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your coupon code <strong className="font-mono text-primary font-bold">{couponCode}</strong> is unique to your client profile. Share it anywhere — text messages, group chats, or social networks.
+              </p>
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="friend-email" className="text-xs">Friend's Email Address *</Label>
-                <Input
-                  id="friend-email"
-                  type="email"
-                  placeholder="jane.smith@example.com"
-                  required
-                  value={friendEmail}
-                  onChange={(e) => setFriendEmail(e.target.value)}
-                />
-              </div>
+            <div className="rounded-lg border bg-background/80 p-3.5 space-y-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5 text-emerald-600" /> Instant Wallet Credit
+              </span>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                When a new customer signs up using your coupon code, $25.00 is automatically credited to their wallet balance, and $25.00 is deposited into your wallet immediately.
+              </p>
+            </div>
 
-              <div className="pt-2">
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Recording Invitation...
-                    </>
-                  ) : (
-                    "Record Referral Invite"
-                  )}
-                </Button>
-              </div>
-            </form>
+            <div className="flex gap-2 pt-1">
+              <Button onClick={handleCopyCode} variant="default" className="w-1/2 text-xs">
+                <Copy className="h-3.5 w-3.5 mr-1.5" /> Copy Code
+              </Button>
+              <Button onClick={handleCopyLink} variant="outline" className="w-1/2 text-xs">
+                <Share2 className="h-3.5 w-3.5 mr-1.5" /> Copy Link
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -536,7 +443,7 @@ export default function CustomerReferPage() {
           <Tabs defaultValue="referrals" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="referrals">
-                Friends Invited ({referrals.length})
+                Referred Clients ({referrals.length})
               </TabsTrigger>
               <TabsTrigger value="wallet">
                 Wallet Ledger ({walletTransactions.length})
@@ -559,11 +466,11 @@ export default function CustomerReferPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Friend's Name</TableHead>
+                      <TableHead>Client Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Coupon Code</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
+                      <TableHead>Joined Date</TableHead>
+                      <TableHead className="text-right">Bonus Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

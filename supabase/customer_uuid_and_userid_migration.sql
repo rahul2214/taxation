@@ -42,8 +42,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 2. Drop existing foreign key constraints on customer_id temporarily
 ALTER TABLE public.tax_documents DROP CONSTRAINT IF EXISTS tax_documents_customer_id_fkey;
 ALTER TABLE public.appointments DROP CONSTRAINT IF EXISTS appointments_customer_id_fkey;
-ALTER TABLE public.referrals DROP CONSTRAINT IF EXISTS referrals_referrer_id_fkey;
-ALTER TABLE public.referrals DROP CONSTRAINT IF EXISTS referrals_referred_id_fkey;
 ALTER TABLE public.wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_customer_id_fkey;
 
 -- 3. Convert customers.id from TEXT to UUID
@@ -99,39 +97,7 @@ FOREIGN KEY (customer_userid) REFERENCES public.customers(userid) ON DELETE SET 
 
 CREATE INDEX IF NOT EXISTS idx_appointments_customer_userid ON public.appointments(customer_userid);
 
--- 5c. Referrals
-ALTER TABLE public.referrals 
-ALTER COLUMN referrer_id TYPE UUID USING referrer_id::uuid;
-
-ALTER TABLE public.referrals 
-ALTER COLUMN referred_id TYPE UUID USING referred_id::uuid;
-
-ALTER TABLE public.referrals 
-ADD COLUMN IF NOT EXISTS referrer_userid BIGINT;
-
-ALTER TABLE public.referrals 
-ADD COLUMN IF NOT EXISTS referred_userid BIGINT;
-
-ALTER TABLE public.referrals
-ADD CONSTRAINT referrals_referrer_id_fkey 
-FOREIGN KEY (referrer_id) REFERENCES public.customers(id) ON DELETE SET NULL;
-
-ALTER TABLE public.referrals
-ADD CONSTRAINT referrals_referred_id_fkey 
-FOREIGN KEY (referred_id) REFERENCES public.customers(id) ON DELETE SET NULL;
-
-ALTER TABLE public.referrals
-ADD CONSTRAINT referrals_referrer_userid_fkey 
-FOREIGN KEY (referrer_userid) REFERENCES public.customers(userid) ON DELETE SET NULL;
-
-ALTER TABLE public.referrals
-ADD CONSTRAINT referrals_referred_userid_fkey 
-FOREIGN KEY (referred_userid) REFERENCES public.customers(userid) ON DELETE SET NULL;
-
-CREATE INDEX IF NOT EXISTS idx_referrals_referrer_userid ON public.referrals(referrer_userid);
-CREATE INDEX IF NOT EXISTS idx_referrals_referred_userid ON public.referrals(referred_userid);
-
--- 5d. Wallet Transactions
+-- 5c. Wallet Transactions
 ALTER TABLE public.wallet_transactions 
 ALTER COLUMN customer_id TYPE UUID USING customer_id::uuid;
 
@@ -158,16 +124,6 @@ UPDATE public.appointments a
 SET customer_userid = c.userid
 FROM public.customers c
 WHERE a.customer_id = c.id AND a.customer_userid IS NULL;
-
-UPDATE public.referrals r
-SET referrer_userid = c.userid
-FROM public.customers c
-WHERE r.referrer_id = c.id AND r.referrer_userid IS NULL;
-
-UPDATE public.referrals r
-SET referred_userid = c.userid
-FROM public.customers c
-WHERE r.referred_id = c.id AND r.referred_userid IS NULL;
 
 UPDATE public.wallet_transactions wt
 SET customer_userid = c.userid

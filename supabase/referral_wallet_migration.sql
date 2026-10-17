@@ -11,16 +11,7 @@ ADD COLUMN IF NOT EXISTS referred_by TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_customers_referral_code ON public.customers(referral_code);
 
--- 2. Add referral_code, referred_id, and reward_amount to referrals table
-ALTER TABLE public.referrals 
-ADD COLUMN IF NOT EXISTS referral_code TEXT,
-ADD COLUMN IF NOT EXISTS referred_id TEXT,
-ADD COLUMN IF NOT EXISTS reward_amount NUMERIC(10, 2) NOT NULL DEFAULT 25.00;
-
-CREATE INDEX IF NOT EXISTS idx_referrals_code ON public.referrals(referral_code);
-CREATE INDEX IF NOT EXISTS idx_referrals_referred_id ON public.referrals(referred_id);
-
--- 3. Create wallet_transactions table to track credits, debits, and bonus histories
+-- 2. Create wallet_transactions table to track credits, debits, and bonus histories
 CREATE TABLE IF NOT EXISTS public.wallet_transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     customer_id TEXT NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
