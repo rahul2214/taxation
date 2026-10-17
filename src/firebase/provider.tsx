@@ -124,7 +124,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             isUserLoading: false,
             userError: null,
           });
-        } else if (!auth) {
+        } else {
           setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       }
@@ -215,7 +215,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             isUserLoading: false,
             userError: null,
           });
-        } else if (!auth) {
+        } else {
           setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       }

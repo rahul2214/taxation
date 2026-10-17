@@ -18,7 +18,6 @@ import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
-import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 type AdminSidebarProps = {
@@ -43,11 +42,6 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
         window.dispatchEvent(new Event('polaris_admin_auth_changed'));
       }
       await supabase.auth.signOut();
-      if(auth) {
-        try {
-          await signOut(auth);
-        } catch (e) {}
-      }
       toast({
           title: "Logged Out",
           description: "You have been successfully signed out.",

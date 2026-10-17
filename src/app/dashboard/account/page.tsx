@@ -16,8 +16,8 @@ import { useFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from 
 import { doc, DocumentData } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { updatePassword } from "firebase/auth";
 import { getCustomer, upsertCustomer } from "@/lib/supabase/services";
+import { supabase } from "@/lib/supabase/client";
 
 export default function AccountPage() {
   const { firestore, user } = useFirebase();
@@ -133,16 +133,19 @@ export default function AccountPage() {
       toast({ variant: "destructive", title: "Error", description: "New passwords do not match." });
       return;
     }
-    if (user) {
-      try {
-        await updatePassword(user, newPassword);
-        toast({ title: "Password Updated", description: "Your password has been changed successfully." });
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message });
-      }
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Password Updated", description: "Your password has been changed successfully in Supabase." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: error.message || "Failed to change password." });
     }
   };
 

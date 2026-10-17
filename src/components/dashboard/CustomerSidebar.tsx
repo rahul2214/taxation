@@ -18,7 +18,6 @@ import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase } from "@/firebase";
 import { cn } from "@/lib/utils";
-import { signOut } from "firebase/auth";
 import { DocumentData } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,11 +42,6 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      if(auth) {
-        try {
-          await signOut(auth);
-        } catch (e) {}
-      }
       toast({
         title: "Logged Out",
         description: "You have been successfully signed out.",

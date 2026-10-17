@@ -10,14 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { Loader2, ShieldAlert, ArrowLeft, Lock } from "lucide-react";
 import { getCustomer, getAdminById, getAdminByEmail, verifyAdminCredentials } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
-  const { auth, firestore, user, isUserLoading } = useFirebase();
+  const { user, isUserLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -57,23 +55,13 @@ export default function AdminLoginPage() {
             router.push("/admin");
             return;
           }
-
-          // Check Firestore fallback
-          if (firestore) {
-            const userDocRef = doc(firestore, "customers", user.uid);
-            const userSnap = await getDoc(userDocRef);
-            if (userSnap.exists() && userSnap.data()?.role === "admin") {
-              router.push("/admin");
-              return;
-            }
-          }
         } catch (err) {
           console.error("Error verifying admin role:", err);
         }
       }
     };
     verifyExistingAdmin();
-  }, [user, isUserLoading, firestore, router]);
+  }, [user, isUserLoading, router]);
 
   const handleAdminEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,48 +151,11 @@ export default function AdminLoginPage() {
         }
       }
 
-      // 3. Fallback to Firebase auth if available
-      if (auth) {
-        try {
-          const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
-          const adminRec =
-            (await getAdminByEmail(cleanEmail)) ||
-            (await getAdminById(userCredential.user.uid));
-          let isFbAdmin = false;
-          if (firestore) {
-            const userDocRef = doc(firestore, "customers", userCredential.user.uid);
-            const userSnap = await getDoc(userDocRef);
-            if (userSnap.exists() && userSnap.data()?.role === "admin") {
-              isFbAdmin = true;
-            }
-          }
-
-          if (adminRec || isFbAdmin) {
-            const adminSessionData = {
-              id: userCredential.user.uid,
-              email: cleanEmail,
-              name: adminRec?.name || userCredential.user.displayName || "Admin",
-              role: "admin",
-            };
-            if (typeof window !== "undefined") {
-              localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
-              window.dispatchEvent(new Event("polaris_admin_auth_changed"));
-            }
-            toast({
-              title: "Admin Verified",
-              description: "Welcome to the Polaris Tax Admin Console.",
-            });
-            router.push("/admin");
-            return;
-          }
-        } catch (fbErr) {}
-      }
-
       // If credentials failed all checks
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: credError || "Invalid administrator credentials.",
+        description: credError || sbAuthError?.message || "Invalid administrator credentials.",
       });
     } catch (error: any) {
       toast({
