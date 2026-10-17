@@ -197,12 +197,18 @@ function SignupContent() {
       setWelcomeMessage(msg);
       setShowWelcomeDialog(true);
     } catch (error: any) {
-      console.error("Signup Error:", error);
+      console.warn("Signup Notice:", error?.message || error);
       let userFriendlyMessage = error.message || "There was a problem creating your account.";
       const errorMsgLower = (error.message || "").toLowerCase();
       const errorCode = error.code || "";
+      const isAlreadyRegistered =
+        errorCode === "user_already_exists" ||
+        errorMsgLower.includes("already registered") ||
+        errorMsgLower.includes("already exists");
 
-      if (
+      if (isAlreadyRegistered) {
+        userFriendlyMessage = `An account with "${cleanEmail}" already exists. Please sign in instead, or use a different email address.`;
+      } else if (
         errorCode === "over_email_send_rate_limit" ||
         errorMsgLower.includes("rate limit") ||
         error.status === 429
@@ -220,7 +226,7 @@ function SignupContent() {
 
       toast({
         variant: "destructive",
-        title: "Signup Failed",
+        title: isAlreadyRegistered ? "Account Already Exists" : "Signup Failed",
         description: userFriendlyMessage,
       });
     } finally {
