@@ -54,6 +54,7 @@ type Customer = {
   } | string;
   signupDate: { seconds: number, nanoseconds: number } | Date;
   role?: string;
+  role_id?: number;
   referralCode?: string;
   walletBalance?: number;
   referredBy?: string | number | null;
@@ -77,17 +78,18 @@ export default function CustomersPage() {
       try {
         const records = await getAllCustomers();
         const mapped: Customer[] = records
-          .filter(r => r.role !== 'admin')
+          .filter(r => r.role !== 'admin' && r.role_id !== 1 && r.role_id !== 3)
           .map(r => ({
             id: r.id,
             userid: r.userid,
+            role_id: r.role_id,
             firstName: r.first_name || "Customer",
             lastName: r.last_name || "",
             email: r.email,
             phone: r.phone || "",
             address: r.address || undefined,
             signupDate: new Date(r.signup_date || Date.now()),
-            role: r.role || "user",
+            role: r.role || "customer",
             referralCode: r.referral_code,
             walletBalance: r.wallet_balance !== undefined ? Number(r.wallet_balance) : 0,
             referredBy: r.referred_by,
@@ -254,6 +256,15 @@ export default function CustomersPage() {
                               : selectedCustomer.referredBy
                           ) : 'None (Direct)'}
                         </span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Account Role</span>
+                        <div className="col-span-3 flex items-center gap-2">
+                          <span className="capitalize text-sm font-medium">{selectedCustomer.role || "customer"}</span>
+                          <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded border">
+                            Role ID #{selectedCustomer.role_id ?? 2}
+                          </span>
+                        </div>
                     </div>
                 </div>
             )}

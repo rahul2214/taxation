@@ -3,9 +3,17 @@ import { apiCache, CacheOptions } from '../cache/api-cache';
 
 export { apiCache, type CacheOptions };
 
+export interface RoleRecord {
+  id: number; // BIGINT identity (1: admin, 2: customer, 3: superadmin)
+  name: string;
+  description?: string;
+  created_at?: string;
+}
+
 export interface CustomerRecord {
   id: string; // Supabase Auth UUID
   userid?: number; // int8 (BIGINT) sequential identity for primary/foreign key relations
+  role_id?: number; // int8 (BIGINT) foreign key to roles(id)
   first_name?: string;
   last_name?: string;
   email: string;
@@ -85,6 +93,7 @@ export interface SiteSettingsRecord {
 
 export interface AdminRecord {
   id?: string;
+  role_id?: number; // int8 (BIGINT) foreign key to roles(id)
   email: string;
   password?: string;
   name?: string;
@@ -116,6 +125,7 @@ export async function upsertCustomer(customer: CustomerRecord) {
     phone: customer.phone,
     address: customer.address,
     role: customer.role || 'customer',
+    role_id: customer.role_id !== undefined ? customer.role_id : (customer.role === 'admin' ? 1 : (customer.role === 'superadmin' ? 3 : 2)),
     updated_at: new Date().toISOString(),
   };
 
@@ -916,22 +926,44 @@ export async function createOrUpdateAdmin(admin: AdminRecord) {
     email: admin.email.toLowerCase().trim(),
     name: admin.name || '',
     role: admin.role || 'admin',
+    role_id: admin.role_id !== undefined ? admin.role_id : (admin.role === 'superadmin' ? 3 : 1),
     updated_at: new Date().toISOString(),
   };
   if (admin.id) payload.id = admin.id;
   if (admin.password) payload.password = admin.password;
 
-  const { data, error } = await supabase
-    .from('admins')
-    .upsert(payload)
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('admins')
+      .upsert(payload)
+      .select()
+      .single();
 
-  if (error) throw error;
-  apiCache.invalidate('admin_email');
-  apiCache.invalidate('admin_id');
-  apiCache.invalidate('admins:all');
-  return data;
+    if (error) {
+      // If role_id does not exist yet before migration, retry without role_id
+      if (error.code === '42703' && payload.role_id !== undefined) {
+        delete payload.role_id;
+        const fallback = await supabase
+          .from('admins')
+          .upsert(payload)
+          .select()
+          .single();
+        if (fallback.error) throw fallback.error;
+        apiCache.invalidate('admin_email');
+        apiCache.invalidate('admin_id');
+        apiCache.invalidate('admins:all');
+        return fallback.data;
+      }
+      throw error;
+    }
+
+    apiCache.invalidate('admin_email');
+    apiCache.invalidate('admin_id');
+    apiCache.invalidate('admins:all');
+    return data;
+  } catch (err) {
+    throw err;
+  }
 }
 
 export async function deleteAdmin(id: string) {
@@ -947,4 +979,42 @@ export async function deleteAdmin(id: string) {
   apiCache.invalidate('admins:all');
   return data;
 }
+
+// -------------------------------------------------------------
+// Roles Service
+// -------------------------------------------------------------
+export async function getRoles(options?: CacheOptions): Promise<RoleRecord[]> {
+  const defaultRoles: RoleRecord[] = [
+    { id: 1, name: 'admin', description: 'Administrator with management access' },
+    { id: 2, name: 'customer', description: 'Standard client / customer account' },
+    { id: 3, name: 'superadmin', description: 'Super administrator with full privileges' },
+  ];
+
+  if (!isSupabaseConfigured) return defaultRoles;
+
+  return apiCache.getOrFetch(
+    'roles:all',
+    async () => {
+      try {
+        const { data, error } = await supabase
+          .from('roles')
+          .select('*')
+          .order('id', { ascending: true });
+
+        if (error) {
+          if (error.code === '42P01') {
+            return defaultRoles;
+          }
+          throw error;
+        }
+        return (data && data.length > 0) ? data : defaultRoles;
+      } catch (err) {
+        console.warn("getRoles notice:", err);
+        return defaultRoles;
+      }
+    },
+    { ttlMs: 300_000, ...options } // 5 minutes TTL
+  );
+}
+
 

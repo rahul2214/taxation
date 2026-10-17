@@ -73,7 +73,7 @@ export default function AdminLayout({
         // 4. Fallback: check customers table if role is admin
         if (!isAdm && user.uid) {
           const c = await getCustomer(user.uid);
-          if (c?.role === "admin") isAdm = true;
+          if (c?.role === "admin" || c?.role === "superadmin" || c?.role_id === 1 || c?.role_id === 3) isAdm = true;
         }
 
         setIsSupabaseAdmin(isAdm);

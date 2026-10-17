@@ -78,7 +78,7 @@ function SignupContent() {
     try {
       const uid = userData.uid || userData.id;
       const supabaseUser = await getCustomer(uid);
-      if (supabaseUser?.role === "admin") {
+      if (supabaseUser?.role === "admin" || supabaseUser?.role === "superadmin" || supabaseUser?.role_id === 1 || supabaseUser?.role_id === 3) {
         router.push("/admin");
         return;
       }

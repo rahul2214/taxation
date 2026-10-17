@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
           // Fallback customers check
           if (!isAdm && user.uid) {
             const sbCustomer = await getCustomer(user.uid);
-            if (sbCustomer?.role === "admin") isAdm = true;
+            if (sbCustomer?.role === "admin" || sbCustomer?.role === "superadmin" || sbCustomer?.role_id === 1 || sbCustomer?.role_id === 3) isAdm = true;
           }
 
           if (isAdm) {
@@ -121,12 +121,13 @@ export default function AdminLoginPage() {
           (await getAdminById(authData.user.id));
         const custRec = !adminRec ? await getCustomer(authData.user.id) : null;
 
-        if (adminRec || custRec?.role === "admin") {
+        if (adminRec || custRec?.role === "admin" || custRec?.role === "superadmin" || custRec?.role_id === 1 || custRec?.role_id === 3) {
           const adminSessionData = {
             id: authData.user.id,
             email: authData.user.email || cleanEmail,
             name: adminRec?.name || authData.user.user_metadata?.first_name || "Admin",
-            role: "admin",
+            role: adminRec?.role || custRec?.role || (custRec?.role_id === 3 ? "superadmin" : "admin"),
+            role_id: adminRec?.role_id || custRec?.role_id || (adminRec?.role === 'superadmin' ? 3 : 1),
           };
 
           if (typeof window !== "undefined") {

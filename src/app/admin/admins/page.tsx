@@ -42,7 +42,9 @@ import {
   getAllAdmins,
   createOrUpdateAdmin,
   deleteAdmin,
+  getRoles,
   AdminRecord,
+  RoleRecord,
 } from "@/lib/supabase/services";
 import { useFirebase } from "@/firebase";
 
@@ -51,6 +53,7 @@ export default function AdminsPage() {
   const { toast } = useToast();
 
   const [admins, setAdmins] = useState<AdminRecord[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RoleRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,6 +83,13 @@ export default function AdminsPage() {
 
   useEffect(() => {
     loadAdmins();
+    getRoles()
+      .then(roles => {
+        // Filter roles applicable to administrators
+        const adminRoles = roles.filter(r => r.name !== 'customer');
+        setAvailableRoles(adminRoles.length > 0 ? adminRoles : roles);
+      })
+      .catch(() => {});
   }, []);
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
@@ -95,11 +105,13 @@ export default function AdminsPage() {
 
     setIsSubmitting(true);
     try {
+      const selectedRoleObj = availableRoles.find(r => r.name === role);
       await createOrUpdateAdmin({
         email: email.trim().toLowerCase(),
         password,
         name: name.trim() || undefined,
         role,
+        role_id: selectedRoleObj?.id || (role === 'superadmin' ? 3 : 1),
       });
 
       toast({
@@ -213,9 +225,16 @@ export default function AdminsPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{adm.email}</TableCell>
                       <TableCell>
-                        <Badge variant={adm.role === "superadmin" ? "default" : "secondary"}>
-                          {adm.role || "admin"}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant={adm.role === "superadmin" || adm.role_id === 3 ? "default" : "secondary"}>
+                            {adm.role || (adm.role_id === 3 ? "superadmin" : "admin")}
+                          </Badge>
+                          {adm.role_id && (
+                            <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded border">
+                              ID #{adm.role_id}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {adm.created_at ? new Date(adm.created_at).toLocaleDateString() : "Default"}
@@ -297,8 +316,18 @@ export default function AdminsPage() {
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               >
-                <option value="admin">Administrator</option>
-                <option value="superadmin">Super Administrator</option>
+                {availableRoles.length > 0 ? (
+                  availableRoles.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name === 'admin' ? 'Administrator' : r.name === 'superadmin' ? 'Super Administrator' : r.name} (Role ID #{r.id})
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="admin">Administrator (Role ID #1)</option>
+                    <option value="superadmin">Super Administrator (Role ID #3)</option>
+                  </>
+                )}
               </select>
             </div>
 
