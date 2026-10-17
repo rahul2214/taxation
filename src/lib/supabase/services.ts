@@ -11,7 +11,7 @@ export interface CustomerRecord {
   role?: string;
   referral_code?: string;
   wallet_balance?: number;
-  referred_by?: string;
+  referred_by?: string | number | null; // Stores referrer's int8 userid value
   signup_date?: string;
   created_at?: string;
   updated_at?: string;
@@ -116,7 +116,9 @@ export async function upsertCustomer(customer: CustomerRecord) {
 
   if (customer.referral_code !== undefined) fullPayload.referral_code = customer.referral_code;
   if (customer.wallet_balance !== undefined) fullPayload.wallet_balance = customer.wallet_balance;
-  if (customer.referred_by !== undefined) fullPayload.referred_by = customer.referred_by;
+  if (customer.referred_by !== undefined) {
+    fullPayload.referred_by = customer.referred_by !== null ? String(customer.referred_by) : null;
+  }
 
   try {
     const { data, error } = await supabase
@@ -442,17 +444,22 @@ export async function getWalletBalance(customerId: string): Promise<number> {
 
 export async function addWalletTransaction(tx: WalletTransactionRecord) {
   if (!isSupabaseConfigured) return null;
+  const payload: any = {
+    customer_id: tx.customer_id,
+    amount: tx.amount,
+    type: tx.type,
+    description: tx.description,
+    reference_id: tx.reference_id,
+    created_at: new Date().toISOString(),
+  };
+  if (tx.customer_userid !== undefined && tx.customer_userid !== null) {
+    payload.customer_userid = tx.customer_userid;
+  }
+
   try {
     const { data, error } = await supabase
       .from('wallet_transactions')
-      .insert([{
-        customer_id: tx.customer_id,
-        amount: tx.amount,
-        type: tx.type,
-        description: tx.description,
-        reference_id: tx.reference_id,
-        created_at: new Date().toISOString(),
-      }])
+      .insert([payload])
       .select()
       .single();
 
@@ -460,6 +467,17 @@ export async function addWalletTransaction(tx: WalletTransactionRecord) {
       if (error.code === '42P01') {
         console.warn("wallet_transactions table not yet created in Supabase.");
         return null;
+      }
+      // If customer_userid does not exist yet before migration, retry with core payload
+      if (error.code === '42703' && payload.customer_userid) {
+        delete payload.customer_userid;
+        const fallback = await supabase
+          .from('wallet_transactions')
+          .insert([payload])
+          .select()
+          .single();
+        if (fallback.error) throw fallback.error;
+        return fallback.data;
       }
       throw error;
     }
@@ -518,6 +536,7 @@ export async function creditCustomerWallet(
     // 3. Record ledger transaction
     await addWalletTransaction({
       customer_id: customerId,
+      customer_userid: cust?.userid,
       amount,
       type,
       description,
@@ -570,6 +589,7 @@ export async function processReferralReward({
     // 3. Create or Update Referral Record in database
     await createReferral({
       referrer_id: referrer.id,
+      referrer_userid: referrer.userid,
       referrer_name: `${referrer.first_name || ''} ${referrer.last_name || ''}`.trim() || referrer.email,
       referrer_email: referrer.email,
       referred_id: newUserId,

@@ -110,7 +110,8 @@ function SignupContent() {
           referrerMatch = await getCustomerByReferralCode(cleanReferral);
           if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
             initialWalletBalance = 25.0; // $25.00 Welcome bonus credit
-            referredById = referrerMatch.id;
+            // Store the referrer's int8 userid value in referred_by
+            referredById = referrerMatch.userid != null ? String(referrerMatch.userid) : (referrerMatch.id || null);
           }
         } catch (findErr) {
           console.warn("Notice checking referral code:", findErr);

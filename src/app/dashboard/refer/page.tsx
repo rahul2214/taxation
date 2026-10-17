@@ -59,6 +59,7 @@ export default function CustomerReferPage() {
   const [walletTransactions, setWalletTransactions] = useState<WalletTransactionRecord[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0.0);
   const [couponCode, setCouponCode] = useState<string>("");
+  const [customerUserid, setCustomerUserid] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -95,7 +96,12 @@ export default function CustomerReferPage() {
     setIsLoading(true);
     try {
       // 1. Get or generate user's coupon code
-      const code = await ensureCustomerReferralCode(
+      const customer = await getCustomer(user.uid);
+      if (customer?.userid) {
+        setCustomerUserid(customer.userid);
+      }
+
+      const code = customer?.referral_code || await ensureCustomerReferralCode(
         user.uid,
         user.displayName || (user as any)?.user_metadata?.first_name,
         user.email || undefined
@@ -175,6 +181,7 @@ export default function CustomerReferPage() {
       // 1. Create referral in Supabase
       await createReferral({
         referrer_id: user?.uid || null,
+        referrer_userid: customerUserid,
         referrer_name: referrerName,
         referrer_email: referrerEmail,
         referred_name: friendName.trim(),

@@ -56,6 +56,7 @@ type Customer = {
   role?: string;
   referralCode?: string;
   walletBalance?: number;
+  referredBy?: string | number | null;
 };
 
 
@@ -89,6 +90,7 @@ export default function CustomersPage() {
             role: r.role || "user",
             referralCode: r.referral_code,
             walletBalance: r.wallet_balance !== undefined ? Number(r.wallet_balance) : 0,
+            referredBy: r.referred_by,
           }));
         setSupabaseCustomers(mapped);
       } catch (err) {
@@ -241,6 +243,16 @@ export default function CustomersPage() {
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Wallet Balance</span>
                         <span className="col-span-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                           ${(selectedCustomer.walletBalance ?? 0).toFixed(2)}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Referred By</span>
+                        <span className="col-span-3 text-sm font-mono">
+                          {selectedCustomer.referredBy ? (
+                            !isNaN(Number(selectedCustomer.referredBy))
+                              ? `User #${selectedCustomer.referredBy}`
+                              : selectedCustomer.referredBy
+                          ) : 'None (Direct)'}
                         </span>
                     </div>
                 </div>
