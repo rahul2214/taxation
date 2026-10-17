@@ -4,7 +4,7 @@
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { doc, collection, query, where, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -14,8 +14,13 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const { user, isUserLoading, firestore } = useFirebase();
   const router = useRouter();
+
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -71,7 +76,7 @@ export default function AdminLayout({
     if (isUserLoading || isUserDataLoading) return;
 
     if (!user) {
-      router.push('/login');
+      router.push('/admin/login');
       return;
     }
 

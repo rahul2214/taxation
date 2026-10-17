@@ -43,7 +43,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
             description: "You have been successfully signed out.",
         });
       }
-      router.push('/');
+      router.push('/admin/login');
     } catch (error) {
       console.error("Logout Error:", error);
        toast({
