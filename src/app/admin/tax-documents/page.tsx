@@ -46,7 +46,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { uploadFileToCloudflare } from "@/lib/upload";
 import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus } from "@/lib/supabase/services";
 
 type DocumentStatus = "Verified" | "Pending" | "Requires Attention";
@@ -252,74 +252,69 @@ export default function TaxDocumentsPage() {
     }
   };
 
-  const handleAdminUpload = () => {
+  const handleAdminUpload = async () => {
     if (!fileToUpload || !selectedCustomer || !uploadDocumentName) {
       toast({ variant: "destructive", title: "Missing Information", description: "Please select a file and provide a document name."});
       return;
     }
 
-    const storage = getStorage();
-    const storageRef = ref(storage, `admin_uploads/${selectedCustomer.id}/${Date.now()}_${fileToUpload.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
-    
     const newUpload: UploadingFile = { name: fileToUpload.name, progress: 0 };
     setUploadingFiles(prev => [...prev, newUpload]);
 
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadingFiles(prev => prev.map(f => f.name === fileToUpload.name ? { ...f, progress } : f));
-      },
-      (error) => {
-        setUploadingFiles(prev => prev.map(f => f.name === fileToUpload.name ? { ...f, error: error.message } : f));
-        toast({ variant: "destructive", title: "Upload Failed", description: `Could not upload ${fileToUpload.name}.` });
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          // 1. Save in Supabase
-          try {
-            await createTaxDocument({
-              customer_id: selectedCustomer.id,
-              document_name: uploadDocumentName,
-              file_url: downloadURL,
-              document_type: uploadCategory,
-              tax_year: new Date().getFullYear(),
-              status: "Pending",
-              category: uploadCategory,
-              uploader: "admin"
-            });
-          } catch (sbErr) {
-            console.warn("Supabase tax document creation warning:", sbErr);
-          }
+    try {
+      const { url: downloadURL } = await uploadFileToCloudflare(fileToUpload, {
+        folder: "admin_uploads",
+        userId: selectedCustomer.id,
+        onProgress: (progress) => {
+          setUploadingFiles(prev => prev.map(f => f.name === fileToUpload.name ? { ...f, progress } : f));
+        },
+      });
 
-          // 2. Save in Firestore if configured
-          if (firestore && selectedCustomer) {
-            try {
-              const taxDocsCollection = collection(firestore, 'customers', selectedCustomer.id, 'taxDocuments');
-              await addDoc(taxDocsCollection, {
-                documentName: uploadDocumentName,
-                fileUrl: downloadURL,
-                documentType: uploadCategory,
-                uploadDate: serverTimestamp(),
-                taxYear: new Date().getFullYear(),
-                status: "Pending",
-                category: uploadCategory,
-                uploader: "admin"
-              });
-            } catch (fsErr) {
-              console.warn("Firestore tax document creation warning:", fsErr);
-            }
-          }
-
-          setUploadingFiles(prev => prev.filter(f => f.name !== fileToUpload.name));
-          toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded for ${selectedCustomer.firstName}.` });
-          setIsUploadDialogOpen(false);
-          setFileToUpload(null);
-          setUploadDocumentName("");
-          fetchDocsAndCustomers();
+      // 1. Save in Supabase
+      try {
+        await createTaxDocument({
+          customer_id: selectedCustomer.id,
+          document_name: uploadDocumentName,
+          file_url: downloadURL,
+          document_type: uploadCategory,
+          tax_year: new Date().getFullYear(),
+          status: "Pending",
+          category: uploadCategory,
+          uploader: "admin"
         });
+      } catch (sbErr) {
+        console.warn("Supabase tax document creation warning:", sbErr);
       }
-    );
+
+      // 2. Save in Firestore if configured
+      if (firestore && selectedCustomer) {
+        try {
+          const taxDocsCollection = collection(firestore, 'customers', selectedCustomer.id, 'taxDocuments');
+          await addDoc(taxDocsCollection, {
+            documentName: uploadDocumentName,
+            fileUrl: downloadURL,
+            documentType: uploadCategory,
+            uploadDate: serverTimestamp(),
+            taxYear: new Date().getFullYear(),
+            status: "Pending",
+            category: uploadCategory,
+            uploader: "admin"
+          });
+        } catch (fsErr) {
+          console.warn("Firestore tax document creation warning:", fsErr);
+        }
+      }
+
+      setUploadingFiles(prev => prev.filter(f => f.name !== fileToUpload.name));
+      toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded to Cloudflare for ${selectedCustomer.firstName}.` });
+      setIsUploadDialogOpen(false);
+      setFileToUpload(null);
+      setUploadDocumentName("");
+      fetchDocsAndCustomers();
+    } catch (error: any) {
+      setUploadingFiles(prev => prev.map(f => f.name === fileToUpload.name ? { ...f, error: error.message } : f));
+      toast({ variant: "destructive", title: "Upload Failed", description: error.message || `Could not upload ${fileToUpload.name}.` });
+    }
   };
 
   const formatDate = (date: { seconds: number; nanoseconds: number } | Date | undefined) => {

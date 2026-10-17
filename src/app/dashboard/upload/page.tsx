@@ -23,11 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UploadCloud, File, X, Loader2 } from "lucide-react";
 import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp, doc } from "firebase/firestore";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { useState, ChangeEvent, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument, deleteTaxDocument } from "@/lib/supabase/services";
+import { uploadFileToCloudflare, deleteFileFromCloudflare } from "@/lib/upload";
 
 type UploadingFile = {
   name: string;
@@ -132,67 +132,62 @@ export default function UploadPage() {
   };
 
 
-  const uploadFile = (file: File, userId: string) => {
-    const storage = getStorage();
-    const storageRef = ref(storage, `customers/${userId}/documents/${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+  const uploadFile = async (file: File, userId: string) => {
+    try {
+      const uploadResult = await uploadFileToCloudflare(file, {
+        folder: "customers",
+        userId,
+        onProgress: (progress) => {
+          setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
+        },
+      });
 
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
-      },
-      (error) => {
-        console.error("Upload failed:", error);
-        setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, error: error.message } : f));
-        toast({
-            variant: "destructive",
-            title: "Upload Failed",
-            description: `Could not upload ${file.name}.`,
+      // 1. Save in Supabase
+      try {
+        await createTaxDocument({
+          customer_id: userId,
+          document_name: file.name,
+          file_url: uploadResult.url,
+          document_type: documentType,
+          tax_year: parseInt(taxYear, 10),
+          status: "Pending",
+          category: 'Customer Upload',
+          uploader: 'customer',
         });
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          // 1. Save in Supabase
-          try {
-            await createTaxDocument({
-              customer_id: userId,
-              document_name: file.name,
-              file_url: downloadURL,
-              document_type: documentType,
-              tax_year: parseInt(taxYear, 10),
-              status: "Pending",
-              category: 'Customer Upload',
-              uploader: 'customer',
-            });
-            fetchSupabaseFiles();
-          } catch (sbErr) {
-            console.warn("Supabase document creation warning:", sbErr);
-          }
+        fetchSupabaseFiles();
+      } catch (sbErr) {
+        console.warn("Supabase document creation warning:", sbErr);
+      }
 
-          // 2. Save in Firestore if configured
-          if (taxDocsCollection) {
-            addDocumentNonBlocking(taxDocsCollection, {
-              documentName: file.name,
-              fileUrl: downloadURL,
-              documentType: documentType,
-              uploadDate: serverTimestamp(),
-              taxYear: parseInt(taxYear),
-              status: "Pending",
-              mimeType: file.type,
-              category: 'Customer Upload',
-              uploader: 'customer'
-            });
-          }
-
-          setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
-          toast({
-              title: "Upload Successful",
-              description: `${file.name} has been uploaded.`,
-          });
+      // 2. Save in Firestore if configured
+      if (taxDocsCollection) {
+        addDocumentNonBlocking(taxDocsCollection, {
+          documentName: file.name,
+          fileUrl: uploadResult.url,
+          documentType: documentType,
+          uploadDate: serverTimestamp(),
+          taxYear: parseInt(taxYear),
+          status: "Pending",
+          mimeType: file.type,
+          category: 'Customer Upload',
+          uploader: 'customer'
         });
       }
-    );
+
+      setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
+      toast({
+        title: "Upload Successful",
+        description: `${file.name} has been securely uploaded to Cloudflare.`,
+      });
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+      setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, error: error.message } : f));
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message || `Could not upload ${file.name}.`,
+      });
+    }
   };
   
   const handleDelete = async (fileId: string, fileUrl: string) => {
@@ -202,18 +197,17 @@ export default function UploadPage() {
         fetchSupabaseFiles();
       } catch (sbErr) {}
 
-      // Delete in Firestore / Storage
+      // Delete from Cloudflare R2
+      try {
+        await deleteFileFromCloudflare(fileUrl);
+      } catch (cfErr) {
+        console.warn("Cloudflare delete notice:", cfErr);
+      }
+
+      // Delete in Firestore
       if (user && firestore) {
         const docRef = doc(firestore, `customers/${user.uid}/taxDocuments`, fileId);
-        const storage = getStorage();
-        const fileRef = ref(storage, fileUrl);
-        
-        try {
-          await deleteObject(fileRef);
-          deleteDocumentNonBlocking(docRef);
-        } catch (error) {
-          console.error("Error deleting file:", error);
-        }
+        deleteDocumentNonBlocking(docRef);
       }
 
       toast({

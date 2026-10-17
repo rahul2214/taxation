@@ -21,11 +21,11 @@ import {
 } from "lucide-react";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, serverTimestamp, addDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useState, ChangeEvent, useMemo, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument } from "@/lib/supabase/services";
+import { uploadFileToCloudflare } from "@/lib/upload";
 
 type TaxDocument = {
   id: string;
@@ -103,63 +103,58 @@ export default function DocumentsWorkflowPage() {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (fileToUpload && user) {
       const newUpload: UploadingFile = { name: fileToUpload.name, progress: 0 };
       setUploadingFile(newUpload);
 
-      const storage = getStorage();
-      const storageRef = ref(storage, `customers/${user.uid}/documents/draft_${fileToUpload.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+      try {
+        const { url: downloadURL } = await uploadFileToCloudflare(fileToUpload, {
+          folder: "customers",
+          userId: user.uid,
+          onProgress: (progress) => {
+            setUploadingFile(prev => prev ? { ...prev, progress } : null);
+          },
+        });
 
-      uploadTask.on('state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadingFile(prev => prev ? { ...prev, progress } : null);
-        },
-        (error) => {
-          setUploadingFile(prev => prev ? { ...prev, error: error.message } : null);
-          toast({ variant: "destructive", title: "Upload Failed", description: `Could not upload ${fileToUpload.name}.` });
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            // Save in Supabase
-            try {
-              await createTaxDocument({
-                customer_id: user.uid,
-                document_name: fileToUpload.name,
-                file_url: downloadURL,
-                document_type: "Tax Return Draft",
-                tax_year: new Date().getFullYear(),
-                status: "Pending",
-                category: "Tax Return Draft",
-                uploader: "customer",
-              });
-              fetchSupabaseDocs();
-            } catch (sbErr) {
-              console.warn("Supabase document creation warning:", sbErr);
-            }
+        // Save in Supabase
+        try {
+          await createTaxDocument({
+            customer_id: user.uid,
+            document_name: fileToUpload.name,
+            file_url: downloadURL,
+            document_type: "Tax Return Draft",
+            tax_year: new Date().getFullYear(),
+            status: "Pending",
+            category: "Tax Return Draft",
+            uploader: "customer",
+          });
+          fetchSupabaseDocs();
+        } catch (sbErr) {
+          console.warn("Supabase document creation warning:", sbErr);
+        }
 
-            // Save in Firestore if configured
-            if (taxDocsCollection) {
-              addDoc(taxDocsCollection, {
-                documentName: fileToUpload.name,
-                fileUrl: downloadURL,
-                documentType: "Tax Return Draft",
-                uploadDate: serverTimestamp(),
-                taxYear: new Date().getFullYear(),
-                status: "Pending",
-                category: 'Tax Return Draft',
-                uploader: 'customer'
-              });
-            }
-
-            setUploadingFile(null);
-            setFileToUpload(null);
-            toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded.` });
+        // Save in Firestore if configured
+        if (taxDocsCollection) {
+          addDoc(taxDocsCollection, {
+            documentName: fileToUpload.name,
+            fileUrl: downloadURL,
+            documentType: "Tax Return Draft",
+            uploadDate: serverTimestamp(),
+            taxYear: new Date().getFullYear(),
+            status: "Pending",
+            category: 'Tax Return Draft',
+            uploader: 'customer'
           });
         }
-      );
+
+        setUploadingFile(null);
+        setFileToUpload(null);
+        toast({ title: "Upload Successful", description: `${fileToUpload.name} has been uploaded to Cloudflare.` });
+      } catch (error: any) {
+        setUploadingFile(prev => prev ? { ...prev, error: error.message } : null);
+        toast({ variant: "destructive", title: "Upload Failed", description: error.message || `Could not upload ${fileToUpload.name}.` });
+      }
     }
   };
 

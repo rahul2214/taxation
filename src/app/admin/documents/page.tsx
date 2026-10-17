@@ -18,7 +18,7 @@ import { Loader2, File as FileIcon } from "lucide-react";
 import { useState, ChangeEvent, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { uploadFileToCloudflare } from "@/lib/upload";
 import { getSiteSettings, updateSiteSettings } from "@/lib/supabase/services";
 
 type UploadingFile = {
@@ -60,63 +60,57 @@ export default function SiteFormsPage() {
     }
   }, [formsData]);
 
-  const uploadFile = (file: File, formType: FormType) => {
-    const storage = getStorage();
-    const storageRef = ref(storage, `global_forms/${formType}_${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
+  const uploadFile = async (file: File, formType: FormType) => {
     const newUpload: UploadingFile = { name: file.name, progress: 0 };
     setUploadingFiles(prev => [...prev, newUpload]);
 
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
-      },
-      (error) => {
-        console.error("Upload failed:", error);
-        setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, error: error.message } : f));
-        toast({
-            variant: "destructive",
-            title: "Upload Failed",
-            description: `Could not upload ${file.name}. Please check storage permissions.`,
-        });
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          // 1. Update in Supabase
-          try {
-            await updateSiteSettings({
-              current_year_form_url: formType === 'currentYearFormUrl' ? downloadURL : currentYearUrl,
-              prior_year_form_url: formType === 'priorYearFormUrl' ? downloadURL : priorYearUrl,
-            });
-          } catch (sbErr) {
-            console.warn("Supabase site settings update warning:", sbErr);
-          }
+    try {
+      const { url: downloadURL } = await uploadFileToCloudflare(file, {
+        folder: "global_forms",
+        onProgress: (progress) => {
+          setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
+        },
+      });
 
-          // 2. Update in Firestore if configured
-          if (formsDocRef) {
-            try {
-              await setDoc(formsDocRef, { [formType]: downloadURL }, { merge: true });
-            } catch (fsErr) {
-              console.warn("Firestore site settings update warning:", fsErr);
-            }
-          }
-
-          setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
-          toast({
-              title: "Upload Successful",
-              description: `${file.name} has been uploaded.`,
-          });
-          
-          if (formType === 'currentYearFormUrl') {
-              setCurrentYearUrl(downloadURL);
-          } else {
-              setPriorYearUrl(downloadURL);
-          }
+      // 1. Update in Supabase
+      try {
+        await updateSiteSettings({
+          current_year_form_url: formType === 'currentYearFormUrl' ? downloadURL : currentYearUrl,
+          prior_year_form_url: formType === 'priorYearFormUrl' ? downloadURL : priorYearUrl,
         });
+      } catch (sbErr) {
+        console.warn("Supabase site settings update warning:", sbErr);
       }
-    );
+
+      // 2. Update in Firestore if configured
+      if (formsDocRef) {
+        try {
+          await setDoc(formsDocRef, { [formType]: downloadURL }, { merge: true });
+        } catch (fsErr) {
+          console.warn("Firestore site settings update warning:", fsErr);
+        }
+      }
+
+      setUploadingFiles(prev => prev.filter(f => f.name !== file.name));
+      toast({
+        title: "Upload Successful",
+        description: `${file.name} has been uploaded to Cloudflare.`,
+      });
+
+      if (formType === 'currentYearFormUrl') {
+        setCurrentYearUrl(downloadURL);
+      } else {
+        setPriorYearUrl(downloadURL);
+      }
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+      setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, error: error.message } : f));
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message || `Could not upload ${file.name}. Please check storage configuration.`,
+      });
+    }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>, formType: FormType) => {
