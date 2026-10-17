@@ -117,14 +117,12 @@ function SignupContent() {
     try {
       // 2. Check if a valid referral / coupon code is provided
       let referrerMatch: CustomerRecord | null = null;
-      let initialWalletBalance = 0.0;
       let referredById: string | null = null;
 
       if (cleanReferral) {
         try {
           referrerMatch = await getCustomerByReferralCode(cleanReferral);
           if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
-            initialWalletBalance = rewardAmount; // Dynamic Welcome bonus credit
             // Store the referrer's int8 userid value in referred_by
             referredById = referrerMatch.userid != null ? String(referrerMatch.userid) : (referrerMatch.id || null);
           }
@@ -151,7 +149,7 @@ function SignupContent() {
 
       const newUserId = data.user?.id;
       if (newUserId) {
-        // 4. Save Customer profile with coupon code & starting wallet balance
+        // 4. Save Customer profile with coupon code & starting wallet balance at 0.00
         try {
           await upsertCustomer({
             id: newUserId,
@@ -161,14 +159,14 @@ function SignupContent() {
             phone: signupPhone.trim(),
             role: "customer",
             referral_code: userReferralCode,
-            wallet_balance: initialWalletBalance,
+            wallet_balance: 0.0,
             referred_by: referredById || undefined,
           });
         } catch (profileErr) {
           console.warn("Profile upsert notice:", profileErr);
         }
 
-        // 5. If referred, reward both users with dynamic wallet credit!
+        // 5. If referred, reward both users with the exact same reward amount!
         if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
           try {
             await processReferralReward({
@@ -190,7 +188,7 @@ function SignupContent() {
         ? "Your account has been successfully created. You can now access your client dashboard."
         : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
 
-      if (initialWalletBalance > 0) {
+      if (referrerMatch) {
         msg += `\n\n🎉 Welcome Bonus: $${rewardAmount.toFixed(2)} has been credited to your Polaris Wallet!`;
       }
 
@@ -272,7 +270,7 @@ function SignupContent() {
           <CardContent className="space-y-4">
             {refParam && (
               <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs">
-                <Sparkles className="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+               
                 <div>
                   <span className="font-semibold">Referral Bonus Applied!</span>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
