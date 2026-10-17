@@ -16,7 +16,7 @@ import { useFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from 
 import { doc, DocumentData } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { getCustomer, upsertCustomer } from "@/lib/supabase/services";
+import { getCustomer, upsertCustomer, getReferralRewardAmount } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AccountPage() {
@@ -41,6 +41,7 @@ export default function AccountPage() {
   const [userid, setUserid] = useState<number | null>(null);
   const [referralCode, setReferralCode] = useState<string>("");
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [rewardAmount, setRewardAmount] = useState<number>(25.0);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,6 +62,8 @@ export default function AccountPage() {
             setAddress1(c.address);
           }
         }
+        const amt = await getReferralRewardAmount();
+        setRewardAmount(amt);
       } catch (err) {
         console.error("Error loading customer from Supabase:", err);
       }
@@ -193,7 +196,7 @@ export default function AccountPage() {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Share to earn $25.00 per friend
+              Share to earn ${rewardAmount.toFixed(2)} per friend
             </p>
           </CardContent>
         </Card>

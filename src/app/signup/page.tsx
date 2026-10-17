@@ -19,6 +19,7 @@ import {
   generateReferralCode,
   getCustomerByReferralCode,
   processReferralReward,
+  getReferralRewardAmount,
   CustomerRecord,
 } from "@/lib/supabase/services";
 
@@ -50,6 +51,20 @@ function SignupContent() {
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [createdCouponCode, setCreatedCouponCode] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState<number>(25.0);
+
+  // Load dynamic reward amount from site settings
+  useEffect(() => {
+    async function loadReward() {
+      try {
+        const amt = await getReferralRewardAmount();
+        setRewardAmount(amt);
+      } catch (err) {
+        console.warn("Could not load referral reward amount:", err);
+      }
+    }
+    loadReward();
+  }, []);
 
   // Sync referral parameter if URL changes
   useEffect(() => {
@@ -109,7 +124,7 @@ function SignupContent() {
         try {
           referrerMatch = await getCustomerByReferralCode(cleanReferral);
           if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
-            initialWalletBalance = 25.0; // $25.00 Welcome bonus credit
+            initialWalletBalance = rewardAmount; // Dynamic Welcome bonus credit
             // Store the referrer's int8 userid value in referred_by
             referredById = referrerMatch.userid != null ? String(referrerMatch.userid) : (referrerMatch.id || null);
           }
@@ -153,7 +168,7 @@ function SignupContent() {
           console.warn("Profile upsert notice:", profileErr);
         }
 
-        // 5. If referred, reward both users with $25.00 wallet credit!
+        // 5. If referred, reward both users with dynamic wallet credit!
         if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
           try {
             await processReferralReward({
@@ -162,7 +177,7 @@ function SignupContent() {
               newUserName: `${signupFirstName} ${signupLastName}`.trim() || cleanEmail,
               newUserEmail: cleanEmail,
               referralCodeUsed: cleanReferral.toUpperCase(),
-              rewardAmount: 25.0,
+              rewardAmount: rewardAmount,
             });
           } catch (rewardErr) {
             console.warn("Referral reward process notice:", rewardErr);
@@ -176,10 +191,10 @@ function SignupContent() {
         : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
 
       if (initialWalletBalance > 0) {
-        msg += `\n\n🎉 Welcome Bonus: $25.00 has been credited to your Polaris Wallet!`;
+        msg += `\n\n🎉 Welcome Bonus: $${rewardAmount.toFixed(2)} has been credited to your Polaris Wallet!`;
       }
 
-      msg += `\n\n💳 Your Personal Referral Coupon: ${userReferralCode}\nShare this with friends to earn $25.00 every time someone files!`;
+      msg += `\n\n💳 Your Personal Referral Coupon: ${userReferralCode}\nShare this with friends to earn $${rewardAmount.toFixed(2)} every time someone files!`;
 
       setWelcomeMessage(msg);
       setShowWelcomeDialog(true);
@@ -261,7 +276,7 @@ function SignupContent() {
                 <div>
                   <span className="font-semibold">Referral Bonus Applied!</span>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You and your friend will each receive a <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">$25.00 wallet credit</strong> upon registration!
+                    Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You and your friend will each receive a <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">${rewardAmount.toFixed(2)} wallet credit</strong> upon registration!
                   </p>
                 </div>
               </div>
@@ -343,7 +358,7 @@ function SignupContent() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="signup-referral-code">Referral or Coupon Code (Optional)</Label>
                   <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                    🎁 Get $25.00 Credit
+                    🎁 Get ${rewardAmount.toFixed(2)} Credit
                   </span>
                 </div>
                 <Input
@@ -408,7 +423,7 @@ function SignupContent() {
             <div className="p-3 bg-muted/60 rounded-lg border border-dashed border-primary/40 text-center space-y-1">
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Your Referral Coupon Code</span>
               <p className="text-xl font-mono font-bold text-primary tracking-wider select-all">{createdCouponCode}</p>
-              <p className="text-[11px] text-muted-foreground">Share this with friends to earn $25.00 for every referral!</p>
+              <p className="text-[11px] text-muted-foreground">Share this with friends to earn ${rewardAmount.toFixed(2)} for every referral!</p>
             </div>
           )}
 

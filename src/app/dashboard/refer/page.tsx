@@ -45,6 +45,7 @@ import {
   ensureCustomerReferralCode,
   getWalletBalance,
   getWalletTransactions,
+  getReferralRewardAmount,
   WalletTransactionRecord,
 } from "@/lib/supabase/services";
 
@@ -57,6 +58,7 @@ export default function CustomerReferPage() {
   const [walletBalance, setWalletBalance] = useState<number>(0.0);
   const [couponCode, setCouponCode] = useState<string>("");
   const [customerUserid, setCustomerUserid] = useState<number | null>(null);
+  const [rewardAmount, setRewardAmount] = useState<number>(25.0);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -102,6 +104,10 @@ export default function CustomerReferPage() {
       // 4. Load wallet transactions
       const txData = await getWalletTransactions(user.uid);
       setWalletTransactions(txData);
+
+      // 5. Load dynamic referral reward amount
+      const currentReward = await getReferralRewardAmount();
+      setRewardAmount(currentReward);
     } catch (err) {
       console.error("Error loading referral & wallet data:", err);
     } finally {
@@ -138,13 +144,13 @@ export default function CustomerReferPage() {
   };
 
   const handleShareWhatsApp = () => {
-    const text = `Hey! File your US taxes with Polaris Tax Services. Use my exclusive coupon code ${couponCode} to get a $25 credit on your return: ${referralLink}`;
+    const text = `Hey! File your US taxes with Polaris Tax Services. Use my exclusive coupon code ${couponCode} to get a $${rewardAmount.toFixed(2)} credit on your return: ${referralLink}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleShareEmail = () => {
-    const subject = "Exclusive $25 Tax Filing Credit at Polaris Tax Services";
-    const body = `Hi,\n\nI recommend using Polaris Tax Services for your tax preparation and filing.\n\nUse my exclusive coupon code ${couponCode} when signing up to receive a $25 credit toward your tax preparation:\n${referralLink}\n\nBest regards!`;
+    const subject = `Exclusive $${rewardAmount.toFixed(2)} Tax Filing Credit at Polaris Tax Services`;
+    const body = `Hi,\n\nI recommend using Polaris Tax Services for your tax preparation and filing.\n\nUse my exclusive coupon code ${couponCode} when signing up to receive a $${rewardAmount.toFixed(2)} credit toward your tax preparation:\n${referralLink}\n\nBest regards!`;
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -152,20 +158,18 @@ export default function CustomerReferPage() {
   const completedReferralsCount = referrals.filter(
     (r) => r.status?.toLowerCase() === "rewarded" || r.status?.toLowerCase() === "completed"
   ).length;
-  const totalEarned = completedReferralsCount * 25.0;
+  const totalEarned = completedReferralsCount * rewardAmount;
 
   return (
     <div className="space-y-8 max-w-5xl pb-12">
       {/* Page Header */}
       <div>
-        <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-wider uppercase mb-1">
-          <Sparkles className="h-4 w-4" /> Client Rewards Program
-        </div>
+       
         <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
           <Gift className="h-8 w-8 text-primary" /> Refer a Friend & Earn
         </h1>
         <p className="text-muted-foreground mt-1 text-sm max-w-2xl">
-          Give <strong>$25.00</strong>, Get <strong>$25.00</strong>! Share your unique referral coupon code or invite link. When friends sign up and file their tax return, both of you get $25.00 credited directly to your Polaris Wallet.
+          Give <strong>${rewardAmount.toFixed(2)}</strong>, Get <strong>${rewardAmount.toFixed(2)}</strong>! Share your unique referral coupon code or invite link. When friends sign up and file their tax return, both of you get ${rewardAmount.toFixed(2)} credited directly to your Polaris Wallet.
         </p>
       </div>
 
@@ -237,7 +241,7 @@ export default function CustomerReferPage() {
               <span className="text-xs text-muted-foreground">earned to date</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              $25.00 bonus per completed filing
+              ${rewardAmount.toFixed(2)} bonus per completed filing
             </p>
           </CardContent>
         </Card>
@@ -253,11 +257,11 @@ export default function CustomerReferPage() {
                 <Ticket className="h-4 w-4" /> Your Exclusive Coupon Code
               </span>
               <Badge className="bg-primary text-primary-foreground font-semibold text-[10px]">
-                $25 DISCOUNT
+                ${rewardAmount.toFixed(0)} DISCOUNT
               </Badge>
             </div>
             <CardDescription className="text-xs mt-1">
-              Share this coupon code. Friends can type it during signup to get a $25 credit immediately.
+              Share this coupon code. Friends can type it during signup to get a ${rewardAmount.toFixed(2)} credit immediately.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -371,7 +375,7 @@ export default function CustomerReferPage() {
               <div>
                 <h3 className="font-semibold text-sm">2. Friend Registers & Files</h3>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  When your friend signs up with your coupon code, they immediately receive a <strong>$25.00 welcome credit</strong> in their Polaris Wallet.
+                  When your friend signs up with your coupon code, they immediately receive a <strong>${rewardAmount.toFixed(2)} welcome credit</strong> in their Polaris Wallet.
                 </p>
               </div>
             </div>
@@ -383,7 +387,7 @@ export default function CustomerReferPage() {
               <div>
                 <h3 className="font-semibold text-sm">3. Both of You Get Rewarded</h3>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  You automatically receive <strong>$25.00</strong> added to your Polaris Wallet. Use your wallet balance to pay for tax returns, bookkeeping, or advisory services!
+                  You automatically receive <strong>${rewardAmount.toFixed(2)}</strong> added to your Polaris Wallet. Use your wallet balance to pay for tax returns, bookkeeping, or advisory services!
                 </p>
               </div>
             </div>
@@ -394,7 +398,7 @@ export default function CustomerReferPage() {
         <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Referral Program Guidelines
+            Referral Program Guidelines
             </CardTitle>
             <CardDescription className="text-xs">
               Simple, transparent rewards with no complicated forms or caps.
@@ -415,7 +419,7 @@ export default function CustomerReferPage() {
                 <Coins className="h-3.5 w-3.5 text-emerald-600" /> Instant Wallet Credit
               </span>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                When a new customer signs up using your coupon code, $25.00 is automatically credited to their wallet balance, and $25.00 is deposited into your wallet immediately.
+                When a new customer signs up using your coupon code, ${rewardAmount.toFixed(2)} is automatically credited to their wallet balance, and ${rewardAmount.toFixed(2)} is deposited into your wallet immediately.
               </p>
             </div>
 
@@ -498,7 +502,7 @@ export default function CustomerReferPage() {
                                 : "outline"
                             }
                           >
-                            {r.status?.toLowerCase() === "rewarded" ? "Rewarded (+$25)" : (r.status || "Pending")}
+                            {r.status?.toLowerCase() === "rewarded" ? `Rewarded (+$${(r.reward_amount || rewardAmount).toFixed(0)})` : (r.status || "Pending")}
                           </Badge>
                         </TableCell>
                       </TableRow>

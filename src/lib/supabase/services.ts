@@ -76,6 +76,8 @@ export interface SiteSettingsRecord {
   id?: string;
   current_year_form_url?: string | null;
   prior_year_form_url?: string | null;
+  referral_reward_amount?: number | null;
+  updated_at?: string;
 }
 
 export interface AdminRecord {
@@ -372,6 +374,7 @@ export async function getReferrals(referrerId?: string): Promise<ReferralRecord[
       if (c.userid != null) customerMap.set(String(c.userid), c);
     });
 
+    const currentReward = await getReferralRewardAmount();
     return referredUsers.map(u => {
       const ref = u.referred_by ? customerMap.get(u.referred_by) : null;
       return {
@@ -385,7 +388,7 @@ export async function getReferrals(referrerId?: string): Promise<ReferralRecord[
         referred_name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
         referred_email: u.email,
         referral_code: ref?.referral_code,
-        reward_amount: 25.0,
+        reward_amount: currentReward,
         status: 'Rewarded',
         referral_date: u.signup_date || u.created_at,
         created_at: u.created_at,
@@ -529,13 +532,29 @@ export async function creditCustomerWallet(
   }
 }
 
+export async function getReferralRewardAmount(): Promise<number> {
+  if (!isSupabaseConfigured) return 25.0;
+  try {
+    const settings = await getSiteSettings();
+    if (settings?.referral_reward_amount != null) {
+      const val = Number(settings.referral_reward_amount);
+      if (!isNaN(val) && val >= 0) {
+        return val;
+      }
+    }
+  } catch (err) {
+    console.warn("getReferralRewardAmount fallback to 25.0:", err);
+  }
+  return 25.0;
+}
+
 export async function processReferralReward({
   referrer,
   newUserId,
   newUserName,
   newUserEmail,
   referralCodeUsed,
-  rewardAmount = 25.0,
+  rewardAmount,
 }: {
   referrer: CustomerRecord;
   newUserId: string;
@@ -547,10 +566,14 @@ export async function processReferralReward({
   if (!isSupabaseConfigured) return;
 
   try {
+    const actualReward = rewardAmount !== undefined && rewardAmount !== null
+      ? rewardAmount
+      : await getReferralRewardAmount();
+
     // 1. Credit Referrer Wallet
     await creditCustomerWallet(
       referrer.id,
-      rewardAmount,
+      actualReward,
       'referral_bonus',
       `Referral bonus: ${newUserName} signed up using your code ${referralCodeUsed}`,
       newUserId
@@ -559,9 +582,9 @@ export async function processReferralReward({
     // 2. Credit New User Wallet
     await creditCustomerWallet(
       newUserId,
-      rewardAmount,
+      actualReward,
       'welcome_bonus',
-      `Welcome credit: $${rewardAmount.toFixed(2)} bonus for joining with code ${referralCodeUsed}`,
+      `Welcome credit: $${actualReward.toFixed(2)} bonus for joining with code ${referralCodeUsed}`,
       referrer.id
     );
   } catch (err) {
@@ -574,28 +597,35 @@ export async function processReferralReward({
 // -------------------------------------------------------------
 export async function getSiteSettings(): Promise<SiteSettingsRecord | null> {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('site_settings')
-    .select('*')
-    .eq('id', 'global')
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('id', 'global')
+      .maybeSingle();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null;
-    throw error;
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01') return null;
+      throw error;
+    }
+    return data;
+  } catch (err) {
+    console.warn("getSiteSettings notice:", err);
+    return null;
   }
-  return data;
 }
 
-export async function updateSiteSettings(settings: SiteSettingsRecord) {
+export async function updateSiteSettings(settings: Partial<SiteSettingsRecord>) {
   if (!isSupabaseConfigured) return null;
+  const payload: any = {
+    id: 'global',
+    ...settings,
+    updated_at: new Date().toISOString(),
+  };
+
   const { data, error } = await supabase
     .from('site_settings')
-    .upsert({
-      id: 'global',
-      ...settings,
-      updated_at: new Date().toISOString(),
-    })
+    .upsert(payload)
     .select()
     .single();
 

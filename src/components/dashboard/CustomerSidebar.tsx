@@ -30,6 +30,8 @@ const menuItems = [
 ];
 
 import { supabase } from "@/lib/supabase/client";
+import { getReferralRewardAmount } from "@/lib/supabase/services";
+import { useState, useEffect } from "react";
 
 export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {
   const pathname = usePathname();
@@ -38,6 +40,11 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   const { toast } = useToast();
   
   const { isMobile } = useSidebar();
+  const [rewardAmount, setRewardAmount] = useState<number>(25);
+
+  useEffect(() => {
+    getReferralRewardAmount().then(setRewardAmount).catch(() => {});
+  }, []);
   
   const handleLogout = async () => {
     try {
@@ -113,7 +120,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
                 </div>
                 {item.badge && (
                   <span className="ml-auto text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                    {item.badge}
+                    {item.href === "/dashboard/refer" ? `$${rewardAmount.toFixed(0)}` : item.badge}
                   </span>
                 )}
               </Link>
