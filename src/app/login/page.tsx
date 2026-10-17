@@ -241,9 +241,7 @@ export default function LoginPage() {
     <PublicLayout>
       <div className="container flex min-h-[80vh] items-center justify-center px-4 py-12 md:px-6">
         <Tabs defaultValue="login" className="w-full max-w-md">
-          <div className="flex justify-center mb-6">
-            <PolarisLogo className="h-12 w-auto max-w-[280px]" />
-          </div>
+         
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

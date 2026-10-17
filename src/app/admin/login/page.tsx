@@ -189,16 +189,10 @@ export default function AdminLoginPage() {
             <div className="flex justify-center mb-2">
               <div className="relative">
                 <PolarisLogo theme="dark" className="h-12 w-auto max-w-[240px]" />
-                <div className="absolute -bottom-1 -right-1 bg-amber-500 rounded-full p-1 text-slate-950 shadow-md">
-                  <Lock className="h-3 w-3" />
-                </div>
               </div>
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-2">
-                <ShieldAlert className="h-3.5 w-3.5" />
-                Admin Portal
-              </div>
+              
               <CardTitle className="text-2xl font-bold font-headline text-white">Administrator Sign In</CardTitle>
               <CardDescription className="text-slate-400 text-sm mt-1">
                 Restricted access for authorized Polaris administrators only.

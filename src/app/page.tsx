@@ -453,21 +453,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Trusted By Section */}
-        <section className="py-16 md:py-24">
-            <div className="container mx-auto px-4 md:px-6">
-                <h2 className="text-xl font-semibold text-center text-muted-foreground uppercase tracking-wider mb-8">
-                    Proudly Serving Leading Global Corporations
-                </h2>
-                <div className="flex flex-wrap justify-center items-center gap-x-16 gap-y-8">
-                    {trustedByLogos.map((logo, index) => (
-                        <div key={index} className="text-muted-foreground/70 hover:text-foreground transition-colors">
-                            {logo.icon}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
+       
 
         {/* Pricing Section */}
         <section className="py-16 md:py-24 bg-card">
@@ -512,10 +498,7 @@ export default function Home() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold mb-3">
-                  <Flame className="h-3.5 w-3.5 fill-current" />
-                  <span>Trending Tax Intelligence</span>
-                </div>
+                
                 <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">
                   Latest Tax News, Insights & Guides
                 </h2>
@@ -531,22 +514,6 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* Trending Quick Search Chips */}
-            <div className="mb-8 flex flex-wrap items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border/60">
-              <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 pl-1">
-                <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                Popular Searches:
-              </span>
-              {TRENDING_SEARCH_TERMS.map((term) => (
-                <Link
-                  key={term}
-                  href={`/blogs?q=${encodeURIComponent(term)}`}
-                  className="inline-flex items-center text-xs px-3 py-1 rounded-full bg-card hover:bg-primary hover:text-primary-foreground border border-border/70 text-foreground transition-colors font-medium shadow-2xs"
-                >
-                  {term}
-                </Link>
-              ))}
-            </div>
 
             {/* Top 3 Featured / Trending Blog Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
