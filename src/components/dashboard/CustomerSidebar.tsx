@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { User, Info, Upload, LogOut, Settings, Files } from "lucide-react";
+import { User, Info, Upload, LogOut, Settings, Files, Gift } from "lucide-react";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase } from "@/firebase";
@@ -27,6 +27,7 @@ const menuItems = [
   { href: "/dashboard/tax-info", label: "Tax Forms", icon: <Info /> },
   { href: "/dashboard/upload", label: "Upload Documents", icon: <Upload /> },
   { href: "/dashboard/documents", label: "My Documents", icon: <Files /> },
+  { href: "/dashboard/refer", label: "Refer a Friend", icon: <Gift /> },
 ];
 
 import { supabase } from "@/lib/supabase/client";

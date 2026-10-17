@@ -15,7 +15,6 @@ const navLinks = [
   { href: "/book-appointment", label: "Book Appointment" },
   { href: "/guarantee", label: "Guarantee" },
   { href: "/about", label: "About Us" },
-  { href: "/refer", label: "Refer a Friend" },
 ];
 
 export function Header() {
