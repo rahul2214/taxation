@@ -1,7 +1,8 @@
 import { supabase, isSupabaseConfigured } from './client';
 
 export interface CustomerRecord {
-  id: string; // Firebase / Supabase Auth UID
+  id: string; // Supabase Auth UUID
+  userid?: number; // int8 (BIGINT) sequential identity for primary/foreign key relations
   first_name?: string;
   last_name?: string;
   email: string;
@@ -18,7 +19,8 @@ export interface CustomerRecord {
 
 export interface TaxDocumentRecord {
   id?: string;
-  customer_id: string;
+  customer_id: string; // UUID foreign key to customers(id)
+  customer_userid?: number | null; // int8 foreign key to customers(userid)
   document_name: string;
   file_url: string;
   document_type: string;
@@ -31,7 +33,8 @@ export interface TaxDocumentRecord {
 
 export interface AppointmentRecord {
   id?: string;
-  customer_id?: string | null;
+  customer_id?: string | null; // UUID foreign key to customers(id)
+  customer_userid?: number | null; // int8 foreign key to customers(userid)
   name?: string;
   email: string;
   phone?: string;
@@ -43,10 +46,12 @@ export interface AppointmentRecord {
 
 export interface ReferralRecord {
   id?: string;
-  referrer_id?: string | null;
+  referrer_id?: string | null; // UUID foreign key to customers(id)
+  referrer_userid?: number | null; // int8 foreign key to customers(userid)
   referrer_name?: string;
   referrer_email?: string;
-  referred_id?: string | null;
+  referred_id?: string | null; // UUID foreign key to customers(id)
+  referred_userid?: number | null; // int8 foreign key to customers(userid)
   referred_email: string;
   referred_name?: string;
   referral_code?: string;
@@ -58,7 +63,8 @@ export interface ReferralRecord {
 
 export interface WalletTransactionRecord {
   id?: string;
-  customer_id: string;
+  customer_id: string; // UUID foreign key to customers(id)
+  customer_userid?: number | null; // int8 foreign key to customers(userid)
   amount: number;
   type: 'referral_bonus' | 'welcome_bonus' | 'service_discount' | 'manual_adjustment';
   description: string;
@@ -203,19 +209,28 @@ export async function ensureCustomerReferralCode(
   }
 }
 
-export async function getCustomer(id: string): Promise<CustomerRecord | null> {
-  if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('id', id)
-    .single();
+export async function getCustomer(idOrUserid: string | number): Promise<CustomerRecord | null> {
+  if (!isSupabaseConfigured || !idOrUserid) return null;
+  const isNumeric = typeof idOrUserid === 'number' || (!isNaN(Number(idOrUserid)) && !idOrUserid.toString().includes('-'));
+
+  let query = supabase.from('customers').select('*');
+  if (isNumeric) {
+    query = query.eq('userid', Number(idOrUserid));
+  } else {
+    query = query.eq('id', idOrUserid);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     if (error.code === 'PGRST116') return null; // Not found
     throw error;
   }
   return data;
+}
+
+export async function getCustomerByUserid(userid: number): Promise<CustomerRecord | null> {
+  return getCustomer(userid);
 }
 
 export async function getAllCustomers(): Promise<CustomerRecord[]> {

@@ -72,9 +72,16 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
       {userData && (
         <div className="px-4 py-3 border-b border-sidebar-border/60">
           <div className={cn("text-left")}>
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">
-              {userData.firstName || userData.first_name || "Polaris Client"} {userData.lastName || userData.last_name || ""}
-            </p>
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">
+                {userData.firstName || userData.first_name || "Polaris Client"} {userData.lastName || userData.last_name || ""}
+              </p>
+              {userData.userid && (
+                <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded">
+                  #{userData.userid}
+                </span>
+              )}
+            </div>
             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold border border-emerald-500/20">
                 <Wallet className="h-3 w-3" />

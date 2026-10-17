@@ -39,7 +39,8 @@ import { collection, query, where } from "firebase/firestore";
 import { getAllCustomers, CustomerRecord } from "@/lib/supabase/services";
 
 type Customer = {
-  id: string;
+  id: string; // UUID
+  userid?: number; // int8
   firstName: string;
   lastName: string;
   email: string;
@@ -78,6 +79,7 @@ export default function CustomersPage() {
           .filter(r => r.role !== 'admin')
           .map(r => ({
             id: r.id,
+            userid: r.userid,
             firstName: r.first_name || "Customer",
             lastName: r.last_name || "",
             email: r.email,
@@ -150,6 +152,7 @@ export default function CustomersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-20">User ID</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Joined</TableHead>
@@ -159,13 +162,16 @@ export default function CustomersPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
+                  <TableCell colSpan={5} className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && customers && customers.map((customer) => (
                 <TableRow key={customer.id}>
+                  <TableCell className="font-mono text-xs font-semibold text-primary">
+                    {customer.userid ? `#${customer.userid}` : "-"}
+                  </TableCell>
                   <TableCell>
                       <div className="font-medium">{customer.firstName} {customer.lastName}</div>
                   </TableCell>
@@ -189,7 +195,7 @@ export default function CustomersPage() {
               ))}
               {!isLoading && (!customers || customers.length === 0) && (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">No customers found.</TableCell>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">No customers found.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -201,8 +207,8 @@ export default function CustomersPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Customer Profile</DialogTitle>
-                <DialogDescription>
-                    Details for customer ID: {selectedCustomer?.id}
+                <DialogDescription className="font-mono text-xs">
+                    {selectedCustomer?.userid ? `Customer #${selectedCustomer.userid} • ` : ""}UUID: {selectedCustomer?.id}
                 </DialogDescription>
             </DialogHeader>
             {selectedCustomer && (

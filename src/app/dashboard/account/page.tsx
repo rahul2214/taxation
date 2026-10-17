@@ -38,6 +38,9 @@ export default function AccountPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
+  const [userid, setUserid] = useState<number | null>(null);
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -48,6 +51,9 @@ export default function AccountPage() {
       try {
         const c = await getCustomer(user.uid);
         if (c) {
+          if (c.userid) setUserid(c.userid);
+          if (c.referral_code) setReferralCode(c.referral_code);
+          if (c.wallet_balance !== undefined) setWalletBalance(Number(c.wallet_balance));
           if (c.first_name) setFirstName(c.first_name);
           if (c.last_name) setLastName(c.last_name);
           if (c.phone) setPhone(c.phone);
@@ -157,6 +163,57 @@ export default function AccountPage() {
         <p className="text-muted-foreground">Manage your account settings and personal information.</p>
       </div>
       <Separator />
+
+      {/* Account Identifiers & Wallet Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-muted/40 border-primary/20">
+          <CardContent className="pt-4 pb-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
+              Customer ID (int8)
+            </span>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-2xl font-mono font-bold text-primary">
+                {userid ? `#${userid}` : "-"}
+              </span>
+            </div>
+            <p className="text-[11px] font-mono text-muted-foreground truncate mt-0.5">
+              UUID: {user?.uid}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted/40 border-primary/20">
+          <CardContent className="pt-4 pb-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
+              Referral Coupon Code
+            </span>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-xl font-mono font-bold text-foreground tracking-wider">
+                {referralCode || "-"}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Share to earn $25.00 per friend
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/20">
+          <CardContent className="pt-4 pb-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 block">
+              Polaris Wallet Credits
+            </span>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                ${walletBalance.toFixed(2)}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Available to apply toward filings
+            </p>
+          </CardContent>
+        </Card>
+      </div>
       
       <Card>
         <CardHeader>
