@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const smallBusinessDeductionsPost: BlogPost = {
   id: "3",
@@ -7,11 +7,7 @@ export const smallBusinessDeductionsPost: BlogPost = {
   excerpt: "From home office deductions and Section 179 equipment depreciation to cell phone usage and travel, make sure you never leave money on the table this tax season.",
   category: "Tax Deductions",
   tags: ["Deductions", "Write-offs", "Small Business", "Section 179", "Home Office", "Mileage"],
-  author: {
-    name: "Marcus Vance, CPA",
-    role: "Senior Tax Strategist",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "October 06, 2026",
   readTime: "7 min read",
   imageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=1200&h=675",

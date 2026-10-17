@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const remoteWorkStateTaxPost: BlogPost = {
   id: "6",
@@ -7,11 +7,7 @@ export const remoteWorkStateTaxPost: BlogPost = {
   excerpt: "Remote workers and digital nomads face aggressive state tax audits. Learn how residency rules, convenience of employer laws, and reciprocity agreements affect you.",
   category: "IRS Updates",
   tags: ["Remote Work", "State Taxes", "Telecommuting", "Multi-State", "Convenience Rule", "Withholding"],
-  author: {
-    name: "Marcus Vance, CPA",
-    role: "Senior Tax Strategist",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "September 12, 2026",
   readTime: "8 min read",
   imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1200&h=675",

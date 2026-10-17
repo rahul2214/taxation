@@ -603,12 +603,12 @@ export default function Home() {
 
                   <CardFooter className="p-5 pt-3 border-t bg-muted/20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="relative h-7 w-7 rounded-full overflow-hidden border">
+                      <div className="relative h-7 w-7 rounded-full overflow-hidden border border-border bg-primary/5 flex items-center justify-center p-0.5 shadow-2xs">
                         <Image
                           src={post.author.avatar}
                           alt={post.author.name}
                           fill
-                          className="object-cover"
+                          className="object-contain p-0.5"
                         />
                       </div>
                       <span className="text-xs font-medium text-foreground">

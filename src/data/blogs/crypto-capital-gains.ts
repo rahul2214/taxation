@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const cryptoCapitalGainsPost: BlogPost = {
   id: "4",
@@ -7,11 +7,7 @@ export const cryptoCapitalGainsPost: BlogPost = {
   excerpt: "From new Form 1099-DA broker reporting requirements to DeFi staking rewards and tax-loss harvesting, here is how digital assets are taxed in 2026.",
   category: "Crypto & Investments",
   tags: ["Crypto Taxes", "Capital Gains", "1099-DA", "Bitcoin", "Tax Loss Harvesting", "IRS Compliance"],
-  author: {
-    name: "Tariq Mansoor, CPA",
-    role: "Digital Asset Tax Specialist",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "September 28, 2026",
   readTime: "9 min read",
   imageUrl: "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&q=80&w=1200&h=675",

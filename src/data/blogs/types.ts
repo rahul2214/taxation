@@ -13,6 +13,12 @@ export interface BlogAuthor {
   avatar: string;
 }
 
+export const POLARIS_TEAM_AUTHOR: BlogAuthor = {
+  name: "Polaris Team",
+  role: "Tax Advisory & CPAs",
+  avatar: "/icon-512.png",
+};
+
 export interface BlogSection {
   heading: string;
   body: string[];

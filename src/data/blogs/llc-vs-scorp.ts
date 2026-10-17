@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const llcVsScorpPost: BlogPost = {
   id: "2",
@@ -7,11 +7,7 @@ export const llcVsScorpPost: BlogPost = {
   excerpt: "Discover the tipping point where electing S-Corporation status can save your business thousands in self-employment taxes without triggering costly IRS audits.",
   category: "Small Business",
   tags: ["LLC", "S-Corp", "Small Business", "Self Employment Tax", "Entity Selection", "Tax Planning"],
-  author: {
-    name: "Elena Rostova, EA",
-    role: "Business Tax Advisor",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "October 10, 2026",
   readTime: "8 min read",
   imageUrl: "https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&q=80&w=1200&h=675",

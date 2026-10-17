@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const backdoorRothIraPost: BlogPost = {
   id: "5",
@@ -7,11 +7,7 @@ export const backdoorRothIraPost: BlogPost = {
   excerpt: "Earn too much to contribute directly to a Roth IRA? Here is the legal, IRS-approved backdoor method to fund a Roth IRA and avoid the pro-rata tax trap.",
   category: "Retirement & Planning",
   tags: ["Roth IRA", "Backdoor Roth", "Retirement", "Pro-Rata Rule", "Form 8606", "High Earners"],
-  author: {
-    name: "Elena Rostova, EA",
-    role: "Business Tax Advisor",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "September 20, 2026",
   readTime: "7 min read",
   imageUrl: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=1200&h=675",

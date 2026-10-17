@@ -115,10 +115,10 @@ export default async function BlogPostPage({
     datePublished: post.seo.publishedIso,
     dateModified: post.seo.modifiedIso,
     author: {
-      "@type": "Person",
+      "@type": "Organization",
       name: post.author.name,
-      jobTitle: post.author.role,
-      image: post.author.avatar,
+      url: siteUrl,
+      logo: `${siteUrl}${post.author.avatar}`,
     },
     publisher: {
       "@type": "Organization",
@@ -244,12 +244,12 @@ export default async function BlogPostPage({
             {/* Author & Meta Row */}
             <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-border/80">
               <div className="flex items-center gap-3">
-                <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-primary/20">
+                <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-primary/20 bg-primary/5 flex items-center justify-center p-1.5 shadow-xs">
                   <Image
                     src={post.author.avatar}
                     alt={post.author.name}
                     fill
-                    className="object-cover"
+                    className="object-contain p-1"
                   />
                 </div>
                 <div>
@@ -399,12 +399,12 @@ export default async function BlogPostPage({
 
           {/* Author Card Box */}
           <div className="mt-10 rounded-xl border bg-card p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4">
-            <div className="relative h-16 w-16 rounded-full overflow-hidden shrink-0 border-2 border-primary/20">
+            <div className="relative h-16 w-16 rounded-full overflow-hidden shrink-0 border-2 border-primary/20 bg-primary/5 flex items-center justify-center p-2 shadow-xs">
               <Image
                 src={post.author.avatar}
                 alt={post.author.name}
                 fill
-                className="object-cover"
+                className="object-contain p-1.5"
               />
             </div>
             <div className="text-center sm:text-left">

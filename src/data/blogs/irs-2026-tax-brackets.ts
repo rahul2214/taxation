@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const irs2026TaxBracketsPost: BlogPost = {
   id: "1",
@@ -7,11 +7,7 @@ export const irs2026TaxBracketsPost: BlogPost = {
   excerpt: "The IRS has officially released the updated federal income tax brackets and higher standard deduction amounts. Here is how inflation adjustments impact your take-home pay and tax filing.",
   category: "IRS Updates",
   tags: ["Standard Deduction", "Tax Brackets", "IRS Updates", "2026 Taxes", "Inflation Adjustments"],
-  author: {
-    name: "Marcus Vance, CPA",
-    role: "Senior Tax Strategist",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "October 14, 2026",
   readTime: "6 min read",
   imageUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200&h=675",

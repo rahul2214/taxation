@@ -1,4 +1,4 @@
-import { BlogPost } from "./types";
+import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
 export const evTaxCreditPost: BlogPost = {
   id: "7",
@@ -7,11 +7,7 @@ export const evTaxCreditPost: BlogPost = {
   excerpt: "Everything you need to know about claiming up to $7,500 for new electric cars and $4,000 for used EVs, including instant point-of-sale dealer rebates and income caps.",
   category: "Tax Deductions",
   tags: ["EV Tax Credit", "Clean Energy", "Section 30D", "Deductions", "Car Buying", "Inflation Reduction Act"],
-  author: {
-    name: "Tariq Mansoor, CPA",
-    role: "Digital Asset Tax Specialist",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120&h=120",
-  },
+  author: POLARIS_TEAM_AUTHOR,
   date: "September 05, 2026",
   readTime: "6 min read",
   imageUrl: "https://images.unsplash.com/photo-1558441719-8b4bee567990?auto=format&fit=crop&q=80&w=1200&h=675",
