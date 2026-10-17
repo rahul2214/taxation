@@ -4,8 +4,28 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Polaris Tax Services',
-  description: 'Simplify Your Taxes with Polaris Tax Services',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://polaristaxservices.com'),
+  title: {
+    default: 'Polaris Tax Services | Professional Tax Planning & Filing',
+    template: '%s | Polaris Tax Services',
+  },
+  description: 'Simplify your individual and business taxes with certified CPAs and tax advisors at Polaris Tax Services. 100% accuracy and maximum refunds.',
+  keywords: ['tax services', 'CPA tax filing', 'small business taxes', 'individual tax return', 'IRS tax audit support', '2026 tax brackets'],
+  authors: [{ name: 'Polaris Tax Services' }],
+  creator: 'Polaris Tax Services',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://polaristaxservices.com',
+    siteName: 'Polaris Tax Services',
+    title: 'Polaris Tax Services | Professional Tax Planning & Filing',
+    description: 'Simplify your taxes with professional ease. Certified CPAs, maximum refund guarantee, and comprehensive audit defense.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Polaris Tax Services | Professional Tax Planning & Filing',
+    description: 'Simplify your taxes with professional ease.',
+  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },

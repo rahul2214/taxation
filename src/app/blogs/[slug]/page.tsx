@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { BLOG_POSTS, BlogPost } from "@/data/blogs";
+import { BLOG_POSTS, getBlogPostBySlug, getRelatedBlogs } from "@/data/blogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,8 +21,6 @@ import {
   Flame,
   CheckCircle2,
   Lightbulb,
-  Share2,
-  BookmarkPlus,
   ArrowRight,
   ShieldCheck,
   Tag,
@@ -41,21 +39,52 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = BLOG_POSTS.find((p) => p.slug === slug);
+  const post = getBlogPostBySlug(slug);
 
   if (!post) {
     return {
       title: "Article Not Found | Polaris Tax Services",
+      description: "The requested tax guide could not be found.",
     };
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://polaristaxservices.com";
+  const canonicalUrl = `${siteUrl}/blogs/${post.slug}`;
+
   return {
-    title: `${post.title} | Polaris Tax Insights`,
-    description: post.excerpt,
+    title: `${post.seo.metaTitle} | Polaris Tax Services`,
+    description: post.seo.metaDescription,
+    keywords: post.seo.keywords,
+    authors: [{ name: post.author.name }],
+    creator: post.author.name,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      images: [{ url: post.imageUrl }],
+      title: post.seo.metaTitle,
+      description: post.seo.metaDescription,
+      url: canonicalUrl,
+      siteName: "Polaris Tax Services",
+      type: "article",
+      publishedTime: post.seo.publishedIso,
+      modifiedTime: post.seo.modifiedIso,
+      authors: [post.author.name],
+      tags: post.tags,
+      images: [
+        {
+          url: post.imageUrl,
+          width: 1200,
+          height: 675,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.seo.metaTitle,
+      description: post.seo.metaDescription,
+      images: [post.imageUrl],
+      creator: "@polaristax",
     },
   };
 }
@@ -66,17 +95,110 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = BLOG_POSTS.find((p) => p.slug === slug);
+  const post = getBlogPostBySlug(slug);
 
   if (!post) {
     notFound();
   }
 
-  // Related posts from same category or trending, excluding current
-  const relatedPosts = BLOG_POSTS.filter((p) => p.id !== post.id).slice(0, 3);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://polaristaxservices.com";
+  const articleUrl = `${siteUrl}/blogs/${post.slug}`;
+  const relatedPosts = getRelatedBlogs(post.slug, 3);
+
+  // Schema.org BlogPosting Structured Data
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.seo.metaDescription,
+    image: [post.imageUrl],
+    datePublished: post.seo.publishedIso,
+    dateModified: post.seo.modifiedIso,
+    author: {
+      "@type": "Person",
+      name: post.author.name,
+      jobTitle: post.author.role,
+      image: post.author.avatar,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Polaris Tax Services",
+      url: siteUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/icon.svg`,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    keywords: post.seo.keywords.join(", "),
+    articleSection: post.category,
+    wordCount: 1500,
+  };
+
+  // Schema.org BreadcrumbList
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Tax Insights & Blogs",
+        item: `${siteUrl}/blogs`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: post.title,
+        item: articleUrl,
+      },
+    ],
+  };
+
+  // Schema.org FAQPage if FAQs exist
+  const faqSchema =
+    post.content.faq && post.content.faq.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: post.content.faq.map((item) => ({
+            "@type": "Question",
+            name: item.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: item.answer,
+            },
+          })),
+        }
+      : null;
 
   return (
     <PublicLayout>
+      {/* Schema.org JSON-LD Structured Data Injections for Google Search Rich Results */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+
       <article className="min-h-screen bg-background">
         {/* Breadcrumb & Navigation Bar */}
         <div className="border-b bg-card">
@@ -143,7 +265,7 @@ export default async function BlogPostPage({
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
-                  {post.date}
+                  <time dateTime={post.seo.publishedIso}>{post.date}</time>
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
@@ -202,7 +324,7 @@ export default async function BlogPostPage({
           {/* Sections */}
           <div className="space-y-10">
             {post.content.sections.map((section, idx) => (
-              <div key={idx} className="space-y-4">
+              <section key={idx} className="space-y-4">
                 <h2 className="text-2xl md:text-3xl font-headline font-bold text-foreground tracking-tight pt-4 border-t">
                   {section.heading}
                 </h2>
@@ -214,7 +336,7 @@ export default async function BlogPostPage({
 
                 {/* Pro-Tip Box */}
                 {section.tip && (
-                  <div className="rounded-lg border-l-4 border-amber-500 bg-amber-500/10 p-4 md:p-5 mt-4">
+                  <aside className="rounded-lg border-l-4 border-amber-500 bg-amber-500/10 p-4 md:p-5 mt-4">
                     <div className="flex items-start gap-3">
                       <Lightbulb className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div>
@@ -226,16 +348,16 @@ export default async function BlogPostPage({
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </aside>
                 )}
-              </div>
+              </section>
             ))}
           </div>
 
           {/* Frequently Asked Questions */}
           {post.content.faq && post.content.faq.length > 0 && (
-            <div className="mt-14 pt-8 border-t">
-              <h3 className="text-2xl font-headline font-bold text-foreground mb-6 flex items-center gap-2">
+            <section className="mt-14 pt-8 border-t" aria-labelledby="faq-section-title">
+              <h3 id="faq-section-title" className="text-2xl font-headline font-bold text-foreground mb-6 flex items-center gap-2">
                 <HelpCircle className="h-6 w-6 text-primary" />
                 Frequently Asked Questions
               </h3>
@@ -255,10 +377,10 @@ export default async function BlogPostPage({
                   </AccordionItem>
                 ))}
               </Accordion>
-            </div>
+            </section>
           )}
 
-          {/* Tags */}
+          {/* Tags & Keywords */}
           <div className="mt-12 pt-6 border-t flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
               <Tag className="h-3.5 w-3.5" />
