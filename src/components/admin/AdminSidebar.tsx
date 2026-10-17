@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   SidebarMenuBadge,
 } from "@/components/ui/sidebar";
-import { CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard, FileUp } from "lucide-react";
+import { CalendarCheck, UsersRound, Users, FileText, LogOut, Settings, LayoutDashboard, FileUp, ShieldCheck } from "lucide-react";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,10 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
 
   const handleLogout = async () => {
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('polaris_admin_session');
+        window.dispatchEvent(new Event('polaris_admin_auth_changed'));
+      }
       await supabase.auth.signOut();
       if(auth) {
         try {
@@ -66,6 +70,7 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
     { href: "/admin/customers", label: "Customers", icon: <Users /> },
     { href: "/admin/tax-documents", label: "Tax Documents", icon: <FileText />, badge: pendingDocumentsCount },
     { href: "/admin/documents", label: "Site Forms", icon: <FileUp /> },
+    { href: "/admin/admins", label: "Admin Users", icon: <ShieldCheck /> },
   ];
 
 

@@ -90,6 +90,24 @@ INSERT INTO public.site_settings (id, current_year_form_url, prior_year_form_url
 VALUES ('global', null, null)
 ON CONFLICT (id) DO NOTHING;
 
+-- 6. ADMINS TABLE (For storing admin credentials & details)
+CREATE TABLE IF NOT EXISTS public.admins (
+    id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT,                                 -- Stored admin credentials / password
+    name TEXT,
+    role TEXT NOT NULL DEFAULT 'admin',            -- 'admin' or 'superadmin'
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admins_email ON public.admins(email);
+
+-- Insert initial admin credential (change email/password as desired in Supabase Dashboard)
+INSERT INTO public.admins (id, email, password, name, role)
+VALUES ('admin-default-01', 'admin@polaris.com', 'Admin@123456', 'Polaris Administrator', 'admin')
+ON CONFLICT (email) DO NOTHING;
+
 -- ==============================================================================
 -- Row Level Security (RLS) Policies
 -- ==============================================================================
@@ -98,6 +116,7 @@ ALTER TABLE public.tax_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read of site settings
 CREATE POLICY "Allow public read site_settings"
@@ -122,5 +141,10 @@ CREATE POLICY "Allow anon read/write appointments"
 
 CREATE POLICY "Allow anon read/write referrals"
     ON public.referrals FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "Allow anon read/write admins"
+    ON public.admins FOR ALL
     USING (true)
     WITH CHECK (true);

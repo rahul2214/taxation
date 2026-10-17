@@ -78,6 +78,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   useEffect(() => {
     let isMounted = true;
 
+    const getStoredAdmin = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const raw = localStorage.getItem('polaris_admin_session');
+          if (raw) return JSON.parse(raw);
+        }
+      } catch (e) {
+        // ignore
+      }
+      return null;
+    };
+
     // Check existing Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!isMounted) return;
@@ -97,15 +109,77 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           isUserLoading: false,
           userError: null,
         });
-      } else if (!auth) {
-        setUserAuthState({ user: null, isUserLoading: false, userError: null });
+      } else {
+        const storedAdmin = getStoredAdmin();
+        if (storedAdmin) {
+          setUserAuthState({
+            user: {
+              uid: storedAdmin.id,
+              id: storedAdmin.id,
+              email: storedAdmin.email || null,
+              displayName: storedAdmin.name || (storedAdmin.email?.split('@')[0] || 'Admin'),
+              role: 'admin',
+              isAdmin: true,
+            } as any,
+            isUserLoading: false,
+            userError: null,
+          });
+        } else if (!auth) {
+          setUserAuthState({ user: null, isUserLoading: false, userError: null });
+        }
       }
     }).catch(err => {
       console.warn("Supabase session get warning:", err);
-      if (!auth && isMounted) {
+      const storedAdmin = getStoredAdmin();
+      if (storedAdmin && isMounted) {
+        setUserAuthState({
+          user: {
+            uid: storedAdmin.id,
+            id: storedAdmin.id,
+            email: storedAdmin.email || null,
+            displayName: storedAdmin.name || 'Admin',
+            role: 'admin',
+            isAdmin: true,
+          } as any,
+          isUserLoading: false,
+          userError: null,
+        });
+      } else if (!auth && isMounted) {
         setUserAuthState({ user: null, isUserLoading: false, userError: null });
       }
     });
+
+    // Listen for custom admin auth change events
+    const handleAdminAuthEvent = () => {
+      if (!isMounted) return;
+      const storedAdmin = getStoredAdmin();
+      if (storedAdmin) {
+        setUserAuthState({
+          user: {
+            uid: storedAdmin.id,
+            id: storedAdmin.id,
+            email: storedAdmin.email || null,
+            displayName: storedAdmin.name || (storedAdmin.email?.split('@')[0] || 'Admin'),
+            role: 'admin',
+            isAdmin: true,
+          } as any,
+          isUserLoading: false,
+          userError: null,
+        });
+      } else {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!isMounted) return;
+          if (!session?.user && !auth) {
+            setUserAuthState({ user: null, isUserLoading: false, userError: null });
+          }
+        });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('polaris_admin_auth_changed', handleAdminAuthEvent);
+      window.addEventListener('storage', handleAdminAuthEvent);
+    }
 
     // Subscribe to Supabase auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -127,7 +201,21 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           userError: null,
         });
       } else {
-        if (!auth) {
+        const storedAdmin = getStoredAdmin();
+        if (storedAdmin) {
+          setUserAuthState({
+            user: {
+              uid: storedAdmin.id,
+              id: storedAdmin.id,
+              email: storedAdmin.email || null,
+              displayName: storedAdmin.name || (storedAdmin.email?.split('@')[0] || 'Admin'),
+              role: 'admin',
+              isAdmin: true,
+            } as any,
+            isUserLoading: false,
+            userError: null,
+          });
+        } else if (!auth) {
           setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       }
@@ -152,6 +240,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     return () => {
       isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('polaris_admin_auth_changed', handleAdminAuthEvent);
+        window.removeEventListener('storage', handleAdminAuthEvent);
+      }
       subscription.unsubscribe();
       if (fbUnsubscribe) fbUnsubscribe();
     };

@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader2, ShieldAlert, ArrowLeft, Lock } from "lucide-react";
-import { getCustomer } from "@/lib/supabase/services";
+import { getCustomer, getAdminById, getAdminByEmail, verifyAdminCredentials } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -30,14 +30,35 @@ export default function AdminLoginPage() {
     const verifyExistingAdmin = async () => {
       if (!isUserLoading && user) {
         try {
-          // Check Supabase first
-          const sbCustomer = await getCustomer(user.uid);
-          if (sbCustomer?.role === "admin") {
+          // 1. Check admins table
+          let isAdm = false;
+          if (user.uid) {
+            const adminById = await getAdminById(user.uid);
+            if (adminById) isAdm = true;
+          }
+          if (!isAdm && user.email) {
+            const adminByEmail = await getAdminByEmail(user.email);
+            if (adminByEmail) isAdm = true;
+          }
+          if (!isAdm && typeof window !== 'undefined') {
+            const stored = localStorage.getItem('polaris_admin_session');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed?.email === user.email || parsed?.id === user.uid) isAdm = true;
+            }
+          }
+          // Fallback customers check
+          if (!isAdm && user.uid) {
+            const sbCustomer = await getCustomer(user.uid);
+            if (sbCustomer?.role === "admin") isAdm = true;
+          }
+
+          if (isAdm) {
             router.push("/admin");
             return;
           }
 
-          // Check Firestore
+          // Check Firestore fallback
           if (firestore) {
             const userDocRef = doc(firestore, "customers", user.uid);
             const userSnap = await getDoc(userDocRef);
@@ -54,73 +75,137 @@ export default function AdminLoginPage() {
     verifyExistingAdmin();
   }, [user, isUserLoading, firestore, router]);
 
-  const verifyAdminAndProceed = async (uid: string) => {
+  const handleAdminEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+
     try {
-      // Check Supabase first
-      const sbCustomer = await getCustomer(uid);
-      if (sbCustomer?.role === "admin") {
+      // 1. Check direct credentials in the admins table first
+      const { admin, error: credError } = await verifyAdminCredentials(cleanEmail, password);
+
+      if (admin && !credError) {
+        // Admin found and password matched in the admins table
+        const adminSessionData = {
+          id: admin.id || `admin-${cleanEmail}`,
+          email: admin.email,
+          name: admin.name || "Administrator",
+          role: admin.role || "admin",
+        };
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
+          window.dispatchEvent(new Event("polaris_admin_auth_changed"));
+        }
+
+        // Try syncing with Supabase Auth in background (optional)
+        try {
+          await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        } catch (_) {}
+
         toast({
           title: "Admin Verified",
-          description: "Welcome to the Polaris Tax Admin Console.",
+          description: `Welcome to the Admin Console, ${admin.name || "Administrator"}!`,
         });
         router.push("/admin");
         return;
       }
 
-      // Check Firestore
-      if (firestore) {
-        const userDocRef = doc(firestore, "customers", uid);
-        const userSnap = await getDoc(userDocRef);
-        if (userSnap.exists() && userSnap.data()?.role === "admin") {
+      if (credError === "Incorrect admin password.") {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Incorrect administrator password.",
+        });
+        return;
+      }
+
+      // 2. Check via Supabase Auth
+      const { data: authData, error: sbAuthError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (!sbAuthError && authData.user) {
+        // Check if this authenticated user exists in the admins table
+        const adminRec =
+          (await getAdminByEmail(authData.user.email || cleanEmail)) ||
+          (await getAdminById(authData.user.id));
+        const custRec = !adminRec ? await getCustomer(authData.user.id) : null;
+
+        if (adminRec || custRec?.role === "admin") {
+          const adminSessionData = {
+            id: authData.user.id,
+            email: authData.user.email || cleanEmail,
+            name: adminRec?.name || authData.user.user_metadata?.first_name || "Admin",
+            role: "admin",
+          };
+
+          if (typeof window !== "undefined") {
+            localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
+            window.dispatchEvent(new Event("polaris_admin_auth_changed"));
+          }
+
           toast({
             title: "Admin Verified",
             description: "Welcome to the Polaris Tax Admin Console.",
           });
           router.push("/admin");
           return;
+        } else {
+          await supabase.auth.signOut();
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "This account is not authorized as an administrator. It does not exist in the admins table.",
+          });
+          return;
         }
       }
-    } catch (err) {
-      console.error("Verification error:", err);
-    }
 
-    // If neither DB has role admin
-    await supabase.auth.signOut();
-    if (auth) {
-      await signOut(auth);
-    }
-    toast({
-      variant: "destructive",
-      title: "Access Denied",
-      description: "This account does not have administrator privileges.",
-    });
-  };
-
-  const handleAdminEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      // 1. Authenticate with Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        // Fallback to Firebase auth if available
-        if (auth) {
-          try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            await verifyAdminAndProceed(userCredential.user.uid);
-            return;
-          } catch (fbErr) {
-            throw error;
+      // 3. Fallback to Firebase auth if available
+      if (auth) {
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+          const adminRec =
+            (await getAdminByEmail(cleanEmail)) ||
+            (await getAdminById(userCredential.user.uid));
+          let isFbAdmin = false;
+          if (firestore) {
+            const userDocRef = doc(firestore, "customers", userCredential.user.uid);
+            const userSnap = await getDoc(userDocRef);
+            if (userSnap.exists() && userSnap.data()?.role === "admin") {
+              isFbAdmin = true;
+            }
           }
-        }
-        throw error;
+
+          if (adminRec || isFbAdmin) {
+            const adminSessionData = {
+              id: userCredential.user.uid,
+              email: cleanEmail,
+              name: adminRec?.name || userCredential.user.displayName || "Admin",
+              role: "admin",
+            };
+            if (typeof window !== "undefined") {
+              localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
+              window.dispatchEvent(new Event("polaris_admin_auth_changed"));
+            }
+            toast({
+              title: "Admin Verified",
+              description: "Welcome to the Polaris Tax Admin Console.",
+            });
+            router.push("/admin");
+            return;
+          }
+        } catch (fbErr) {}
       }
 
-      await verifyAdminAndProceed(data.user.id);
+      // If credentials failed all checks
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: credError || "Invalid administrator credentials.",
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",

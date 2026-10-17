@@ -9,7 +9,7 @@ import { doc, collection, query, where, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { getCustomer, getAppointments, getReferrals, getTaxDocuments } from "@/lib/supabase/services";
+import { getCustomer, getAppointments, getReferrals, getTaxDocuments, getAdminById, getAdminByEmail } from "@/lib/supabase/services";
 
 export default function AdminLayout({
   children,
@@ -37,12 +37,40 @@ export default function AdminLayout({
     async function checkAdminAndCounts() {
       if (!user) return;
       try {
-        const c = await getCustomer(user.uid);
-        if (c?.role === 'admin') {
-          setIsSupabaseAdmin(true);
-        } else {
-          setIsSupabaseAdmin(false);
+        let isAdm = false;
+
+        // 1. Check in admins table by uid
+        if (user.uid) {
+          const adminById = await getAdminById(user.uid);
+          if (adminById) isAdm = true;
         }
+
+        // 2. Check in admins table by email
+        if (!isAdm && user.email) {
+          const adminByEmail = await getAdminByEmail(user.email);
+          if (adminByEmail) isAdm = true;
+        }
+
+        // 3. Check localStorage admin session
+        if (!isAdm && typeof window !== 'undefined') {
+          const stored = localStorage.getItem('polaris_admin_session');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (parsed?.email === user.email || parsed?.id === user.uid) {
+                isAdm = true;
+              }
+            } catch (e) {}
+          }
+        }
+
+        // 4. Fallback: check customers table if role is admin
+        if (!isAdm && user.uid) {
+          const c = await getCustomer(user.uid);
+          if (c?.role === 'admin') isAdm = true;
+        }
+
+        setIsSupabaseAdmin(isAdm);
 
         const [apts, refs, docs] = await Promise.all([
           getAppointments(),

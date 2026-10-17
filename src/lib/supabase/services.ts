@@ -53,6 +53,16 @@ export interface SiteSettingsRecord {
   prior_year_form_url?: string | null;
 }
 
+export interface AdminRecord {
+  id?: string;
+  email: string;
+  password?: string;
+  name?: string;
+  role?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // -------------------------------------------------------------
 // Customers Service
 // -------------------------------------------------------------
@@ -286,6 +296,127 @@ export async function updateSiteSettings(settings: SiteSettingsRecord) {
     })
     .select()
     .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// -------------------------------------------------------------
+// Admins Service
+// -------------------------------------------------------------
+export async function getAdminByEmail(email: string): Promise<AdminRecord | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const { data, error } = await supabase
+      .from('admins')
+      .select('*')
+      .ilike('email', email.trim())
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01') return null;
+      throw error;
+    }
+    return data;
+  } catch (err: any) {
+    if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
+      console.warn("Notice: public.admins table does not exist in Supabase yet. Please run the schema.sql in Supabase SQL Editor.");
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getAdminById(id: string): Promise<AdminRecord | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const { data, error } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01') return null;
+      throw error;
+    }
+    return data;
+  } catch (err: any) {
+    if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function verifyAdminCredentials(email: string, password: string): Promise<{ admin: AdminRecord | null; error?: string }> {
+  if (!isSupabaseConfigured) return { admin: null, error: "Database is not connected." };
+  try {
+    const admin = await getAdminByEmail(email);
+    if (!admin) {
+      return { admin: null, error: "Admin account not found in admins table." };
+    }
+    
+    // If admin has a password stored in the admins table, verify it
+    if (admin.password && admin.password.trim() !== '') {
+      if (admin.password === password) {
+        return { admin };
+      }
+      return { admin: null, error: "Incorrect admin password." };
+    }
+
+    // If password is not stored in admins table, admin email exists in table
+    return { admin };
+  } catch (err: any) {
+    return { admin: null, error: err.message || "Failed to verify admin credentials." };
+  }
+}
+
+export async function getAllAdmins(): Promise<AdminRecord[]> {
+  if (!isSupabaseConfigured) return [];
+  try {
+    const { data, error } = await supabase
+      .from('admins')
+      .select('id, email, name, role, created_at, updated_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.code === '42P01') return [];
+      throw error;
+    }
+    return data || [];
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function createOrUpdateAdmin(admin: AdminRecord) {
+  if (!isSupabaseConfigured) return null;
+  const payload: any = {
+    email: admin.email.toLowerCase().trim(),
+    name: admin.name || '',
+    role: admin.role || 'admin',
+    updated_at: new Date().toISOString(),
+  };
+  if (admin.id) payload.id = admin.id;
+  if (admin.password) payload.password = admin.password;
+
+  const { data, error } = await supabase
+    .from('admins')
+    .upsert(payload)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAdmin(id: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('admins')
+    .delete()
+    .eq('id', id);
 
   if (error) throw error;
   return data;
