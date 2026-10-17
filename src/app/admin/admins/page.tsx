@@ -171,16 +171,7 @@ export default function AdminsPage() {
         </Button>
       </div>
 
-      <div className="bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg p-4 flex items-start gap-3 text-sm text-blue-950 dark:text-blue-200">
-        <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="font-semibold">Dedicated Admin Credentials Table</p>
-          <p className="text-xs text-blue-800 dark:text-blue-300 mt-0.5">
-            Admin accounts are stored in the <code className="font-mono bg-blue-100 dark:bg-blue-900/60 px-1 py-0.5 rounded">public.admins</code> table in Supabase.
-            Credentials configured here grant immediate access at the admin portal URL: <span className="font-mono text-xs font-semibold">/admin/login</span>.
-          </p>
-        </div>
-      </div>
+     
 
       {/* Admins Table */}
       <Card>

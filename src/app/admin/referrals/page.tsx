@@ -341,7 +341,7 @@ export default function ReferralsPage() {
           </div>
 
           <div className="rounded-lg bg-muted/50 border border-border p-3.5 flex items-start gap-3 text-xs text-muted-foreground">
-            <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            
             <div>
               <strong className="text-foreground font-semibold">Instant Platform-wide Sync:</strong>{" "}
               Updating this value updates the welcome credits, customer invite links, WhatsApp sharing text, and referral coupon banners across the entire website and client dashboard.
