@@ -17,7 +17,7 @@ function ReferContent() {
     if (user) {
       router.replace("/dashboard/refer");
     } else {
-      const target = ref ? `/login?tab=signup&ref=${encodeURIComponent(ref)}` : "/login";
+      const target = ref ? `/signup?ref=${encodeURIComponent(ref)}` : "/signup";
       router.replace(target);
     }
   }, [user, isUserLoading, router, searchParams]);

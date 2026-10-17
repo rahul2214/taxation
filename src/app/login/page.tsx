@@ -1,27 +1,20 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, KeyRound, Gift, Sparkles, CheckCircle2 } from "lucide-react";
+import { Loader2, KeyRound, Lock, Mail, ArrowRight } from "lucide-react";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
-import {
-  upsertCustomer,
-  getCustomer,
-  generateReferralCode,
-  getCustomerByReferralCode,
-  processReferralReward,
-  CustomerRecord,
-} from "@/lib/supabase/services";
+import { getCustomer } from "@/lib/supabase/services";
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -32,43 +25,18 @@ const GoogleIcon = () => (
 function LoginContent() {
   const { user, isUserLoading } = useFirebase();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const refParam = searchParams.get("ref") || "";
-  const initialTab = searchParams.get("tab") === "signup" || Boolean(refParam) ? "signup" : "login";
-
-  const [activeTab, setActiveTab] = useState(initialTab);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [signupFirstName, setSignupFirstName] = useState("");
-  const [signupLastName, setSignupLastName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPhone, setSignupPhone] = useState("");
-  const [signupReferralCode, setSignupReferralCode] = useState(refParam);
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
-
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isSigningUp, setIsSigningUp] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
-  const [welcomeMessage, setWelcomeMessage] = useState("");
-  const [createdCouponCode, setCreatedCouponCode] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Forgot password modal state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
-
-  // Keep coupon code in sync if URL param changes
-  useEffect(() => {
-    if (refParam && !signupReferralCode) {
-      setSignupReferralCode(refParam);
-      setActiveTab("signup");
-    }
-  }, [refParam]);
 
   const checkRoleAndRedirect = async (userData: any) => {
     setIsRedirecting(true);
@@ -87,10 +55,10 @@ function LoginContent() {
   };
 
   useEffect(() => {
-    if (!isUserLoading && user && !showWelcomeDialog && !isRedirecting) {
+    if (!isUserLoading && user && !isRedirecting) {
       checkRoleAndRedirect(user);
     }
-  }, [user, isUserLoading, router, showWelcomeDialog, isRedirecting]);
+  }, [user, isUserLoading, router, isRedirecting]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,140 +93,6 @@ function LoginContent() {
         description: error.message || "Could not log you in. Please check your credentials.",
       });
       setIsLoggingIn(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (signupPassword !== signupConfirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Passwords Do Not Match",
-        description: "Please make sure your passwords match.",
-      });
-      return;
-    }
-
-    setIsSigningUp(true);
-    const cleanEmail = signupEmail.trim().toLowerCase();
-    const cleanReferral = signupReferralCode.trim();
-
-    // 1. Generate a unique branded coupon code for this new user
-    const userReferralCode = generateReferralCode(signupFirstName, cleanEmail);
-    setCreatedCouponCode(userReferralCode);
-
-    try {
-      // 2. Check if the provided referral / coupon code belongs to an existing user
-      let referrerMatch: CustomerRecord | null = null;
-      let initialWalletBalance = 0.0;
-      let referredById: string | null = null;
-
-      if (cleanReferral) {
-        try {
-          referrerMatch = await getCustomerByReferralCode(cleanReferral);
-          if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
-            initialWalletBalance = 25.0; // $25.00 Welcome bonus credit
-            referredById = referrerMatch.id;
-          }
-        } catch (findErr) {
-          console.warn("Notice checking referral code:", findErr);
-        }
-      }
-
-      // 3. Register user with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: signupPassword,
-        options: {
-          data: {
-            first_name: signupFirstName.trim(),
-            last_name: signupLastName.trim(),
-            phone: signupPhone.trim(),
-            referral_code: userReferralCode,
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      const newUserId = data.user?.id;
-      if (newUserId) {
-        // 4. Save Customer profile with coupon code & starting wallet balance
-        try {
-          await upsertCustomer({
-            id: newUserId,
-            first_name: signupFirstName.trim(),
-            last_name: signupLastName.trim(),
-            email: cleanEmail,
-            phone: signupPhone.trim(),
-            role: "customer",
-            referral_code: userReferralCode,
-            wallet_balance: initialWalletBalance,
-            referred_by: referredById || undefined,
-          });
-        } catch (profileErr) {
-          console.warn("Profile upsert notice:", profileErr);
-        }
-
-        // 5. If referred, reward both users with $25.00 wallet credit!
-        if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
-          try {
-            await processReferralReward({
-              referrer: referrerMatch,
-              newUserId,
-              newUserName: `${signupFirstName} ${signupLastName}`.trim() || cleanEmail,
-              newUserEmail: cleanEmail,
-              referralCodeUsed: cleanReferral.toUpperCase(),
-              rewardAmount: 25.0,
-            });
-          } catch (rewardErr) {
-            console.warn("Referral reward process notice:", rewardErr);
-          }
-        }
-      }
-
-      // 6. Build informative welcome message
-      let msg = data.session
-        ? "Your account has been successfully created. You can now access your client dashboard."
-        : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
-
-      if (initialWalletBalance > 0) {
-        msg += `\n\n🎉 Welcome Bonus: $25.00 has been credited to your Polaris Wallet!`;
-      }
-
-      msg += `\n\n💳 Your Personal Referral Coupon: ${userReferralCode}\nShare this with friends to earn $25.00 every time someone files!`;
-
-      setWelcomeMessage(msg);
-      setShowWelcomeDialog(true);
-    } catch (error: any) {
-      console.error("Signup Error:", error);
-      let userFriendlyMessage = error.message || "There was a problem creating your account.";
-      const errorMsgLower = (error.message || "").toLowerCase();
-      const errorCode = error.code || "";
-
-      if (
-        errorCode === "over_email_send_rate_limit" ||
-        errorMsgLower.includes("rate limit") ||
-        error.status === 429
-      ) {
-        userFriendlyMessage =
-          "Email verification rate limit reached. Tip: In your Supabase Dashboard under Authentication -> Providers -> Email, disable 'Confirm email' for instant signups without email limits.";
-      } else if (
-        errorMsgLower.includes("invalid") ||
-        errorCode === "email_address_invalid" ||
-        errorCode === "email_address_not_authorized"
-      ) {
-        userFriendlyMessage =
-          `Supabase could not verify "${cleanEmail}". In Supabase Dashboard -> Authentication -> Providers -> Email, turn OFF "Confirm email" for instant account creation, or configure a custom SMTP provider (e.g. Resend).`;
-      }
-
-      toast({
-        variant: "destructive",
-        title: "Signup Failed",
-        description: userFriendlyMessage,
-      });
-    } finally {
-      setIsSigningUp(false);
     }
   };
 
@@ -313,7 +147,7 @@ function LoginContent() {
     }
   };
 
-  if (isUserLoading || (user && !showWelcomeDialog) || isRedirecting) {
+  if (isUserLoading || user || isRedirecting) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -324,252 +158,88 @@ function LoginContent() {
   return (
     <PublicLayout>
       <div className="container flex min-h-[80vh] items-center justify-center px-4 py-12 md:px-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup" className="relative">
-              Sign Up
-              {refParam && (
-                <span className="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                  $25
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        <Card className="w-full max-w-md shadow-lg border-primary/20">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl font-bold tracking-tight">Client Portal Login</CardTitle>
+            <CardDescription>
+              Enter your credentials to access your tax documents and filings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email Address</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                />
+              </div>
 
-          {/* Login Tab */}
-          <TabsContent value="login">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Welcome Back</CardTitle>
-                <CardDescription>Enter your credentials to access your client portal.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password">Password</Label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setResetEmail(loginEmail);
-                          setShowForgotPassword(true);
-                        }}
-                        className="text-xs text-primary hover:underline font-medium"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoggingIn || isGoogleLoading}>
-                    {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isLoggingIn ? "Signing In..." : "Sign In"}
-                  </Button>
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">Or</span>
-                    </div>
-                  </div>
-                  <Button
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="login-password">Password</Label>
+                  <button
                     type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleGoogleSignIn}
-                    disabled={isLoggingIn || isGoogleLoading}
+                    onClick={() => {
+                      setResetEmail(loginEmail);
+                      setShowForgotPassword(true);
+                    }}
+                    className="text-xs text-primary hover:underline font-medium"
                   >
-                    {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                    Continue with Google
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    Forgot password?
+                  </button>
+                </div>
+                <Input
+                  id="login-password"
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                />
+              </div>
 
-          {/* Sign Up Tab */}
-          <TabsContent value="signup">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Create Client Account</CardTitle>
-                <CardDescription>Sign up to upload tax documents and track your filing.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {refParam && (
-                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs">
-                    <Sparkles className="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                    <div>
-                      <span className="font-semibold">Referral Bonus Applied!</span>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You and your friend will each receive a <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">$25.00 wallet credit</strong> upon registration!
-                      </p>
-                    </div>
-                  </div>
-                )}
+              <Button type="submit" className="w-full" disabled={isLoggingIn || isGoogleLoading}>
+                {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isLoggingIn ? "Signing In..." : "Sign In"}
+              </Button>
 
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first-name">First Name</Label>
-                      <Input
-                        id="first-name"
-                        placeholder="John"
-                        required
-                        value={signupFirstName}
-                        onChange={(e) => setSignupFirstName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last-name">Last Name</Label>
-                      <Input
-                        id="last-name"
-                        placeholder="Doe"
-                        required
-                        value={signupLastName}
-                        onChange={(e) => setSignupLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      required
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="(123) 456-7890"
-                      value={signupPhone}
-                      onChange={(e) => setSignupPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      required
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      required
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="signup-referral-code">Referral or Coupon Code (Optional)</Label>
-                      <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                        🎁 Get $25.00 Credit
-                      </span>
-                    </div>
-                    <Input
-                      id="signup-referral-code"
-                      placeholder="e.g. POLARIS-7B4K or friend's email"
-                      value={signupReferralCode}
-                      onChange={(e) => setSignupReferralCode(e.target.value.toUpperCase())}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSigningUp || isGoogleLoading}>
-                    {isSigningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isSigningUp ? "Creating Account..." : "Create Account"}
-                  </Button>
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">Or</span>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleGoogleSignIn}
-                    disabled={isSigningUp || isGoogleLoading}
-                  >
-                    {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                    Sign up with Google
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                disabled={isLoggingIn || isGoogleLoading}
+              >
+                {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                Continue with Google
+              </Button>
+            </form>
+          </CardContent>
+
+          <CardFooter className="flex flex-col border-t bg-muted/20 px-6 py-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Don&apos;t have an account yet?{" "}
+              <Link href="/signup" className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">
+                Create Account <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
       </div>
-
-      {/* Welcome Dialog */}
-      <Dialog open={showWelcomeDialog} onOpenChange={(open) => { if (!open) setShowWelcomeDialog(false); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" /> Welcome to Polaris Tax Services!
-            </DialogTitle>
-            <DialogDescription className="whitespace-pre-line text-sm text-foreground/90 mt-2 leading-relaxed">
-              {welcomeMessage}
-            </DialogDescription>
-          </DialogHeader>
-
-          {createdCouponCode && (
-            <div className="p-3 bg-muted/60 rounded-lg border border-dashed border-primary/40 text-center space-y-1">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Your Referral Coupon Code</span>
-              <p className="text-xl font-mono font-bold text-primary tracking-wider select-all">{createdCouponCode}</p>
-              <p className="text-[11px] text-muted-foreground">Share this with friends to earn $25.00 for every referral!</p>
-            </div>
-          )}
-
-          <DialogFooter className="pt-2">
-            <Button
-              className="w-full"
-              onClick={() => {
-                setShowWelcomeDialog(false);
-                if (user) {
-                  checkRoleAndRedirect(user);
-                } else {
-                  router.push("/dashboard");
-                }
-              }}
-            >
-              Go to Dashboard
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Forgot Password Dialog */}
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>

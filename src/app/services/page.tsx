@@ -105,7 +105,7 @@ export default function ServicesPage() {
                   <span className="text-sm text-muted-foreground ml-1">{service.pricePeriod}</span>
                 </div>
                 <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Link href="/login">Get Started</Link>
+                  <Link href="/signup">Get Started</Link>
                 </Button>
               </CardFooter>
             </Card>

@@ -42,9 +42,12 @@ export function Header() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-4">
-          <Button asChild className="hidden md:inline-flex">
-            <Link href="/login">Login / Sign Up</Link>
+        <div className="flex items-center gap-3">
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex text-foreground/80 hover:text-foreground">
+            <Link href="/login">Log In</Link>
+          </Button>
+          <Button asChild size="sm" className="hidden md:inline-flex shadow-sm">
+            <Link href="/signup">Sign Up</Link>
           </Button>
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -74,9 +77,12 @@ export function Header() {
                   </Link>
                 ))}
               </nav>
-              <div className="mt-auto">
-                 <Button asChild className="w-full">
-                    <Link href="/login" onClick={() => setIsOpen(false)}>Login / Sign Up</Link>
+              <div className="mt-auto space-y-2 pt-6 border-t">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/login" onClick={() => setIsOpen(false)}>Log In</Link>
+                </Button>
+                <Button asChild className="w-full">
+                  <Link href="/signup" onClick={() => setIsOpen(false)}>Create Account</Link>
                 </Button>
               </div>
             </SheetContent>

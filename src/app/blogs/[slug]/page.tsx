@@ -405,7 +405,7 @@ export default async function BlogPostPage({
                   <Link href="/book-appointment">Book Consultation</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/login">Get Started</Link>
+                  <Link href="/signup">Get Started</Link>
                 </Button>
               </div>
             </div>

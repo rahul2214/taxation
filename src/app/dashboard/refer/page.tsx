@@ -85,9 +85,9 @@ export default function CustomerReferPage() {
 
   // Dedicated invite link using coupon code
   const referralLink = couponCode
-    ? `${origin || "https://www.plrstax.com"}/login?ref=${encodeURIComponent(couponCode)}`
+    ? `${origin || "https://www.plrstax.com"}/signup?ref=${encodeURIComponent(couponCode)}`
     : referrerEmail
-    ? `${origin || "https://www.plrstax.com"}/login?ref=${encodeURIComponent(referrerEmail)}`
+    ? `${origin || "https://www.plrstax.com"}/signup?ref=${encodeURIComponent(referrerEmail)}`
     : "";
 
   const loadDashboardData = async () => {

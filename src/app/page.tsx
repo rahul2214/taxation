@@ -309,7 +309,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/login">Get Started Today</Link>
+                <Link href="/signup">Get Started Today</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-background/20 text-white border-white hover:bg-background/30">
                 <Link href="/book-appointment">Book Appointment</Link>
@@ -484,7 +484,7 @@ export default function Home() {
                     </CardContent>
                     <CardFooter className="p-6">
                         <Button asChild className="w-full">
-                            <Link href="/login">{plan.buttonText}</Link>
+                            <Link href="/signup">{plan.buttonText}</Link>
                         </Button>
                     </CardFooter>
                     </Card>
@@ -605,7 +605,7 @@ export default function Home() {
               Join thousands of satisfied clients and experience the Polaris Tax Services difference.
             </p>
             <Button asChild size="lg" className="mt-8 bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link href="/login">Sign Up for Free</Link>
+              <Link href="/signup">Sign Up for Free</Link>
             </Button>
           </div>
         </section>
