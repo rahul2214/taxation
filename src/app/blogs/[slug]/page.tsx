@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { BLOG_POSTS, getBlogPostBySlug, getRelatedBlogs } from "@/data/blogs";
@@ -72,18 +71,18 @@ export async function generateMetadata({
       tags: post.tags,
       images: [
         {
-          url: post.imageUrl,
-          width: 1200,
-          height: 675,
+          url: `${siteUrl}/icon-512.png`,
+          width: 512,
+          height: 512,
           alt: post.title,
         },
       ],
     },
     twitter: {
-      card: "summary_large_image",
+      card: "summary",
       title: post.seo.metaTitle,
       description: post.seo.metaDescription,
-      images: [post.imageUrl],
+      images: [`${siteUrl}/icon-512.png`],
       creator: "@polaristax",
     },
   };
@@ -111,7 +110,7 @@ export default async function BlogPostPage({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.seo.metaDescription,
-    image: [post.imageUrl],
+    image: [`${siteUrl}/icon-512.png`],
     datePublished: post.seo.publishedIso,
     dateModified: post.seo.modifiedIso,
     author: {
@@ -243,23 +242,13 @@ export default async function BlogPostPage({
 
             {/* Author & Meta Row */}
             <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-border/80">
-              <div className="flex items-center gap-3">
-                <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-primary/20 bg-primary/5 flex items-center justify-center p-1.5 shadow-xs">
-                  <Image
-                    src={post.author.avatar}
-                    alt={post.author.name}
-                    fill
-                    className="object-contain p-1"
-                  />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-foreground">
-                    {post.author.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {post.author.role}
-                  </p>
-                </div>
+              <div>
+                <p className="font-semibold text-sm text-foreground">
+                  Written by {post.author.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {post.author.role} • Polaris Tax Services
+                </p>
               </div>
 
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -280,22 +269,8 @@ export default async function BlogPostPage({
           </div>
         </header>
 
-        {/* Feature Image */}
-        <div className="container mx-auto px-4 md:px-6 max-w-4xl mb-12">
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-xl border border-border">
-            <Image
-              src={post.imageUrl}
-              alt={post.title}
-              fill
-              priority
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 896px"
-            />
-          </div>
-        </div>
-
         {/* Main Article Body Layout */}
-        <div className="container mx-auto px-4 md:px-6 max-w-4xl pb-16">
+        <div className="container mx-auto px-4 md:px-6 max-w-4xl pt-8 pb-16">
           {/* Key Takeaways Box */}
           {post.keyTakeaways && post.keyTakeaways.length > 0 && (
             <div className="mb-10 rounded-xl border border-primary/20 bg-primary/5 p-6 md:p-8">
@@ -398,26 +373,16 @@ export default async function BlogPostPage({
           </div>
 
           {/* Author Card Box */}
-          <div className="mt-10 rounded-xl border bg-card p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4">
-            <div className="relative h-16 w-16 rounded-full overflow-hidden shrink-0 border-2 border-primary/20 bg-primary/5 flex items-center justify-center p-2 shadow-xs">
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                fill
-                className="object-contain p-1.5"
-              />
-            </div>
-            <div className="text-center sm:text-left">
-              <h4 className="font-semibold text-base text-foreground">
-                Written by {post.author.name}
-              </h4>
-              <p className="text-xs text-primary font-medium mb-2">
-                {post.author.role} • Polaris Tax Services
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Specializing in federal compliance, state apportionments, and tax optimization strategies for individuals and businesses across the United States.
-              </p>
-            </div>
+          <div className="mt-10 rounded-xl border bg-card p-6 sm:p-8">
+            <h4 className="font-semibold text-lg text-foreground mb-1">
+              Written by {post.author.name}
+            </h4>
+            <p className="text-xs text-primary font-medium mb-3">
+              {post.author.role} • Polaris Tax Services
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Specializing in federal compliance, state apportionments, and tax optimization strategies for individuals and businesses across the United States.
+            </p>
           </div>
 
           {/* Inline CTA Card */}
@@ -471,30 +436,30 @@ export default async function BlogPostPage({
                 {relatedPosts.map((rel) => (
                   <Card
                     key={rel.id}
-                    className="group flex flex-col overflow-hidden border bg-card hover:shadow-lg transition-all"
+                    className="group flex flex-col justify-between overflow-hidden border bg-card hover:shadow-lg transition-all p-5 rounded-xl"
                   >
-                    <Link href={`/blogs/${rel.slug}`} className="relative h-44 w-full overflow-hidden bg-muted">
-                      <Image
-                        src={rel.imageUrl}
-                        alt={rel.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                      />
-                      <Badge className="absolute top-2 left-2 bg-primary/90 text-[10px]">
-                        {rel.category}
-                      </Badge>
-                    </Link>
-                    <CardContent className="p-4 flex-grow">
-                      <div className="text-[11px] text-muted-foreground mb-1">
-                        {rel.readTime} • {rel.date}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge variant="outline" className="text-[11px] font-semibold text-primary border-primary/30">
+                          {rel.category}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground">{rel.readTime}</span>
                       </div>
                       <Link href={`/blogs/${rel.slug}`}>
-                        <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+                        <h4 className="font-semibold text-base line-clamp-2 group-hover:text-primary transition-colors leading-snug mb-2">
                           {rel.title}
                         </h4>
                       </Link>
-                    </CardContent>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                        {rel.excerpt}
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{rel.date}</span>
+                      <span className="text-primary font-medium flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                        Read <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </div>
                   </Card>
                 ))}
               </div>

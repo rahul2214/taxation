@@ -46,7 +46,7 @@ export interface BlogPost {
   author: BlogAuthor;
   date: string;
   readTime: string;
-  imageUrl: string;
+  imageUrl?: string;
   trending: boolean;
   views: number;
   keyTakeaways: string[];

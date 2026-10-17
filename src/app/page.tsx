@@ -553,31 +553,22 @@ export default function Home() {
               {BLOG_POSTS.slice(0, 3).map((post) => (
                 <Card
                   key={post.id}
-                  className="group flex flex-col overflow-hidden border border-border/80 bg-card hover:shadow-xl hover:border-primary/40 transition-all duration-300 rounded-xl"
+                  className="group flex flex-col justify-between overflow-hidden border border-border/80 bg-card hover:shadow-xl hover:border-primary/40 transition-all duration-300 rounded-xl p-6"
                 >
-                  <Link href={`/blogs/${post.slug}`} className="relative h-48 w-full overflow-hidden bg-muted">
-                    <Image
-                      src={post.imageUrl}
-                      alt={post.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      <Badge className="bg-primary/95 text-primary-foreground font-semibold shadow-sm">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-semibold text-xs">
                         {post.category}
                       </Badge>
                       {post.trending && (
-                        <Badge className="bg-amber-500/95 text-white font-semibold flex items-center gap-1 shadow-sm">
+                        <Badge className="bg-amber-500/90 text-white font-semibold flex items-center gap-1 text-[11px] shadow-2xs">
                           <Flame className="h-3 w-3 fill-white" />
                           Trending
                         </Badge>
                       )}
                     </div>
-                  </Link>
 
-                  <CardHeader className="p-5 pb-2">
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
                         {post.readTime}
@@ -588,45 +579,34 @@ export default function Home() {
                         {post.views.toLocaleString()} views
                       </span>
                     </div>
+
                     <Link href={`/blogs/${post.slug}`}>
-                      <h3 className="font-headline font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                      <h3 className="font-headline font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-3">
                         {post.title}
                       </h3>
                     </Link>
-                  </CardHeader>
 
-                  <CardContent className="p-5 pt-0 flex-grow">
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                    <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed mb-6">
                       {post.excerpt}
                     </p>
-                  </CardContent>
+                  </div>
 
-                  <CardFooter className="p-5 pt-3 border-t bg-muted/20 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="relative h-7 w-7 rounded-full overflow-hidden border border-border bg-primary/5 flex items-center justify-center p-0.5 shadow-2xs">
-                        <Image
-                          src={post.author.avatar}
-                          alt={post.author.name}
-                          fill
-                          className="object-contain p-0.5"
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-foreground">
-                        {post.author.name}
-                      </span>
-                    </div>
+                  <div className="pt-4 border-t flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">
+                      {post.author.name}
+                    </span>
                     <Button
                       asChild
                       variant="ghost"
                       size="sm"
-                      className="text-primary hover:text-primary p-0 h-auto font-medium text-xs flex items-center gap-1"
+                      className="text-primary hover:text-primary p-0 h-auto font-medium text-xs flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
                     >
                       <Link href={`/blogs/${post.slug}`}>
                         Read Guide
                         <ArrowRight className="h-3.5 w-3.5 ml-1" />
                       </Link>
                     </Button>
-                  </CardFooter>
+                  </div>
                 </Card>
               ))}
             </div>

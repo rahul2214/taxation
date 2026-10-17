@@ -29,18 +29,18 @@ export const metadata: Metadata = {
     siteName: "Polaris Tax Services",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200&h=630",
-        width: 1200,
-        height: 630,
+        url: "/icon-512.png",
+        width: 512,
+        height: 512,
         alt: "Polaris Tax Services - Blog and Tax Insights",
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Tax Insights, Guides & IRS Updates (2026) | Polaris Tax Services",
     description: "Stay ahead of IRS policy shifts and tax deductions with expert guides from licensed CPAs.",
-    images: ["https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200&h=630"],
+    images: ["/icon-512.png"],
   },
 };
 
@@ -60,7 +60,6 @@ export default function BlogsPage() {
         name: post.title,
         url: `https://polaristaxservices.com/blogs/${post.slug}`,
         description: post.excerpt,
-        image: post.imageUrl,
       })),
     },
   };
