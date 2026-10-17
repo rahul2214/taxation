@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Zap, Users, Check, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory, Calculator, Minus, Plus } from "lucide-react";
+import { CheckCircle, Zap, Users, Check, LifeBuoy, ShieldCheck, Briefcase, Building2, Globe, Factory, Calculator, Minus, Plus, Flame, ArrowRight, Clock, Eye, BookOpen, Tag } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Autoplay from "embla-carousel-autoplay";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { BLOG_POSTS, TRENDING_SEARCH_TERMS } from "@/data/blogs";
 
 
 const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -505,6 +507,131 @@ export default function Home() {
             </div>
         </section>
         
+        {/* Trending Tax Insights & Blogs Section */}
+        <section className="py-16 md:py-24 border-t bg-background">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold mb-3">
+                  <Flame className="h-3.5 w-3.5 fill-current" />
+                  <span>Trending Tax Intelligence</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">
+                  Latest Tax News, Insights & Guides
+                </h2>
+                <p className="mt-2 text-muted-foreground max-w-2xl text-base">
+                  Get ahead with verified tax planning tips, IRS regulation breakdowns, and deduction guides curated by our licensed CPAs.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="shrink-0 group">
+                <Link href="/blogs" className="flex items-center gap-2">
+                  <span>View All Articles</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </div>
+
+            {/* Trending Quick Search Chips */}
+            <div className="mb-8 flex flex-wrap items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border/60">
+              <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 pl-1">
+                <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                Popular Searches:
+              </span>
+              {TRENDING_SEARCH_TERMS.map((term) => (
+                <Link
+                  key={term}
+                  href={`/blogs?q=${encodeURIComponent(term)}`}
+                  className="inline-flex items-center text-xs px-3 py-1 rounded-full bg-card hover:bg-primary hover:text-primary-foreground border border-border/70 text-foreground transition-colors font-medium shadow-2xs"
+                >
+                  {term}
+                </Link>
+              ))}
+            </div>
+
+            {/* Top 3 Featured / Trending Blog Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {BLOG_POSTS.slice(0, 3).map((post) => (
+                <Card
+                  key={post.id}
+                  className="group flex flex-col overflow-hidden border border-border/80 bg-card hover:shadow-xl hover:border-primary/40 transition-all duration-300 rounded-xl"
+                >
+                  <Link href={`/blogs/${post.slug}`} className="relative h-48 w-full overflow-hidden bg-muted">
+                    <Image
+                      src={post.imageUrl}
+                      alt={post.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                      <Badge className="bg-primary/95 text-primary-foreground font-semibold shadow-sm">
+                        {post.category}
+                      </Badge>
+                      {post.trending && (
+                        <Badge className="bg-amber-500/95 text-white font-semibold flex items-center gap-1 shadow-sm">
+                          <Flame className="h-3 w-3 fill-white" />
+                          Trending
+                        </Badge>
+                      )}
+                    </div>
+                  </Link>
+
+                  <CardHeader className="p-5 pb-2">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {post.readTime}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" />
+                        {post.views.toLocaleString()} views
+                      </span>
+                    </div>
+                    <Link href={`/blogs/${post.slug}`}>
+                      <h3 className="font-headline font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                        {post.title}
+                      </h3>
+                    </Link>
+                  </CardHeader>
+
+                  <CardContent className="p-5 pt-0 flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      {post.excerpt}
+                    </p>
+                  </CardContent>
+
+                  <CardFooter className="p-5 pt-3 border-t bg-muted/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="relative h-7 w-7 rounded-full overflow-hidden border">
+                        <Image
+                          src={post.author.avatar}
+                          alt={post.author.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-foreground">
+                        {post.author.name}
+                      </span>
+                    </div>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary hover:text-primary p-0 h-auto font-medium text-xs flex items-center gap-1"
+                    >
+                      <Link href={`/blogs/${post.slug}`}>
+                        Read Guide
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* Privacy Section */}
         <section className="py-16 md:py-24 bg-card">
