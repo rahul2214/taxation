@@ -118,10 +118,12 @@ CREATE TABLE IF NOT EXISTS public.admins (
 
 CREATE INDEX IF NOT EXISTS idx_admins_email ON public.admins(email);
 
--- Insert initial admin credential (change email/password as desired in Supabase Dashboard)
+-- Insert initial admin credential if not already present
 INSERT INTO public.admins (id, email, password, name, role)
-VALUES ('admin-default-01', 'admin@polaris.com', 'Admin@123456', 'Polaris Administrator', 'admin')
-ON CONFLICT (email) DO NOTHING;
+SELECT 'admin-default-01', 'admin@polaris.com', 'Admin@123456', 'Polaris Administrator', 'admin'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.admins WHERE id = 'admin-default-01' OR email = 'admin@polaris.com'
+);
 
 -- ==============================================================================
 -- Row Level Security (RLS) Policies
