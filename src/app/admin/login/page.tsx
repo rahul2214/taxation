@@ -14,6 +14,7 @@ import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader2, ShieldAlert, ArrowLeft, Lock } from "lucide-react";
 import { getCustomer } from "@/lib/supabase/services";
+import { supabase } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
@@ -84,6 +85,7 @@ export default function AdminLoginPage() {
     }
 
     // If neither DB has role admin
+    await supabase.auth.signOut();
     if (auth) {
       await signOut(auth);
     }
@@ -96,19 +98,29 @@ export default function AdminLoginPage() {
 
   const handleAdminEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
-      toast({
-        variant: "destructive",
-        title: "Firebase Auth Required",
-        description: "Firebase credentials must be configured in .env.local to log in.",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await verifyAdminAndProceed(userCredential.user.uid);
+      // 1. Authenticate with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // Fallback to Firebase auth if available
+        if (auth) {
+          try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            await verifyAdminAndProceed(userCredential.user.uid);
+            return;
+          } catch (fbErr) {
+            throw error;
+          }
+        }
+        throw error;
+      }
+
+      await verifyAdminAndProceed(data.user.id);
     } catch (error: any) {
       toast({
         variant: "destructive",

@@ -27,6 +27,8 @@ type AdminSidebarProps = {
   pendingDocumentsCount: number;
 };
 
+import { supabase } from "@/lib/supabase/client";
+
 export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, pendingDocumentsCount }: AdminSidebarProps) {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
@@ -36,13 +38,16 @@ export function AdminSidebar({ pendingAppointmentsCount, pendingReferralsCount, 
 
   const handleLogout = async () => {
     try {
+      await supabase.auth.signOut();
       if(auth) {
-        await signOut(auth);
-        toast({
-            title: "Logged Out",
-            description: "You have been successfully signed out.",
-        });
+        try {
+          await signOut(auth);
+        } catch (e) {}
       }
+      toast({
+          title: "Logged Out",
+          description: "You have been successfully signed out.",
+      });
       router.push('/admin/login');
     } catch (error) {
       console.error("Logout Error:", error);

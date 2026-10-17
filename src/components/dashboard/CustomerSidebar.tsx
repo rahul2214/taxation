@@ -29,6 +29,8 @@ const menuItems = [
   { href: "/dashboard/documents", label: "My Documents", icon: <Files /> },
 ];
 
+import { supabase } from "@/lib/supabase/client";
+
 export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {
   const pathname = usePathname();
   const { auth, user, isUserLoading } = useFirebase();
@@ -38,9 +40,13 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
   const { isMobile } = useSidebar();
   
   const handleLogout = async () => {
-    if(!auth) return;
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
+      if(auth) {
+        try {
+          await signOut(auth);
+        } catch (e) {}
+      }
       toast({
         title: "Logged Out",
         description: "You have been successfully signed out.",

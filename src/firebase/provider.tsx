@@ -7,6 +7,8 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
+import { supabase } from '@/lib/supabase/client';
+
 interface FirebaseProviderProps {
   children: ReactNode;
   firebaseApp: FirebaseApp | null;
@@ -72,27 +74,88 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
-  // Effect to subscribe to Firebase auth state changes
+  // Subscribe to Supabase and Firebase auth state changes
   useEffect(() => {
-    if (!auth) { // If no Auth service instance, cannot determine user state
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
-      return;
+    let isMounted = true;
+
+    // Check existing Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      if (session?.user) {
+        const su = session.user;
+        setUserAuthState({
+          user: {
+            uid: su.id,
+            id: su.id,
+            email: su.email || null,
+            displayName: su.user_metadata?.first_name 
+              ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
+              : (su.email?.split('@')[0] || null),
+            phoneNumber: su.user_metadata?.phone || null,
+            user_metadata: su.user_metadata,
+          } as any,
+          isUserLoading: false,
+          userError: null,
+        });
+      } else if (!auth) {
+        setUserAuthState({ user: null, isUserLoading: false, userError: null });
+      }
+    }).catch(err => {
+      console.warn("Supabase session get warning:", err);
+      if (!auth && isMounted) {
+        setUserAuthState({ user: null, isUserLoading: false, userError: null });
+      }
+    });
+
+    // Subscribe to Supabase auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      if (session?.user) {
+        const su = session.user;
+        setUserAuthState({
+          user: {
+            uid: su.id,
+            id: su.id,
+            email: su.email || null,
+            displayName: su.user_metadata?.first_name 
+              ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
+              : (su.email?.split('@')[0] || null),
+            phoneNumber: su.user_metadata?.phone || null,
+            user_metadata: su.user_metadata,
+          } as any,
+          isUserLoading: false,
+          userError: null,
+        });
+      } else {
+        if (!auth) {
+          setUserAuthState({ user: null, isUserLoading: false, userError: null });
+        }
+      }
+    });
+
+    // Fallback to Firebase auth if available
+    let fbUnsubscribe: (() => void) | null = null;
+    if (auth) {
+      fbUnsubscribe = onAuthStateChanged(
+        auth,
+        (firebaseUser) => {
+          if (!isMounted) return;
+          if (firebaseUser) {
+            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+          }
+        },
+        (error) => {
+          console.error("Firebase onAuthStateChanged error:", error);
+        }
+      );
     }
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null }); // Reset on auth instance change
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser) => { // Auth state determined
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-      },
-      (error) => { // Auth listener error
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      }
-    );
-    return () => unsubscribe(); // Cleanup
-  }, [auth]); // Depends on the auth instance
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      if (fbUnsubscribe) fbUnsubscribe();
+    };
+  }, [auth]);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
