@@ -299,11 +299,10 @@ function SignupContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last-name">Last Name</Label>
+                  <Label htmlFor="last-name">Last Name <span className="text-muted-foreground text-xs font-normal">(Optional)</span></Label>
                   <Input
                     id="last-name"
                     placeholder="Doe"
-                    required
                     value={signupLastName}
                     onChange={(e) => setSignupLastName(e.target.value)}
                   />
