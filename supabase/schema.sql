@@ -119,31 +119,37 @@ ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read of site settings
+DROP POLICY IF EXISTS "Allow public read site_settings" ON public.site_settings;
 CREATE POLICY "Allow public read site_settings"
     ON public.site_settings FOR SELECT
     USING (true);
 
 -- Allow authenticated read/write with anon key (or custom policies)
+DROP POLICY IF EXISTS "Allow anon read/write for all tables" ON public.customers;
 CREATE POLICY "Allow anon read/write for all tables"
     ON public.customers FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow anon read/write tax_documents" ON public.tax_documents;
 CREATE POLICY "Allow anon read/write tax_documents"
     ON public.tax_documents FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow anon read/write appointments" ON public.appointments;
 CREATE POLICY "Allow anon read/write appointments"
     ON public.appointments FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow anon read/write referrals" ON public.referrals;
 CREATE POLICY "Allow anon read/write referrals"
     ON public.referrals FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow anon read/write admins" ON public.admins;
 CREATE POLICY "Allow anon read/write admins"
     ON public.admins FOR ALL
     USING (true)
