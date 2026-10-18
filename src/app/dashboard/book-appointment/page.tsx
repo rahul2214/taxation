@@ -64,32 +64,57 @@ export default function DashboardBookAppointmentPage() {
     async function loadData() {
       if (!user) return;
 
+      let currentCustomer: CustomerRecord | null = null;
+
       try {
         // 1. Load customer details to pre-fill form
         const custData = await getCustomer(user.uid);
         if (custData) {
+          currentCustomer = custData;
           setCustomer(custData);
           const first = custData.first_name || "";
           const last = custData.last_name || "";
           setFullName(`${first} ${last}`.trim() || user.displayName || "");
           setEmail(custData.email || user.email || "");
           setPhone(custData.phone || "");
+        } else if (user.email) {
+          const byEmail = await getCustomer(user.email);
+          if (byEmail) {
+            currentCustomer = byEmail;
+            setCustomer(byEmail);
+            const first = byEmail.first_name || "";
+            const last = byEmail.last_name || "";
+            setFullName(`${first} ${last}`.trim() || user.displayName || "");
+            setEmail(byEmail.email || user.email || "");
+            setPhone(byEmail.phone || "");
+          } else {
+            setFullName(user.displayName || "");
+            setEmail(user.email || "");
+          }
         } else {
           setFullName(user.displayName || "");
           setEmail(user.email || "");
         }
-      } catch (err) {
-        console.error("Error loading customer profile:", err);
+      } catch (err: any) {
+        console.warn("Customer profile load notice:", err?.message || err);
       } finally {
         setIsLoadingCustomer(false);
       }
 
       // 2. Load existing appointments for this customer
       try {
-        const apts = await getAppointments(user.uid);
-        setAppointments(apts);
-      } catch (err) {
-        console.error("Error loading appointments:", err);
+        let apts = await getAppointments(user.uid);
+        const resolvedEmail = currentCustomer?.email || user.email;
+        if ((!apts || apts.length === 0) && resolvedEmail) {
+          const emailApts = await getAppointments(resolvedEmail);
+          if (emailApts && emailApts.length > 0) {
+            apts = emailApts;
+          }
+        }
+        setAppointments(apts || []);
+      } catch (err: any) {
+        console.warn("Appointments load notice:", err?.message || err);
+        setAppointments([]);
       } finally {
         setIsLoadingAppointments(false);
       }
@@ -143,10 +168,16 @@ export default function DashboardBookAppointmentPage() {
       setPreferredDate("");
 
       // Refresh appointments list
-      const updatedApts = await getAppointments(user.uid, { forceRefresh: true });
-      setAppointments(updatedApts);
+      let updatedApts = await getAppointments(user.uid, { forceRefresh: true });
+      if ((!updatedApts || updatedApts.length === 0) && email.trim()) {
+        const emailApts = await getAppointments(email.trim(), { forceRefresh: true });
+        if (emailApts && emailApts.length > 0) {
+          updatedApts = emailApts;
+        }
+      }
+      setAppointments(updatedApts || []);
     } catch (err: any) {
-      console.error("Error requesting appointment:", err);
+      console.warn("Appointment booking notice:", err?.message || err);
       toast({
         variant: "destructive",
         title: "Submission Error",

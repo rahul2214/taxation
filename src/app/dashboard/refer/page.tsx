@@ -289,9 +289,7 @@ export default function CustomerReferPage() {
               <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
                 <Share2 className="h-4 w-4" /> Personal Invite Link
               </span>
-              <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                One-Click Signup
-              </Badge>
+              
             </div>
             <CardDescription className="text-xs mt-1">
               Anyone clicking this link will have your coupon code automatically applied when registering.

@@ -246,44 +246,58 @@ export async function ensureCustomerReferralCode(
 }
 
 export async function getCustomer(
-  idOrUserid: string | number,
+  idOrUseridOrEmail: string | number,
   options?: CacheOptions
 ): Promise<CustomerRecord | null> {
-  if (!isSupabaseConfigured || !idOrUserid) return null;
-  const cacheKey = `customer:${idOrUserid}`;
+  if (!isSupabaseConfigured || !idOrUseridOrEmail) return null;
+  const cacheKey = `customer:${idOrUseridOrEmail}`;
 
   return apiCache.getOrFetch(
     cacheKey,
     async () => {
-      const isNumeric =
-        typeof idOrUserid === 'number' ||
-        (!isNaN(Number(idOrUserid)) && !idOrUserid.toString().includes('-'));
+      try {
+        const val = String(idOrUseridOrEmail).trim();
+        const isNumeric =
+          typeof idOrUseridOrEmail === 'number' ||
+          (!isNaN(Number(val)) && !val.includes('-'));
 
-      let query = supabase.from('customers').select('*');
-      if (isNumeric) {
-        query = query.eq('userid', Number(idOrUserid));
-      } else {
-        query = query.eq('id', idOrUserid);
-      }
-
-      const { data, error } = await query.maybeSingle();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null; // Not found
-        throw error;
-      }
-
-      // Cross-populate both id and userid caches
-      if (data) {
-        if (data.id && String(data.id) !== String(idOrUserid)) {
-          apiCache.set(`customer:${data.id}`, data, 120_000);
+        let query = supabase.from('customers').select('*');
+        if (isNumeric) {
+          query = query.eq('userid', Number(val));
+        } else if (val.includes('@')) {
+          query = query.ilike('email', val);
+        } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+          query = query.eq('id', val);
+        } else {
+          query = query.eq('id', val);
         }
-        if (data.userid && String(data.userid) !== String(idOrUserid)) {
-          apiCache.set(`customer:${data.userid}`, data, 120_000);
-        }
-      }
 
-      return data;
+        const { data, error } = await query.maybeSingle();
+
+        if (error) {
+          if (error.code === 'PGRST116' || error.code === '22P02') return null; // Not found or invalid UUID syntax
+          console.warn("getCustomer notice:", error.message || error.code || error);
+          return null;
+        }
+
+        // Cross-populate both id, userid, and email caches
+        if (data) {
+          if (data.id && String(data.id) !== val) {
+            apiCache.set(`customer:${data.id}`, data, 120_000);
+          }
+          if (data.userid && String(data.userid) !== val) {
+            apiCache.set(`customer:${data.userid}`, data, 120_000);
+          }
+          if (data.email && data.email.toLowerCase() !== val.toLowerCase()) {
+            apiCache.set(`customer:${data.email.toLowerCase()}`, data, 120_000);
+          }
+        }
+
+        return data;
+      } catch (err: any) {
+        console.warn("getCustomer exception:", err?.message || err);
+        return null;
+      }
     },
     { ttlMs: 120_000, ...options } // 2 minutes TTL with deduplication
   );
@@ -327,13 +341,26 @@ export async function getTaxDocuments(
   return apiCache.getOrFetch(
     cacheKey,
     async () => {
-      let query = supabase.from('tax_documents').select('*');
-      if (customerId) {
-        query = query.eq('customer_id', customerId);
+      try {
+        let query = supabase.from('tax_documents').select('*');
+        if (customerId) {
+          const val = String(customerId).trim();
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+            query = query.eq('customer_id', val);
+          } else if (/^\d+$/.test(val)) {
+            query = query.eq('customer_userid', Number(val));
+          }
+        }
+        const { data, error } = await query.order('upload_date', { ascending: false });
+        if (error) {
+          console.warn("getTaxDocuments notice:", error.message || error.code || error);
+          return [];
+        }
+        return data || [];
+      } catch (err: any) {
+        console.warn("getTaxDocuments exception:", err?.message || err);
+        return [];
       }
-      const { data, error } = await query.order('upload_date', { ascending: false });
-      if (error) throw error;
-      return data || [];
     },
     { ttlMs: 30_000, ...options }
   );
@@ -382,22 +409,39 @@ export async function deleteTaxDocument(id: string) {
 // Appointments Service
 // -------------------------------------------------------------
 export async function getAppointments(
-  customerId?: string,
+  customerIdOrEmail?: string,
   options?: CacheOptions
 ): Promise<AppointmentRecord[]> {
   if (!isSupabaseConfigured) return [];
-  const cacheKey = `appointments:${customerId || 'all'}`;
+  const cacheKey = `appointments:${customerIdOrEmail || 'all'}`;
 
   return apiCache.getOrFetch(
     cacheKey,
     async () => {
-      let query = supabase.from('appointments').select('*');
-      if (customerId) {
-        query = query.eq('customer_id', customerId);
+      try {
+        let query = supabase.from('appointments').select('*');
+        if (customerIdOrEmail) {
+          const identifier = String(customerIdOrEmail).trim();
+          if (identifier.includes('@')) {
+            query = query.ilike('email', identifier);
+          } else if (/^\d+$/.test(identifier)) {
+            query = query.eq('customer_userid', Number(identifier));
+          } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)) {
+            query = query.eq('customer_id', identifier);
+          } else {
+            query = query.or(`email.ilike.%${identifier}%,name.ilike.%${identifier}%`);
+          }
+        }
+        const { data, error } = await query.order('appointment_date', { ascending: true });
+        if (error) {
+          console.warn("getAppointments notice:", error.message || error.code || error);
+          return [];
+        }
+        return data || [];
+      } catch (err: any) {
+        console.warn("getAppointments exception:", err?.message || err);
+        return [];
       }
-      const { data, error } = await query.order('appointment_date', { ascending: true });
-      if (error) throw error;
-      return data || [];
     },
     { ttlMs: 30_000, ...options }
   );
@@ -405,29 +449,57 @@ export async function getAppointments(
 
 export async function createAppointment(appointment: AppointmentRecord) {
   if (!isSupabaseConfigured) return null;
-  let payload = { ...appointment };
-  const { data, error } = await supabase
-    .from('appointments')
-    .insert([payload])
-    .select()
-    .single();
+  let payload: any = { ...appointment };
 
-  if (error && error.code === '23503') {
-    // FK violation fallback if customer record does not exist
-    payload.customer_id = null;
-    const retry = await supabase
+  try {
+    const { data, error } = await supabase
       .from('appointments')
       .insert([payload])
       .select()
       .single();
-    if (retry.error) throw retry.error;
-    apiCache.invalidate('appointments');
-    return retry.data;
-  }
 
-  if (error) throw error;
-  apiCache.invalidate('appointments');
-  return data;
+    if (!error && data) {
+      apiCache.invalidate('appointments');
+      return data;
+    }
+
+    if (error) {
+      // Handle column not found (e.g. customer_userid doesn't exist yet)
+      if (error.code === '42703') {
+        const trimmedPayload = { ...payload };
+        delete trimmedPayload.customer_userid;
+        const retry1 = await supabase
+          .from('appointments')
+          .insert([trimmedPayload])
+          .select()
+          .single();
+        if (!retry1.error && retry1.data) {
+          apiCache.invalidate('appointments');
+          return retry1.data;
+        }
+      }
+
+      // Handle foreign key constraint violation (23503)
+      if (error.code === '23503') {
+        const fkFreePayload = { ...payload, customer_id: null, customer_userid: null };
+        const retry2 = await supabase
+          .from('appointments')
+          .insert([fkFreePayload])
+          .select()
+          .single();
+        if (!retry2.error && retry2.data) {
+          apiCache.invalidate('appointments');
+          return retry2.data;
+        }
+        if (retry2.error) throw retry2.error;
+      }
+
+      throw error;
+    }
+  } catch (err: any) {
+    console.error("createAppointment error:", err?.message || err);
+    throw err;
+  }
 }
 
 export async function updateAppointmentStatus(id: string, status: string) {
