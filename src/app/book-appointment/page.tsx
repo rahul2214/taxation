@@ -16,14 +16,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { collection, serverTimestamp, addDoc } from "firebase/firestore";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { createAppointment } from "@/lib/supabase/services";
 
 export default function BookAppointmentPage() {
+  const router = useRouter();
   const { toast } = useToast();
-  const { firestore, user } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace("/dashboard/book-appointment");
+    }
+  }, [user, isUserLoading, router]);
+
+  // If user is logged in, show loader while redirecting to dashboard version
+  if (!isUserLoading && user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

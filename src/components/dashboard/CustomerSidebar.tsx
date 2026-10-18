@@ -126,7 +126,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
       icon: User,
     },
     {
-      href: "/book-appointment",
+      href: "/dashboard/book-appointment",
       label: "Book Appointment",
       icon: CalendarCheck,
     },
@@ -149,61 +149,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
 
       {/* 2. Scrollable Navigation Content */}
       <SidebarContent className="px-2 py-3 space-y-4">
-        {/* User Identity & Wallet Overview Card */}
-        {userData && state !== "collapsed" && (
-          <div className="mx-1 p-3 rounded-xl bg-sidebar-accent/50 border border-sidebar-border/80 shadow-xs space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <Avatar className="h-9 w-9 border border-primary/30 shadow-xs shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">
-                    {displayName}
-                  </p>
-                  {userData.userid && (
-                    <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-1 py-0.2 rounded shrink-0">
-                      #{userData.userid}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                  {userData.email || user?.email || "Tax Client"}
-                </p>
-              </div>
-            </div>
-
-            {/* Wallet & Referral Quick Pills */}
-            <div className="flex items-center gap-1.5 pt-1 flex-wrap">
-              <Link
-                href="/dashboard/refer"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/25 hover:bg-emerald-500/15 transition-colors"
-                title="Active Wallet Credits"
-              >
-                <Wallet className="h-3.5 w-3.5 shrink-0" />
-                <span>${walletBalance.toFixed(2)}</span>
-              </Link>
-
-              {userData.referral_code && (
-                <button
-                  type="button"
-                  onClick={handleCopyReferralCode}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-background/80 hover:bg-background text-sidebar-foreground text-[11px] font-mono font-semibold border border-sidebar-border shadow-xs hover:border-primary/40 transition-colors"
-                  title="Click to copy your coupon code"
-                >
-                  <span className="uppercase text-primary">{userData.referral_code}</span>
-                  {copiedCode ? (
-                    <Check className="h-3 w-3 text-emerald-600 ml-0.5" />
-                  ) : (
-                    <Copy className="h-3 w-3 text-muted-foreground ml-0.5 opacity-70" />
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        
 
         {/* Group 1: Tax Services */}
         <SidebarGroup className="p-0">
