@@ -12,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -44,9 +43,7 @@ import {
   getCustomer,
   ensureCustomerReferralCode,
   getWalletBalance,
-  getWalletTransactions,
   getReferralRewardAmount,
-  WalletTransactionRecord,
 } from "@/lib/supabase/services";
 
 export default function CustomerReferPage() {
@@ -54,7 +51,6 @@ export default function CustomerReferPage() {
   const { toast } = useToast();
 
   const [referrals, setReferrals] = useState<ReferralRecord[]>([]);
-  const [walletTransactions, setWalletTransactions] = useState<WalletTransactionRecord[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0.0);
   const [couponCode, setCouponCode] = useState<string>("");
   const [customerUserid, setCustomerUserid] = useState<number | null>(null);
@@ -101,11 +97,7 @@ export default function CustomerReferPage() {
       const refData = await getReferrals(user.uid);
       setReferrals(refData);
 
-      // 4. Load wallet transactions
-      const txData = await getWalletTransactions(user.uid);
-      setWalletTransactions(txData);
-
-      // 5. Load dynamic referral reward amount
+      // 4. Load dynamic referral reward amount
       const currentReward = await getReferralRewardAmount();
       setRewardAmount(currentReward);
     } catch (err) {
@@ -190,9 +182,7 @@ export default function CustomerReferPage() {
               <span className="text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300">
                 ${walletBalance.toFixed(2)}
               </span>
-              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                Active Credits
-              </Badge>
+              
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               Applicable toward tax prep & consulting fees
@@ -435,129 +425,80 @@ export default function CustomerReferPage() {
         </Card>
       </div>
 
-      {/* Tabs: Referrals Activity & Wallet Ledger */}
+      {/* Rewards Activity: Referred Clients */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Rewards Activity & Wallet History</CardTitle>
-          <CardDescription className="text-xs">
-            Review your invited friends and track bonus credits deposited into your wallet.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Rewards Activity</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Review all friends and clients who registered using your referral coupon code.
+              </CardDescription>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {referrals.length} {referrals.length === 1 ? "Client" : "Clients"} Referred
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="referrals" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="referrals">
-                Referred Clients ({referrals.length})
-              </TabsTrigger>
-              <TabsTrigger value="wallet">
-                Wallet Ledger ({walletTransactions.length})
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Referrals Tab */}
-            <TabsContent value="referrals">
-              {isLoading ? (
-                <div className="flex justify-center items-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : referrals.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground text-sm">
-                  <Gift className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="font-medium text-foreground">No referrals yet</p>
-                  <p className="text-xs mt-1">Share your coupon code <strong className="font-mono text-primary">{couponCode}</strong> to start earning!</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Client Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Coupon Code</TableHead>
-                      <TableHead>Joined Date</TableHead>
-                      <TableHead className="text-right">Bonus Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {referrals.map((r, i) => (
-                      <TableRow key={r.id || i}>
-                        <TableCell className="font-medium text-sm">
-                          {r.referred_name || "Friend"}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground">
-                          {r.referred_email}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">
-                          {r.referral_code || couponCode || "-"}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {r.referral_date ? new Date(r.referral_date).toLocaleDateString() : "Recent"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge
-                            variant={
-                              r.status?.toLowerCase() === "rewarded" || r.status?.toLowerCase() === "completed"
-                                ? "default"
-                                : r.status?.toLowerCase() === "accepted"
-                                ? "secondary"
-                                : "outline"
-                            }
-                          >
-                            {r.status?.toLowerCase() === "rewarded" ? `Rewarded (+$${(r.reward_amount || rewardAmount).toFixed(0)})` : (r.status || "Pending")}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TabsContent>
-
-            {/* Wallet Ledger Tab */}
-            <TabsContent value="wallet">
-              {isLoading ? (
-                <div className="flex justify-center items-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : walletTransactions.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground text-sm">
-                  <Wallet className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="font-medium text-foreground">No wallet transactions yet</p>
-                  <p className="text-xs mt-1">Your current wallet balance is <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">${walletBalance.toFixed(2)}</strong>.</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Credit / Debit</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {walletTransactions.map((tx, idx) => (
-                      <TableRow key={tx.id || idx}>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "Recent"}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">
-                          {tx.description}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {tx.type.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                          {tx.amount > 0 ? `+$${Number(tx.amount).toFixed(2)}` : `-$${Math.abs(Number(tx.amount)).toFixed(2)}`}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TabsContent>
-          </Tabs>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : referrals.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              <Gift className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <p className="font-medium text-foreground">No referrals yet</p>
+              <p className="text-xs mt-1">
+                Share your coupon code <strong className="font-mono text-primary">{couponCode}</strong> to start earning!
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Coupon Code</TableHead>
+                  <TableHead>Joined Date</TableHead>
+                  <TableHead className="text-right">Bonus Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {referrals.map((r, i) => (
+                  <TableRow key={r.id || i}>
+                    <TableCell className="font-medium text-sm">
+                      {r.referred_name || "Friend"}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {r.referred_email}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {r.referral_code || couponCode || "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {r.referral_date ? new Date(r.referral_date).toLocaleDateString() : "Recent"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge
+                        variant={
+                          r.status?.toLowerCase() === "rewarded" || r.status?.toLowerCase() === "completed"
+                            ? "default"
+                            : r.status?.toLowerCase() === "accepted"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {r.status?.toLowerCase() === "rewarded"
+                          ? `Rewarded (+$${(r.reward_amount || rewardAmount).toFixed(0)})`
+                          : (r.status || "Pending")}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
