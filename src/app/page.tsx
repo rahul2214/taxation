@@ -190,20 +190,16 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
               {/* Left Column: Core Positioning & CTAs */}
               <div className="lg:col-span-7 flex flex-col justify-center">
-                {/* Eyebrow Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-800 tracking-wide mb-6 w-fit">
-                  <ShieldCheck className="h-4 w-4 text-blue-600" />
-                  <span>IRS AUTHORIZED e-FILE PROVIDER • LICENSED CPAs &amp; ENROLLED AGENTS</span>
-                </div>
+               
 
                 {/* Primary Headline */}
                 <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.12] mb-6">
-                  Tax Strategy &amp; Precision e-Filing Built for Modern High-Earners, Founders &amp; Businesses.
-                </h1>
+                 Strategic Tax Planning & Secure E-Filing for Individuals and Businesses.
+                 </h1>
 
                 {/* Subheadline */}
                 <p className="font-body text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mb-8">
-                  Maximize your deductions, eliminate audit exposure, and file with 100% CPA accuracy. We combine institutional-grade tax strategy with secure online e-filing for individuals and companies across all 50 states.
+                  Maximize deductions, minimize tax risks, and file with confidence across all 50 states.
                 </p>
 
                 {/* Dual Action Buttons */}
@@ -426,21 +422,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Client Strip */}
-            <div className="pt-8">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest text-center mb-6">
-                Trusted by founders, professionals, and enterprise finance teams nationwide
-              </p>
-              <div className="flex flex-wrap items-center justify-center sm:justify-between gap-6 opacity-75">
-                {CLIENT_LOGOS.map((client) => (
-                  <div key={client.name} className="flex items-center gap-2 text-slate-800 font-bold text-sm">
-                    <div className="w-2 h-2 rounded-full bg-slate-400" />
-                    <span>{client.name}</span>
-                    <span className="text-[10px] font-normal text-slate-400">({client.tag})</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+           
           </div>
         </section>
 
@@ -450,9 +432,7 @@ export default function Home() {
         <section className="py-20 bg-white border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block mb-2">
-                THE POLARIS WORKFLOW
-              </span>
+              
               <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
                 How Modern Tax Filing Should Work
               </h2>
@@ -538,10 +518,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
-                  <Calculator className="h-4 w-4 text-blue-600" />
-                  <span>Diagnostic Modeling Engine</span>
-                </div>
+                
                 <h2 className="font-headline text-3xl font-extrabold text-slate-900 tracking-tight">
                   Instant Tax Exposure &amp; Refund Estimator
                 </h2>
@@ -854,9 +831,7 @@ export default function Home() {
         <section id="services" className="max-w-7xl mx-auto px-6 py-24 scroll-mt-16 border-b border-slate-200">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-6 border-b border-slate-200 gap-6">
             <div>
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block mb-2">
-                PRACTICE AREAS
-              </span>
+              
               <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
                 Comprehensive Tax Solutions for Every Stage
               </h2>
@@ -1016,9 +991,7 @@ export default function Home() {
         <section id="pricing" className="bg-slate-50 py-24 border-b border-slate-200 scroll-mt-16">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block mb-2">
-                CLEAR &amp; PREDICTABLE
-              </span>
+             
               <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
                 Transparent Pricing, Zero Hidden Fees
               </h2>
@@ -1174,9 +1147,7 @@ export default function Home() {
         {/* ========================================================= */}
         <section className="max-w-7xl mx-auto px-6 py-24 border-b border-slate-200">
           <div className="max-w-2xl mb-16">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block mb-2">
-              CLIENT TESTIMONIALS
-            </span>
+           
             <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Backed by High-Performing Clients
             </h2>
@@ -1269,9 +1240,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
               <div>
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block mb-2">
-                  RESEARCH &amp; REGULATORY BRIEFINGS
-                </span>
+                
                 <h2 className="text-2xl md:text-3xl font-headline font-bold text-slate-950">
                   Verified Tax Insights by Licensed CPAs
                 </h2>
@@ -1332,9 +1301,7 @@ export default function Home() {
         {/* ========================================================= */}
         <section className="bg-slate-900 text-white py-20 border-t border-slate-800">
           <div className="max-w-5xl mx-auto px-6 text-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-blue-400 block mb-3">
-              IRS AUTHORIZED E-FILE • DEDICATED CPA OVERSIGHT
-            </span>
+           
             <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-6">
               File Your 2025 Return with 100% CPA Confidence.
             </h2>
