@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   ShieldCheck,
   Award,
-  Sparkles,
   Loader2,
   CalendarCheck,
   ArrowRight,
@@ -198,14 +197,14 @@ export function HomeAppointmentBooking() {
       <div className="container mx-auto px-4 md:px-6">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-          <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 font-semibold px-3 py-1 text-xs mb-3 inline-flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" />
-            Free 15-Minute Tax Strategy Session
-          </Badge>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-headline font-bold text-foreground tracking-tight">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-semibold text-xs mb-3">
+            <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+            Licensed CPAs & IRS Enrolled Agents
+          </div>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-headline font-bold text-slate-900 tracking-tight">
             Book an Appointment with a Certified Tax Pro
           </h2>
-          <p className="mt-3 text-muted-foreground text-base md:text-lg">
+          <p className="mt-3 text-slate-600 text-base md:text-lg">
             Whether you need individual filing, small business optimization, or IRS notice assistance, our licensed CPAs are ready to help. Choose your preferred time below.
           </p>
         </div>
@@ -213,10 +212,10 @@ export function HomeAppointmentBooking() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start max-w-6xl mx-auto">
           {/* Left Column: Key Guarantees & Consultant Info */}
           <div className="lg:col-span-5 space-y-6">
-            <Card className="border-border bg-background shadow-md">
+            <Card className="border border-slate-200 bg-white shadow-sm">
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold flex items-center gap-2">
-                  <Award className="h-5 w-5 text-accent" /> Why Schedule With Us?
+                <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
+                  <Award className="h-5 w-5 text-blue-600" /> Why Schedule With Us?
                 </CardTitle>
                 <CardDescription>
                   Direct access to licensed tax professionals committed to maximizing your return.
@@ -224,48 +223,48 @@ export function HomeAppointmentBooking() {
               </CardHeader>
               <CardContent className="space-y-4 pt-0">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Personalized Deduction Analysis</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h4 className="text-sm font-semibold text-slate-900">Personalized Deduction Analysis</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
                       We examine your specific income streams, deductions, and state tax credits to guarantee top accuracy.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">100% Confidential & Secure</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h4 className="text-sm font-semibold text-slate-900">100% Confidential & Secure</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Protected under IRS IRC Section 7216 privacy guidelines and 256-bit bank-grade encryption.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
                     <Clock className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Flexible Phone or Video Meetings</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h4 className="text-sm font-semibold text-slate-900">Flexible Phone or Video Meetings</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Receive consultation via phone call or secure Google Meet video link from the comfort of your home.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
                     <Headphones className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Year-Round Tax Advisory</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h4 className="text-sm font-semibold text-slate-900">Year-Round Tax Advisory</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
                       We support you through all 12 months, not just during April filing season.
                     </p>
                   </div>
@@ -274,21 +273,21 @@ export function HomeAppointmentBooking() {
             </Card>
 
             {/* Quick Contact & Hours Card */}
-            <div className="bg-primary/5 border border-primary/15 rounded-xl p-5 text-sm space-y-3">
-              <div className="flex items-center gap-2 text-primary font-semibold">
-                <CalendarCheck className="h-4 w-4" />
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm space-y-3">
+              <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                <CalendarCheck className="h-4 w-4 text-blue-600" />
                 <span>Consultation Hours</span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Monday – Friday: <strong className="text-foreground">8:00 AM – 8:00 PM EST</strong>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Monday – Friday: <strong className="text-slate-900">8:00 AM – 8:00 PM EST</strong>
                 <br />
-                Saturday: <strong className="text-foreground">9:00 AM – 5:00 PM EST</strong>
+                Saturday: <strong className="text-slate-900">9:00 AM – 5:00 PM EST</strong>
                 <br />
                 Sunday: Emergency IRS Notice & By Request
               </p>
-              <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Need urgent help?</span>
-                <Link href="/about" className="text-primary font-medium hover:underline flex items-center gap-1">
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                <span className="text-slate-500">Need urgent help?</span>
+                <Link href="/about" className="text-blue-600 font-medium hover:underline flex items-center gap-1">
                   Learn about our CPAs <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -351,19 +350,19 @@ export function HomeAppointmentBooking() {
                 </div>
               </Card>
             ) : (
-              <Card className="border-border bg-background shadow-xl">
+              <Card className="border border-slate-200 bg-white shadow-sm">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl font-bold flex items-center gap-2">
-                        <CalendarCheck className="h-5 w-5 text-primary" /> Request Your Consultation
+                      <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
+                        <CalendarCheck className="h-5 w-5 text-blue-600" /> Request Your Consultation
                       </CardTitle>
-                      <CardDescription className="text-xs mt-1">
+                      <CardDescription className="text-xs mt-1 text-slate-500">
                         Select a convenient date and let our tax team know what return or guidance you need.
                       </CardDescription>
                     </div>
                     {mounted && user && (
-                      <Badge variant="outline" className="bg-primary/5 text-primary text-[11px] shrink-0">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px] shrink-0">
                         Profile Connected
                       </Badge>
                     )}
@@ -506,7 +505,7 @@ export function HomeAppointmentBooking() {
                       type="submit"
                       size="lg"
                       disabled={isSubmitting}
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md mt-2 flex items-center justify-center gap-2"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs mt-2 flex items-center justify-center gap-2 h-11"
                     >
                       {isSubmitting ? (
                         <>

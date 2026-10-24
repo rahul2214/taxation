@@ -1,48 +1,93 @@
 import Link from "next/link";
-import { Facebook, Twitter, Linkedin } from "lucide-react";
+import { Facebook, Twitter, Linkedin, ShieldCheck, Lock, CheckCircle2 } from "lucide-react";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
 
 export function Footer() {
   return (
-    <footer className="bg-secondary text-secondary-foreground">
-      <div className="container mx-auto px-4 py-8 md:px-6">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          <div className="flex flex-col items-start">
-            <Link href="/" className="flex items-center mb-3 hover:opacity-90 transition-opacity">
-              <PolarisLogo className="h-9 w-auto" />
+    <footer className="bg-slate-950 text-slate-300 border-t border-slate-800">
+      <div className="container mx-auto px-4 py-14 md:px-6 lg:py-16">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
+          {/* Brand & Credentials */}
+          <div className="lg:col-span-2 space-y-4">
+            <Link href="/" className="inline-block hover:opacity-95 transition-opacity">
+              <PolarisLogo className="h-9 w-auto brightness-200 contrast-125" />
             </Link>
-            <p className="text-sm text-muted-foreground">Simplifying your taxes with professional ease.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-semibold mb-2">Quick Links</h3>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/services" className="text-muted-foreground hover:text-primary">Services</Link></li>
-                <li><Link href="/blogs" className="text-muted-foreground hover:text-primary">Blogs & Insights</Link></li>
-                <li><Link href="/about" className="text-muted-foreground hover:text-primary">About Us</Link></li>
-                <li><Link href="/guarantee" className="text-muted-foreground hover:text-primary">Guarantee</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">Support</h3>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="#" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
-                <li><Link href="#" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
-                <li><Link href="/dashboard" className="text-muted-foreground hover:text-primary">My Account</Link></li>
-              </ul>
+            <p className="text-sm text-slate-400 max-w-sm leading-relaxed">
+              Polaris Tax Services provides institutional-grade tax preparation, IRS representation, and proactive tax advisory. Led by licensed CPAs and IRS Enrolled Agents.
+            </p>
+
+            <div className="pt-2 flex flex-wrap gap-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-xs text-slate-300">
+                <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
+                IRS Authorized e-File Provider
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-xs text-slate-300">
+                <Lock className="h-3.5 w-3.5 text-blue-400" />
+                256-Bit TLS Bank Encryption
+              </span>
             </div>
           </div>
-          <div className="flex flex-col items-start md:items-end">
-            <h3 className="font-semibold mb-2">Follow Us</h3>
-            <div className="flex gap-4">
-              <Link href="#" aria-label="Facebook" className="text-muted-foreground hover:text-primary"><Facebook /></Link>
-              <Link href="#" aria-label="Twitter" className="text-muted-foreground hover:text-primary"><Twitter /></Link>
-              <Link href="#" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary"><Linkedin /></Link>
+
+          {/* Column 1: Services */}
+          <div>
+            <h3 className="font-semibold text-sm text-white tracking-wide uppercase mb-4">Tax Services</h3>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/services" className="text-slate-400 hover:text-white transition-colors">Individual Form 1040</Link></li>
+              <li><Link href="/services" className="text-slate-400 hover:text-white transition-colors">Small Business & LLC</Link></li>
+              <li><Link href="/services" className="text-slate-400 hover:text-white transition-colors">Corporate Returns (1120-S)</Link></li>
+              <li><Link href="/services" className="text-slate-400 hover:text-white transition-colors">IRS Audit Defense</Link></li>
+              <li><Link href="/services" className="text-slate-400 hover:text-white transition-colors">Year-Round Bookkeeping</Link></li>
+            </ul>
+          </div>
+
+          {/* Column 2: Firm & Trust */}
+          <div>
+            <h3 className="font-semibold text-sm text-white tracking-wide uppercase mb-4">Company</h3>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/about" className="text-slate-400 hover:text-white transition-colors">About Our Team</Link></li>
+              <li><Link href="/guarantee" className="text-slate-400 hover:text-white transition-colors">Accuracy Guarantee</Link></li>
+              <li><Link href="/blogs" className="text-slate-400 hover:text-white transition-colors">Tax News & Guides</Link></li>
+              <li><Link href="/book-appointment" className="text-slate-400 hover:text-white transition-colors">Schedule Consultation</Link></li>
+              <li><Link href="/#calculator" className="text-slate-400 hover:text-white transition-colors">Tax Estimator</Link></li>
+            </ul>
+          </div>
+
+          {/* Column 3: Client Portal */}
+          <div>
+            <h3 className="font-semibold text-sm text-white tracking-wide uppercase mb-4">Client Portal</h3>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/login" className="text-slate-400 hover:text-white transition-colors">Secure Sign In</Link></li>
+              <li><Link href="/signup" className="text-slate-400 hover:text-white transition-colors">Register Account</Link></li>
+              <li><Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors">Document Upload Vault</Link></li>
+              <li><Link href="/dashboard/appointments" className="text-slate-400 hover:text-white transition-colors">Manage Appointments</Link></li>
+            </ul>
+            <div className="mt-6 flex gap-3">
+              <Link href="#" aria-label="Facebook" className="p-2 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-blue-400 hover:border-slate-700 transition-colors">
+                <Facebook className="h-4 w-4" />
+              </Link>
+              <Link href="#" aria-label="Twitter" className="p-2 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-blue-400 hover:border-slate-700 transition-colors">
+                <Twitter className="h-4 w-4" />
+              </Link>
+              <Link href="#" aria-label="LinkedIn" className="p-2 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-blue-400 hover:border-slate-700 transition-colors">
+                <Linkedin className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </div>
-        <div className="mt-8 border-t pt-4 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Polaris Tax Services. All rights reserved.
+
+        {/* Regulatory & Circular 230 Notice */}
+        <div className="mt-12 pt-8 border-t border-slate-800/80 text-xs text-slate-500 space-y-3 leading-relaxed">
+          <p>
+            <strong className="text-slate-400">IRS Circular 230 Disclosure:</strong> Pursuant to U.S. Treasury regulations, any federal tax advice contained in this communication (including any attachments) is not intended or written to be used, and cannot be used, for the purpose of (i) avoiding penalties under the Internal Revenue Code or (ii) promoting, marketing, or recommending to another party any transaction or tax-related matter.
+          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-900 text-slate-500">
+            <p>© {new Date().getFullYear()} Polaris Tax Services Inc. All rights reserved. Licensed CPA & IRS Enrolled Agent Practice.</p>
+            <div className="flex items-center gap-6">
+              <Link href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
+              <Link href="#" className="hover:text-slate-400 transition-colors">Terms of Service</Link>
+              <Link href="#" className="hover:text-slate-400 transition-colors">Security Disclosure</Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

@@ -15,7 +15,6 @@ import {
   Eye, 
   ArrowRight, 
   Tag, 
-  Sparkles, 
   X,
   BookOpen,
   Calendar

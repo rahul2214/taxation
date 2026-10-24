@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Gift, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { Loader2, Gift, CheckCircle2, ArrowRight } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
@@ -444,7 +444,7 @@ function SignupContent() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" /> Welcome to Polaris Tax Services!
+              <CheckCircle2 className="h-5 w-5 text-blue-600" /> Welcome to Polaris Tax Services!
             </DialogTitle>
             <DialogDescription className="whitespace-pre-line text-sm text-foreground/90 mt-2 leading-relaxed">
               {welcomeMessage}

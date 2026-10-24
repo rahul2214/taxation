@@ -28,7 +28,6 @@ import {
   Check,
   Loader2,
   Share2,
-  Sparkles,
   Wallet,
   ArrowUpRight,
   Ticket,

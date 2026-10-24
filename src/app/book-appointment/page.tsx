@@ -144,152 +144,154 @@ export default function BookAppointmentPage() {
 
   return (
     <PublicLayout>
-      <div className="container mx-auto max-w-2xl px-4 py-12 md:px-6 md:py-20">
-        <Card className="shadow-xl border-border bg-card">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Calendar className="h-8 w-8" />
-            </div>
-            <CardTitle className="text-3xl font-bold font-headline">Book A Tax Consultation</CardTitle>
-            <CardDescription className="text-base">
-              Fill out the form below and a licensed tax professional will reach out to confirm your session.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isSuccess ? (
-              <div className="text-center py-8 space-y-4">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-600">
-                  <CheckCircle2 className="h-10 w-10" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground">Appointment Request Received!</h3>
-                <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                  Thank you for scheduling with Polaris Tax Services. One of our CPAs will review your request and get in touch within 24 hours.
-                </p>
-                <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Button variant="outline" onClick={() => setIsSuccess(false)}>
-                    Book Another
-                  </Button>
-                  <Button asChild>
-                    <Link href="/">Back to Home</Link>
-                  </Button>
-                </div>
+      <div className="bg-slate-50 min-h-screen py-12 md:py-20">
+        <div className="container mx-auto max-w-2xl px-4 md:px-6">
+          <Card className="shadow-xs border border-slate-200 bg-white rounded-xl">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Calendar className="h-7 w-7" />
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-semibold">
-                    Full Name *
-                  </Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    placeholder="John Doe"
-                    required
-                    className="h-10 text-sm"
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-semibold">
-                      Phone Number *
-                    </Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="(123) 456-7890"
-                      required
-                      className="h-10 text-sm"
-                    />
+              <CardTitle className="text-2xl md:text-3xl font-bold font-headline text-slate-950">Book A Tax Consultation</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+                Fill out the form below and a licensed tax professional will reach out to confirm your session.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isSuccess ? (
+                <div className="text-center py-8 space-y-4">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                    <CheckCircle2 className="h-8 w-8" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-semibold">
-                      Email Address *
-                    </Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="john.doe@example.com"
-                      required
-                      className="h-10 text-sm"
-                    />
+                  <h3 className="text-xl font-bold text-slate-900">Appointment Request Received!</h3>
+                  <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+                    Thank you for scheduling with Polaris Tax Services. One of our CPAs will review your request and get in touch within 24 hours.
+                  </p>
+                  <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Button variant="outline" className="border-slate-300 text-slate-800 text-xs font-semibold" onClick={() => setIsSuccess(false)}>
+                      Book Another
+                    </Button>
+                    <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">
+                      <Link href="/">Back to Home</Link>
+                    </Button>
                   </div>
                 </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fullName" className="text-xs font-semibold text-slate-700">
+                      Full Name *
+                    </Label>
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      placeholder="Jane Miller"
+                      required
+                      className="h-10 text-sm border-slate-200"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-xs font-semibold text-slate-700">
+                        Phone Number *
+                      </Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        placeholder="(555) 000-0000"
+                        required
+                        className="h-10 text-sm border-slate-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
+                        Email Address *
+                      </Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="jane@example.com"
+                        required
+                        className="h-10 text-sm border-slate-200"
+                      />
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="service" className="text-sm font-semibold">
-                    Consultation Service *
-                  </Label>
-                  <select
-                    id="service"
-                    value={service}
-                    onChange={(e) => setService(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {CONSULTATION_SERVICES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="preferredDate" className="text-sm font-semibold">
-                      Preferred Date *
-                    </Label>
-                    <Input
-                      id="preferredDate"
-                      type="date"
-                      min={minDateStr}
-                      value={preferredDate}
-                      onChange={(e) => setPreferredDate(e.target.value)}
-                      required
-                      className="h-10 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="preferredTime" className="text-sm font-semibold">
-                      Time Window
+                  <div className="space-y-1.5">
+                    <Label htmlFor="service" className="text-xs font-semibold text-slate-700">
+                      Consultation Service *
                     </Label>
                     <select
-                      id="preferredTime"
-                      value={preferredTime}
-                      onChange={(e) => setPreferredTime(e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      id="service"
+                      value={service}
+                      onChange={(e) => setService(e.target.value)}
+                      className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                     >
-                      {TIME_WINDOWS.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
+                      {CONSULTATION_SERVICES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
                         </option>
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-semibold flex items-center justify-between">
-                    <span>Tax Situation & Notes</span>
-                    <span className="text-xs font-normal text-muted-foreground">Optional</span>
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Briefly describe your tax situation or any questions you'd like to cover..."
-                    rows={3}
-                    className="text-sm resize-none"
-                  />
-                </div>
-                <Button type="submit" size="lg" className="w-full mt-2 font-semibold" disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarCheck className="mr-2 h-4 w-4" />}
-                  {isSubmitting ? "Submitting Request..." : "Request Appointment"}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="preferredDate" className="text-xs font-semibold text-slate-700">
+                        Preferred Date *
+                      </Label>
+                      <Input
+                        id="preferredDate"
+                        type="date"
+                        min={minDateStr}
+                        value={preferredDate}
+                        onChange={(e) => setPreferredDate(e.target.value)}
+                        required
+                        className="h-10 text-sm border-slate-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="preferredTime" className="text-xs font-semibold text-slate-700">
+                        Time Window
+                      </Label>
+                      <select
+                        id="preferredTime"
+                        value={preferredTime}
+                        onChange={(e) => setPreferredTime(e.target.value)}
+                        className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      >
+                        {TIME_WINDOWS.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="notes" className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                      <span>Tax Situation & Notes</span>
+                      <span className="text-[11px] font-normal text-slate-500">Optional</span>
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      placeholder="Briefly describe your tax situation or questions..."
+                      rows={3}
+                      className="text-sm resize-none border-slate-200"
+                    />
+                  </div>
+                  <Button type="submit" size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-11 shadow-xs mt-2" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarCheck className="mr-2 h-4 w-4" />}
+                    {isSubmitting ? "Submitting Request..." : "Confirm & Request Appointment"}
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </PublicLayout>
   );

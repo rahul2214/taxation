@@ -35,7 +35,6 @@ import {
   Save,
   CheckCircle2,
   TrendingUp,
-  Sparkles,
   UsersRound,
 } from "lucide-react";
 import { useState, useEffect } from "react";

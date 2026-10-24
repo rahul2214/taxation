@@ -49,39 +49,44 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200/90 bg-white/95 backdrop-blur-md shadow-xs">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+        <Link href="/" className="flex items-center hover:opacity-95 transition-opacity">
           <PolarisLogo className="h-9 md:h-10 w-auto" />
         </Link>
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          {navLinks.map((link) => (
-            <Link 
-              key={link.href} 
-              href={link.href} 
-              className={cn(
-                "transition-colors hover:text-primary",
-                pathname === link.href ? "text-primary font-semibold" : "text-foreground/80"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-7 text-sm font-medium md:flex">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link 
+                key={link.href} 
+                href={link.href} 
+                className={cn(
+                  "relative py-1 transition-colors",
+                  isActive
+                    ? "text-slate-950 font-semibold after:absolute after:bottom-[-2px] after:left-0 after:right-0 after:h-[2px] after:bg-blue-600 after:rounded-full"
+                    : "text-slate-600 hover:text-slate-950"
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="flex items-center gap-3">
           {activeUser ? (
             <>
-              <Button asChild size="sm" className="hidden md:inline-flex shadow-sm gap-2">
+              <Button asChild size="sm" className="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs gap-2">
                 <Link href={dashboardHref}>
                   <LayoutDashboard className="h-4 w-4" />
-                  <span>{isAdmin ? "Admin Panel" : "Dashboard"}</span>
+                  <span>{isAdmin ? "Admin Console" : "Dashboard"}</span>
                 </Link>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="hidden md:inline-flex text-muted-foreground hover:text-destructive gap-1.5"
+                className="hidden md:inline-flex text-slate-500 hover:text-red-600 hover:bg-red-50 gap-1.5"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Log Out</span>
@@ -89,11 +94,11 @@ export function Header() {
             </>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex text-foreground/80 hover:text-foreground">
-                <Link href="/login">Log In</Link>
+              <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex text-slate-700 hover:text-slate-950 font-medium">
+                <Link href="/login">Client Portal</Link>
               </Button>
-              <Button asChild size="sm" className="hidden md:inline-flex shadow-sm">
-                <Link href="/signup">Sign Up</Link>
+              <Button asChild size="sm" className="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs">
+                <Link href="/signup">Get Started</Link>
               </Button>
             </>
           )}
@@ -126,18 +131,18 @@ export function Header() {
                   </Link>
                 ))}
               </nav>
-              <div className="mt-auto space-y-2 pt-6 border-t">
+              <div className="mt-auto space-y-2.5 pt-6 border-t border-slate-200">
                 {activeUser ? (
                   <>
-                    <Button asChild className="w-full gap-2">
+                    <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium gap-2">
                       <Link href={dashboardHref} onClick={() => setIsOpen(false)}>
                         <LayoutDashboard className="h-4 w-4" />
-                        <span>{isAdmin ? "Admin Panel" : "Go to Dashboard"}</span>
+                        <span>{isAdmin ? "Admin Console" : "Go to Dashboard"}</span>
                       </Link>
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full text-destructive hover:bg-destructive/10 gap-2"
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50 gap-2"
                       onClick={() => {
                         setIsOpen(false);
                         handleSignOut();
@@ -149,10 +154,10 @@ export function Header() {
                   </>
                 ) : (
                   <>
-                    <Button asChild variant="outline" className="w-full">
-                      <Link href="/login" onClick={() => setIsOpen(false)}>Log In</Link>
+                    <Button asChild variant="outline" className="w-full border-slate-300 text-slate-800">
+                      <Link href="/login" onClick={() => setIsOpen(false)}>Client Portal</Link>
                     </Button>
-                    <Button asChild className="w-full">
+                    <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
                       <Link href="/signup" onClick={() => setIsOpen(false)}>Create Account</Link>
                     </Button>
                   </>
