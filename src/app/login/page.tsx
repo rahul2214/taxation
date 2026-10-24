@@ -15,6 +15,7 @@ import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 import { getCustomer } from "@/lib/supabase/services";
+import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -38,23 +39,49 @@ function LoginContent() {
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
-  const checkRoleAndRedirect = async (userData: any) => {
+  const checkRoleAndRedirect = async (userData?: any) => {
     setIsRedirecting(true);
     try {
-      const uid = userData.uid || userData.id;
-      const supabaseUser = await getCustomer(uid);
-      if (supabaseUser?.role === "admin" || supabaseUser?.role === "superadmin" || supabaseUser?.role_id === 1 || supabaseUser?.role_id === 3) {
-        router.push("/admin");
+      const cached = getCachedAuth();
+      if (cached.isAdmin) {
+        router.replace("/admin");
         return;
       }
-      router.push("/dashboard");
+      if (cached.user && !cached.isAdmin) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      const uid = userData?.uid || userData?.id || user?.uid;
+      if (uid) {
+        const supabaseUser = await getCustomer(uid);
+        if (
+          supabaseUser?.role === "admin" ||
+          supabaseUser?.role === "superadmin" ||
+          supabaseUser?.role_id === 1 ||
+          supabaseUser?.role_id === 3
+        ) {
+          if (supabaseUser) setCachedAuth(supabaseUser as any, "admin");
+          router.replace("/admin");
+          return;
+        }
+        if (supabaseUser) setCachedAuth(supabaseUser as any, "customer");
+      }
+      router.replace("/dashboard");
     } catch (error) {
       console.error("Error checking user role:", error);
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
   };
 
   useEffect(() => {
+    const cachedTarget = getUserRedirectPath();
+    if (cachedTarget && !isRedirecting) {
+      setIsRedirecting(true);
+      router.replace(cachedTarget);
+      return;
+    }
+
     if (!isUserLoading && user && !isRedirecting) {
       checkRoleAndRedirect(user);
     }

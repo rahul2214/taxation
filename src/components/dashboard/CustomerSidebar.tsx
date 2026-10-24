@@ -37,6 +37,7 @@ import { DocumentData } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 import { getReferralRewardAmount, apiCache } from "@/lib/supabase/services";
+import { clearCachedAuth } from "@/lib/cache/auth-cache";
 
 export function CustomerSidebar({ userData }: { userData: DocumentData | null }) {
   const pathname = usePathname();
@@ -53,6 +54,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
 
   const handleLogout = async () => {
     try {
+      clearCachedAuth();
       apiCache.clear();
       await supabase.auth.signOut();
       toast({

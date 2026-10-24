@@ -16,6 +16,7 @@ import {
   getAdminById,
   getAdminByEmail,
 } from "@/lib/supabase/services";
+import { getCachedAuth } from "@/lib/cache/auth-cache";
 
 export default function AdminLayout({
   children,
@@ -148,15 +149,22 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (isLoginPage) return;
+
+    const cached = getCachedAuth();
+    if (cached.user && !cached.isAdmin && isSupabaseAdmin === false) {
+      router.replace("/dashboard");
+      return;
+    }
+
     if (isCheckingAdmin) return;
 
-    if (!user) {
-      router.push("/admin/login");
+    if (!user && !cached.user) {
+      router.replace("/admin/login");
       return;
     }
 
     if (user && isSupabaseAdmin !== null && !isAdmin) {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
   }, [isLoginPage, isCheckingAdmin, user, isAdmin, isSupabaseAdmin, router]);
 

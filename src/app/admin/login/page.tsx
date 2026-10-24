@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldAlert, ArrowLeft, Lock } from "lucide-react";
 import { getCustomer, getAdminById, getAdminByEmail, verifyAdminCredentials } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
+import { getCachedAuth, setCachedAuth } from "@/lib/cache/auth-cache";
 
 export default function AdminLoginPage() {
   const { user, isUserLoading } = useFirebase();
@@ -22,11 +23,25 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // If already logged in, check if user is admin and redirect to /admin
+  // If already logged in, check if user is admin and redirect to /admin or /dashboard
   useEffect(() => {
+    const cached = getCachedAuth();
+    if (cached.isAdmin) {
+      setIsRedirecting(true);
+      router.replace("/admin");
+      return;
+    }
+    if (cached.user && !cached.isAdmin) {
+      setIsRedirecting(true);
+      router.replace("/dashboard");
+      return;
+    }
+
     const verifyExistingAdmin = async () => {
-      if (!isUserLoading && user) {
+      if (!isUserLoading && user && !isRedirecting) {
+        setIsRedirecting(true);
         try {
           // 1. Check admins table
           let isAdm = false;
@@ -52,16 +67,20 @@ export default function AdminLoginPage() {
           }
 
           if (isAdm) {
-            router.push("/admin");
+            router.replace("/admin");
             return;
           }
+
+          // If logged in as customer, redirect to customer dashboard
+          router.replace("/dashboard");
         } catch (err) {
           console.error("Error verifying admin role:", err);
+          router.replace("/dashboard");
         }
       }
     };
     verifyExistingAdmin();
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, isRedirecting]);
 
   const handleAdminEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +187,17 @@ export default function AdminLoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+        <p className="text-sm font-medium text-slate-400">
+          Already authenticated. Redirecting...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 text-slate-100">

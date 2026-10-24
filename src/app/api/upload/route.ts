@@ -12,6 +12,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // Protection: Max file size 50MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File exceeds the maximum allowed size of 50MB." },
+        { status: 413 }
+      );
+    }
+
+    // Protection: Block potentially dangerous executable file extensions
+    const dangerousExtensions = /\.(exe|bat|cmd|sh|php|pl|cgi|vbs|msi|scr|pif|jar)$/i;
+    if (dangerousExtensions.test(file.name)) {
+      return NextResponse.json(
+        { error: "Executable and script files are strictly prohibited for security reasons." },
+        { status: 400 }
+      );
+    }
+
     if (!isR2Configured) {
       return NextResponse.json(
         {

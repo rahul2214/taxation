@@ -20,6 +20,7 @@ import { useState, useEffect } from "react";
 import { createAppointment } from "@/lib/supabase/services";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import Link from "next/link";
+import { getCachedAuth } from "@/lib/cache/auth-cache";
 
 const CONSULTATION_SERVICES = [
   "Individual & Family Tax Return (Form 1040)",
@@ -54,14 +55,17 @@ export default function BookAppointmentPage() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDateStr = tomorrow.toISOString().split("T")[0];
 
+  const cached = getCachedAuth();
+  const hasUser = Boolean(user || cached.user);
+
   useEffect(() => {
-    if (!isUserLoading && user) {
+    if (hasUser) {
       router.replace("/dashboard/book-appointment");
     }
-  }, [user, isUserLoading, router]);
+  }, [hasUser, router]);
 
   // If user is logged in, show loader while redirecting to dashboard version
-  if (!isUserLoading && user) {
+  if (hasUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { BLOG_POSTS, TRENDING_SEARCH_TERMS } from "@/data/blogs";
 import { HomeAppointmentBooking } from "@/components/home/HomeAppointmentBooking";
+import { useFirebase } from "@/firebase";
+import { getCachedAuth } from "@/lib/cache/auth-cache";
 
 
 const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -282,9 +284,17 @@ const AnimatedCounter = ({ target, duration = 2000, prefix = "", suffix = "" }: 
 
 
 export default function Home() {
-   const plugin = React.useRef(
+  const plugin = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
   );
+
+  const { user } = useFirebase();
+  const cached = getCachedAuth();
+  const activeUser = user || cached.user;
+  const isAdmin = cached.isAdmin || activeUser?.role === "admin" || activeUser?.role === "superadmin";
+  const primaryHref = activeUser ? (isAdmin ? "/admin" : "/dashboard") : "/signup";
+  const primaryLabel = activeUser ? "Go to Dashboard" : "Get Started Today";
+  const bottomLabel = activeUser ? "Go to Dashboard" : "Sign Up for Free";
 
   return (
     <PublicLayout>
@@ -310,7 +320,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
-                <Link href="/signup">Get Started Today</Link>
+                <Link href={primaryHref}>{primaryLabel}</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-background/20 text-white border-white hover:bg-background/30 backdrop-blur-xs font-semibold">
                 <a href="#book-appointment">Book Consultation</a>
@@ -610,7 +620,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
-                <Link href="/signup">Sign Up for Free</Link>
+                <Link href={primaryHref}>{bottomLabel}</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20 font-semibold">
                 <a href="#book-appointment">Book Consultation</a>

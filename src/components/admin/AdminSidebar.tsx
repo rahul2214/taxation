@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 import { apiCache } from "@/lib/supabase/services";
+import { clearCachedAuth } from "@/lib/cache/auth-cache";
 
 type AdminSidebarProps = {
   pendingAppointmentsCount: number;
@@ -52,11 +53,8 @@ export function AdminSidebar({
 
   const handleLogout = async () => {
     try {
+      clearCachedAuth();
       apiCache.clear();
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("polaris_admin_session");
-        window.dispatchEvent(new Event("polaris_admin_auth_changed"));
-      }
       await supabase.auth.signOut();
       toast({
         title: "Logged Out",

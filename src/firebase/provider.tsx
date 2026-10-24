@@ -8,6 +8,7 @@ import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 import { supabase } from '@/lib/supabase/client';
+import { getCachedAuth, setCachedAuth, clearCachedAuth } from '@/lib/cache/auth-cache';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -68,10 +69,20 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   auth,
   storage
 }) => {
-  const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true, // Start loading until first auth event
-    userError: null,
+  const [userAuthState, setUserAuthState] = useState<UserAuthState>(() => {
+    const cached = getCachedAuth();
+    if (cached.user) {
+      return {
+        user: cached.user as any,
+        isUserLoading: false,
+        userError: null,
+      };
+    }
+    return {
+      user: null,
+      isUserLoading: true, // Start loading until first auth event
+      userError: null,
+    };
   });
 
   // Subscribe to Supabase and Firebase auth state changes
@@ -95,36 +106,43 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       if (!isMounted) return;
       if (session?.user) {
         const su = session.user;
+        const mappedUser = {
+          uid: su.id,
+          id: su.id,
+          email: su.email || null,
+          displayName: su.user_metadata?.first_name 
+            ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
+            : (su.email?.split('@')[0] || null),
+          phoneNumber: su.user_metadata?.phone || null,
+          user_metadata: su.user_metadata,
+          role: su.user_metadata?.role || 'customer',
+        } as any;
+
+        setCachedAuth(mappedUser);
         setUserAuthState({
-          user: {
-            uid: su.id,
-            id: su.id,
-            email: su.email || null,
-            displayName: su.user_metadata?.first_name 
-              ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
-              : (su.email?.split('@')[0] || null),
-            phoneNumber: su.user_metadata?.phone || null,
-            user_metadata: su.user_metadata,
-          } as any,
+          user: mappedUser,
           isUserLoading: false,
           userError: null,
         });
       } else {
         const storedAdmin = getStoredAdmin();
         if (storedAdmin) {
+          const adminUser = {
+            uid: storedAdmin.id,
+            id: storedAdmin.id,
+            email: storedAdmin.email || null,
+            displayName: storedAdmin.name || (storedAdmin.email?.split('@')[0] || 'Admin'),
+            role: 'admin',
+            isAdmin: true,
+          } as any;
+          setCachedAuth(adminUser, 'admin');
           setUserAuthState({
-            user: {
-              uid: storedAdmin.id,
-              id: storedAdmin.id,
-              email: storedAdmin.email || null,
-              displayName: storedAdmin.name || (storedAdmin.email?.split('@')[0] || 'Admin'),
-              role: 'admin',
-              isAdmin: true,
-            } as any,
+            user: adminUser,
             isUserLoading: false,
             userError: null,
           });
         } else {
+          clearCachedAuth();
           setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       }
@@ -152,51 +170,50 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     // Listen for custom admin auth change events
     const handleAdminAuthEvent = () => {
       if (!isMounted) return;
-      const storedAdmin = getStoredAdmin();
-      if (storedAdmin) {
+      const cached = getCachedAuth();
+      if (cached.user) {
         setUserAuthState({
-          user: {
-            uid: storedAdmin.id,
-            id: storedAdmin.id,
-            email: storedAdmin.email || null,
-            displayName: storedAdmin.name || (storedAdmin.email?.split('@')[0] || 'Admin'),
-            role: 'admin',
-            isAdmin: true,
-          } as any,
+          user: cached.user as any,
           isUserLoading: false,
           userError: null,
         });
       } else {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (!isMounted) return;
-          if (!session?.user && !auth) {
-            setUserAuthState({ user: null, isUserLoading: false, userError: null });
-          }
-        });
+        setUserAuthState({ user: null, isUserLoading: false, userError: null });
       }
     };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('polaris_admin_auth_changed', handleAdminAuthEvent);
+      window.addEventListener('polaris_auth_changed', handleAdminAuthEvent);
       window.addEventListener('storage', handleAdminAuthEvent);
     }
 
     // Subscribe to Supabase auth events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
+      if (event === 'SIGNED_OUT' || (!session?.user && !getStoredAdmin())) {
+        clearCachedAuth();
+        setUserAuthState({ user: null, isUserLoading: false, userError: null });
+        return;
+      }
+
       if (session?.user) {
         const su = session.user;
+        const mappedUser = {
+          uid: su.id,
+          id: su.id,
+          email: su.email || null,
+          displayName: su.user_metadata?.first_name 
+            ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
+            : (su.email?.split('@')[0] || null),
+          phoneNumber: su.user_metadata?.phone || null,
+          user_metadata: su.user_metadata,
+          role: su.user_metadata?.role || 'customer',
+        } as any;
+
+        setCachedAuth(mappedUser);
         setUserAuthState({
-          user: {
-            uid: su.id,
-            id: su.id,
-            email: su.email || null,
-            displayName: su.user_metadata?.first_name 
-              ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
-              : (su.email?.split('@')[0] || null),
-            phoneNumber: su.user_metadata?.phone || null,
-            user_metadata: su.user_metadata,
-          } as any,
+          user: mappedUser,
           isUserLoading: false,
           userError: null,
         });
@@ -216,6 +233,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             userError: null,
           });
         } else {
+          clearCachedAuth();
           setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       }

@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { doc } from "firebase/firestore";
 import { getCustomer } from "@/lib/supabase/services";
+import { getCachedAuth } from "@/lib/cache/auth-cache";
 
 export default function DashboardLayout({
   children,
@@ -41,16 +42,20 @@ export default function DashboardLayout({
 
   useEffect(() => {
     // If auth state is resolved and there is no user, redirect to login.
-    if (!isUserLoading && !user) {
-      router.push('/login');
+    const cached = getCachedAuth();
+    if (!isUserLoading && !user && !cached.user) {
+      router.replace('/login');
     }
   }, [user, isUserLoading, router]);
 
+  const cached = getCachedAuth();
+  const activeUser = user || cached.user;
+
   // Determine the combined loading state
-  const isLoading = isUserLoading || (firestore ? isUserDataLoading : false);
+  const isLoading = (isUserLoading && !activeUser) || (firestore ? isUserDataLoading : false);
 
   // If we are loading or there's no user yet, show a full-screen loader.
-  if (isLoading || !user) {
+  if (isLoading || !activeUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
