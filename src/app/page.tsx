@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { BLOG_POSTS, TRENDING_SEARCH_TERMS } from "@/data/blogs";
+import { HomeAppointmentBooking } from "@/components/home/HomeAppointmentBooking";
 
 
 const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -308,11 +309,11 @@ export default function Home() {
               Professional, reliable, and straightforward tax services designed for you.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
                 <Link href="/signup">Get Started Today</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="bg-background/20 text-white border-white hover:bg-background/30">
-                <Link href="/book-appointment">Book Appointment</Link>
+              <Button asChild size="lg" variant="outline" className="bg-background/20 text-white border-white hover:bg-background/30 backdrop-blur-xs font-semibold">
+                <a href="#book-appointment">Book Consultation</a>
               </Button>
             </div>
           </div>
@@ -413,6 +414,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Appointment Booking Section */}
+        <HomeAppointmentBooking />
 
         {/* Testimonials Section */}
         <section className="py-16 md:py-24 bg-card">
@@ -604,9 +608,14 @@ export default function Home() {
             <p className="mt-4 max-w-xl mx-auto">
               Join thousands of satisfied clients and experience the Polaris Tax Services difference.
             </p>
-            <Button asChild size="lg" className="mt-8 bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link href="/signup">Sign Up for Free</Link>
-            </Button>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+                <Link href="/signup">Sign Up for Free</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20 font-semibold">
+                <a href="#book-appointment">Book Consultation</a>
+              </Button>
+            </div>
           </div>
         </section>
       </div>
