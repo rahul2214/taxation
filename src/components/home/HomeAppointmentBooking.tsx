@@ -61,6 +61,8 @@ export function HomeAppointmentBooking() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [minDateStr, setMinDateStr] = useState("");
   const [submittedData, setSubmittedData] = useState<{
     name: string;
     email: string;
@@ -69,10 +71,12 @@ export function HomeAppointmentBooking() {
     time: string;
   } | null>(null);
 
-  // Set min date to tomorrow
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDateStr = tomorrow.toISOString().split("T")[0];
+  useEffect(() => {
+    setMounted(true);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setMinDateStr(tomorrow.toISOString().split("T")[0]);
+  }, []);
 
   // Auto-fill from user profile if logged in
   useEffect(() => {
@@ -335,7 +339,7 @@ export function HomeAppointmentBooking() {
                   <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
                     Book Another Consultation
                   </Button>
-                  {user ? (
+                  {mounted && user ? (
                     <Button asChild className="w-full sm:w-auto">
                       <Link href="/dashboard/book-appointment">View In Client Dashboard</Link>
                     </Button>
@@ -358,7 +362,7 @@ export function HomeAppointmentBooking() {
                         Select a convenient date and let our tax team know what return or guidance you need.
                       </CardDescription>
                     </div>
-                    {user && (
+                    {mounted && user && (
                       <Badge variant="outline" className="bg-primary/5 text-primary text-[11px] shrink-0">
                         Profile Connected
                       </Badge>

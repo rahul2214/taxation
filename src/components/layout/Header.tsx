@@ -5,7 +5,7 @@ import { Menu, LayoutDashboard, LogOut, User } from "lucide-react";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
@@ -23,12 +23,17 @@ const navLinks = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useFirebase();
 
-  const cached = getCachedAuth();
-  const activeUser = user || cached.user;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const cached = mounted ? getCachedAuth() : { user: null, role: null, isAdmin: false };
+  const activeUser = mounted ? (user || cached.user) : null;
   const isAdmin = cached.isAdmin || activeUser?.role === "admin" || activeUser?.role === "superadmin";
   const dashboardHref = isAdmin ? "/admin" : "/dashboard";
 

@@ -288,9 +288,14 @@ export default function Home() {
     Autoplay({ delay: 4000, stopOnInteraction: true })
   );
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { user } = useFirebase();
-  const cached = getCachedAuth();
-  const activeUser = user || cached.user;
+  const cached = mounted ? getCachedAuth() : { user: null, role: null, isAdmin: false };
+  const activeUser = mounted ? (user || cached.user) : null;
   const isAdmin = cached.isAdmin || activeUser?.role === "admin" || activeUser?.role === "superadmin";
   const primaryHref = activeUser ? (isAdmin ? "/admin" : "/dashboard") : "/signup";
   const primaryLabel = activeUser ? "Go to Dashboard" : "Get Started Today";

@@ -69,25 +69,25 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   auth,
   storage
 }) => {
-  const [userAuthState, setUserAuthState] = useState<UserAuthState>(() => {
-    const cached = getCachedAuth();
-    if (cached.user) {
-      return {
-        user: cached.user as any,
-        isUserLoading: false,
-        userError: null,
-      };
-    }
-    return {
-      user: null,
-      isUserLoading: true, // Start loading until first auth event
-      userError: null,
-    };
+  const [userAuthState, setUserAuthState] = useState<UserAuthState>({
+    user: null,
+    isUserLoading: true, // Start loading until first auth event
+    userError: null,
   });
 
   // Subscribe to Supabase and Firebase auth state changes
   useEffect(() => {
     let isMounted = true;
+
+    // Fast-sync from cached auth on client mount
+    const cached = getCachedAuth();
+    if (cached.user && isMounted) {
+      setUserAuthState({
+        user: cached.user as any,
+        isUserLoading: false,
+        userError: null,
+      });
+    }
 
     const getStoredAdmin = () => {
       try {
