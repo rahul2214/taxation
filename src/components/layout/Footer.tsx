@@ -5,7 +5,7 @@ import { PolarisLogo } from "@/components/common/PolarisLogo";
 export function Footer() {
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800">
-      <div className="container mx-auto px-4 py-14 md:px-6 lg:py-16">
+      <div className="max-w-7xl mx-auto px-6 py-14 lg:py-16">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand & Credentials */}
           <div className="lg:col-span-2 space-y-4">
@@ -46,9 +46,10 @@ export function Footer() {
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/about" className="text-slate-400 hover:text-white transition-colors">About Our Team</Link></li>
               <li><Link href="/guarantee" className="text-slate-400 hover:text-white transition-colors">Accuracy Guarantee</Link></li>
-              <li><Link href="/blogs" className="text-slate-400 hover:text-white transition-colors">Tax News & Guides</Link></li>
+              <li><Link href="/blogs" className="text-slate-400 hover:text-white transition-colors">Tax News &amp; Guides</Link></li>
+              <li><Link href="/faq" className="text-slate-400 hover:text-white transition-colors">Frequently Asked (FAQ)</Link></li>
+              <li><Link href="/contact" className="text-slate-400 hover:text-white transition-colors">Contact Practice</Link></li>
               <li><Link href="/book-appointment" className="text-slate-400 hover:text-white transition-colors">Schedule Consultation</Link></li>
-              <li><Link href="/#calculator" className="text-slate-400 hover:text-white transition-colors">Tax Estimator</Link></li>
             </ul>
           </div>
 
@@ -81,11 +82,12 @@ export function Footer() {
             <strong className="text-slate-400">IRS Circular 230 Disclosure:</strong> Pursuant to U.S. Treasury regulations, any federal tax advice contained in this communication (including any attachments) is not intended or written to be used, and cannot be used, for the purpose of (i) avoiding penalties under the Internal Revenue Code or (ii) promoting, marketing, or recommending to another party any transaction or tax-related matter.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-900 text-slate-500">
-            <p>© {new Date().getFullYear()} Polaris Tax Services Inc. All rights reserved. Licensed CPA & IRS Enrolled Agent Practice.</p>
-            <div className="flex items-center gap-6">
-              <Link href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-slate-400 transition-colors">Terms of Service</Link>
-              <Link href="#" className="hover:text-slate-400 transition-colors">Security Disclosure</Link>
+            <p>© {new Date().getFullYear()} Polaris Tax Services Inc. All rights reserved. Licensed CPA &amp; IRS Enrolled Agent Practice.</p>
+            <div className="flex flex-wrap items-center gap-6">
+              <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+              <Link href="/security" className="hover:text-slate-300 transition-colors">Security Architecture</Link>
+              <Link href="/disclaimer" className="hover:text-slate-300 transition-colors">Circular 230 Disclosure</Link>
             </div>
           </div>
         </div>

@@ -425,6 +425,13 @@ function SignupContent() {
                 {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
                 Sign up with Google
               </Button>
+
+              <p className="text-[11px] text-center text-muted-foreground mt-3 leading-relaxed">
+                By registering, you agree to our{" "}
+                <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+              </p>
             </form>
           </CardContent>
 

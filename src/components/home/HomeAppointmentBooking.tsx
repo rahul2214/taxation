@@ -8,16 +8,16 @@ import {
   User,
   Mail,
   Phone,
-  FileText,
   CheckCircle2,
   ShieldCheck,
   Award,
   Loader2,
   CalendarCheck,
+  Lock,
   ArrowRight,
-  Headphones,
+  Briefcase,
+  FileText,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -29,21 +29,22 @@ import { createAppointment, getCustomer, CustomerRecord } from "@/lib/supabase/s
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const CONSULTATION_SERVICES = [
-  "Individual & Family Tax Return (Form 1040)",
-  "Small Business & Self-Employed (Schedule C / LLC)",
-  "Corporate Tax Preparation (1120 / 1120-S / 1065)",
-  "Tax Planning & Deduction Strategy",
-  "Prior Year Returns & Amendments",
-  "IRS Notice & Audit Assistance",
-  "Bookkeeping & Payroll Advisory",
-  "General Tax Consultation",
+  "Executive & Private Wealth Advisory (QSBS / Trust)",
+  "Small Business & Corporate Tax (LLC / 1120-S)",
+  "Individual & Family Form 1040 Preparation",
+  "IRS Notice, CP2000 & Audit Defense",
+  "Cross-Border, GILTI & Foreign Asset Reporting",
+  "R&D Tax Credit & Capital Expenditure Scans",
+  "Year-Round Bookkeeping & Strategic Advisory",
 ];
 
 const TIME_WINDOWS = [
-  "Morning (9:00 AM - 12:00 PM EST)",
-  "Afternoon (12:00 PM - 3:00 PM EST)",
-  "Late Afternoon (3:00 PM - 6:00 PM EST)",
-  "Evening (6:00 PM - 8:00 PM EST)",
+  "Thu • 10:00 AM EDT",
+  "Thu • 2:30 PM EDT",
+  "Fri • 11:30 AM EDT",
+  "Fri • 3:00 PM EDT",
+  "Mon • 1:00 PM EDT",
+  "Custom Window",
 ];
 
 export function HomeAppointmentBooking() {
@@ -54,9 +55,10 @@ export function HomeAppointmentBooking() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
   const [service, setService] = useState(CONSULTATION_SERVICES[0]);
   const [preferredDate, setPreferredDate] = useState("");
-  const [preferredTime, setPreferredTime] = useState(TIME_WINDOWS[0]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(TIME_WINDOWS[0]);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -74,7 +76,9 @@ export function HomeAppointmentBooking() {
     setMounted(true);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    setMinDateStr(tomorrow.toISOString().split("T")[0]);
+    const dateStr = tomorrow.toISOString().split("T")[0];
+    setMinDateStr(dateStr);
+    setPreferredDate(dateStr);
   }, []);
 
   // Auto-fill from user profile if logged in
@@ -97,8 +101,7 @@ export function HomeAppointmentBooking() {
           if (user.email) setEmail(user.email);
         }
       } catch (e) {
-        if (user.displayName) setFullName(user.displayName);
-        if (user.email) setEmail(user.email);
+        console.warn("Failed to fetch customer profile for pre-fill:", e);
       }
     }
 
@@ -108,55 +111,55 @@ export function HomeAppointmentBooking() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!fullName.trim() || !email.trim() || !phone.trim() || !preferredDate) {
+    if (!fullName.trim() || !email.trim() || !phone.trim()) {
       toast({
         variant: "destructive",
-        title: "Required Information Missing",
-        description: "Please enter your name, email, phone number, and preferred date.",
+        title: "Missing Required Fields",
+        description: "Please provide your full name, email address, and phone number.",
       });
       return;
     }
 
     setIsSubmitting(true);
 
-    try {
-      const combinedNotes = [
-        preferredTime ? `Preferred Window: ${preferredTime}` : "",
-        notes.trim() ? `Client Notes: ${notes.trim()}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
+    const combinedNotes = [
+      company.trim() ? `Entity / Company: ${company.trim()}` : "",
+      selectedTimeSlot ? `Requested Slot: ${selectedTimeSlot}` : "",
+      notes.trim() ? `Objective: ${notes.trim()}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
-      // Save to Supabase
+    try {
+      // 1. Supabase insert
       await createAppointment({
-        customer_id: user?.uid || null,
-        customer_userid: customer?.userid || null,
         name: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
         service,
-        appointment_date: new Date(preferredDate).toISOString(),
+        appointment_date: preferredDate || minDateStr,
         notes: combinedNotes,
-        status: "Pending",
+        status: "pending",
+        customer_id: user?.uid || null,
       });
 
-      // Optionally mirror to Firestore if configured
+      // 2. Optional Firestore sync
       if (firestore) {
         try {
-          const appointmentsCol = collection(firestore, "appointments");
-          await addDoc(appointmentsCol, {
-            fullName: fullName.trim(),
-            phone: phone.trim(),
+          await addDoc(collection(firestore, "appointments"), {
+            name: fullName.trim(),
             email: email.trim(),
+            phone: phone.trim(),
             service,
-            preferredTime,
+            appointmentDate: preferredDate || minDateStr,
+            timeWindow: selectedTimeSlot,
             notes: combinedNotes,
-            status: "Pending",
+            status: "pending",
             requestDate: serverTimestamp(),
             customerId: user?.uid || null,
           });
         } catch (fsErr) {
-          console.warn("Firestore mirror notice:", fsErr);
+          console.warn("Firestore sync optional warning:", fsErr);
         }
       }
 
@@ -164,21 +167,22 @@ export function HomeAppointmentBooking() {
         name: fullName.trim(),
         email: email.trim(),
         service,
-        date: preferredDate,
-        time: preferredTime,
+        date: preferredDate || minDateStr,
+        time: selectedTimeSlot,
       });
+
       setIsSubmitted(true);
 
       toast({
-        title: "Appointment Requested!",
-        description: "We've received your request. A tax specialist will confirm your session shortly.",
+        title: "Consultation Request Registered",
+        description: "Your session request has been confirmed. A licensed CPA will follow up with formal calendar coordinates.",
       });
     } catch (err: any) {
-      console.error("Error creating appointment:", err);
+      console.error("Booking submission error:", err);
       toast({
         variant: "destructive",
-        title: "Booking Request Failed",
-        description: err?.message || "Unable to submit your appointment request. Please try again.",
+        title: "Submission Error",
+        description: err?.message || "Could not register your consultation. Please try again or call our partner desk.",
       });
     } finally {
       setIsSubmitting(false);
@@ -189,344 +193,276 @@ export function HomeAppointmentBooking() {
     setIsSubmitted(false);
     setSubmittedData(null);
     setNotes("");
-    setPreferredDate("");
+    setCompany("");
   };
 
   return (
-    <section id="book-appointment" className="py-16 md:py-24 bg-card border-y border-border/60 scroll-mt-16">
-      <div className="container mx-auto px-4 md:px-6">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-semibold text-xs mb-3">
-            <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
-            Licensed CPAs & IRS Enrolled Agents
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-headline font-bold text-slate-900 tracking-tight">
-            Book an Appointment with a Certified Tax Pro
-          </h2>
-          <p className="mt-3 text-slate-600 text-base md:text-lg">
-            Whether you need individual filing, small business optimization, or IRS notice assistance, our licensed CPAs are ready to help. Choose your preferred time below.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start max-w-6xl mx-auto">
-          {/* Left Column: Key Guarantees & Consultant Info */}
-          <div className="lg:col-span-5 space-y-6">
-            <Card className="border border-slate-200 bg-white shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
-                  <Award className="h-5 w-5 text-blue-600" /> Why Schedule With Us?
-                </CardTitle>
-                <CardDescription>
-                  Direct access to licensed tax professionals committed to maximizing your return.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-0">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
-                    <CheckCircle2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">Personalized Deduction Analysis</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      We examine your specific income streams, deductions, and state tax credits to guarantee top accuracy.
-                    </p>
-                  </div>
+    <section id="book-consultation" className="bg-slate-900 text-white py-20 lg:py-24 scroll-mt-16">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="bg-slate-800/80 border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12">
+            {/* Left Info Panel */}
+            <div className="lg:col-span-5 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-slate-700 flex flex-col justify-between">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-300 bg-slate-700/60 px-3 py-1 rounded mb-6">
+                  <Lock className="h-3 w-3 text-white" />
+                  <span>Confidential Engagement</span>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
-                    <ShieldCheck className="h-4 w-4" />
+                <h3 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-white">
+                  Schedule a 30-Minute Partner Consultation
+                </h3>
+
+                <p className="text-sm text-slate-300 leading-relaxed mb-8">
+                  Direct evaluation with a licensed CPA and Big-Four alumni partner. We will examine your entity architecture, state nexus footprints, and tax leakage exposures.
+                </p>
+
+                <div className="space-y-4 text-xs text-slate-300">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white block font-semibold">Mutual Non-Disclosure Agreement (NDA)</strong>
+                      All financial disclosures protected under strict CPA-client statutory privilege.
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">100% Confidential & Secure</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Protected under IRS IRC Section 7216 privacy guidelines and 256-bit bank-grade encryption.
-                    </p>
+
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white block font-semibold">Preliminary Tax Leakage Diagnostic</strong>
+                      Instant identification of unclaimed R&amp;D credits, multi-state leakage, and QSBS status.
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white block font-semibold">Custom Advisory Scope &amp; Fixed Pricing</strong>
+                      Clear transparent engagement roadmaps with zero billable hourly surprises.
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">Flexible Phone or Video Meetings</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Receive consultation via phone call or secure Google Meet video link from the comfort of your home.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 shrink-0 mt-0.5">
-                    <Headphones className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">Year-Round Tax Advisory</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      We support you through all 12 months, not just during April filing season.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Contact & Hours Card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm space-y-3">
-              <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                <CalendarCheck className="h-4 w-4 text-blue-600" />
-                <span>Consultation Hours</span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Monday – Friday: <strong className="text-slate-900">8:00 AM – 8:00 PM EST</strong>
-                <br />
-                Saturday: <strong className="text-slate-900">9:00 AM – 5:00 PM EST</strong>
-                <br />
-                Sunday: Emergency IRS Notice & By Request
-              </p>
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Need urgent help?</span>
-                <Link href="/about" className="text-blue-600 font-medium hover:underline flex items-center gap-1">
-                  Learn about our CPAs <ArrowRight className="h-3 w-3" />
-                </Link>
+
+              <div className="pt-8 mt-8 border-t border-slate-700/80 text-[11px] text-slate-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <span>
+                  Direct Inquiries: <strong className="text-slate-200">advisory@polaristax.com</strong>
+                </span>
+                <span className="text-slate-400">(212) 847-1920</span>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Interactive Booking Form / Confirmation Card */}
-          <div className="lg:col-span-7">
-            {isSubmitted && submittedData ? (
-              <Card className="border-border bg-background shadow-xl text-center p-6 md:p-8">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="h-10 w-10" />
-                </div>
-                <CardTitle className="text-2xl font-bold text-foreground">
-                  Appointment Request Received!
-                </CardTitle>
-                <CardDescription className="text-sm mt-2 max-w-md mx-auto">
-                  Thank you, <strong>{submittedData.name}</strong>. Our senior tax advisor has received your consultation request and will reach out to confirm your slot.
-                </CardDescription>
+            {/* Right Interactive Form / Confirmation Panel */}
+            <div className="lg:col-span-7 p-8 lg:p-12 bg-slate-800/40">
+              {isSubmitted && submittedData ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-6 space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <h4 className="text-2xl font-bold text-white">Consultation Request Confirmed</h4>
+                  <p className="text-slate-300 text-sm max-w-md leading-relaxed">
+                    Thank you, <strong className="text-white">{submittedData.name}</strong>. A Polaris Senior Partner will contact you at <strong className="text-white">{submittedData.email}</strong> to deliver your calendar invitation.
+                  </p>
 
-                <div className="my-6 p-4 rounded-lg bg-card border border-border text-left max-w-md mx-auto space-y-2.5 text-xs md:text-sm">
-                  <div className="flex justify-between py-1 border-b border-border/60">
-                    <span className="text-muted-foreground">Service:</span>
-                    <span className="font-semibold text-foreground text-right">{submittedData.service}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border/60">
-                    <span className="text-muted-foreground">Preferred Date:</span>
-                    <span className="font-semibold text-foreground">
-                      {new Date(submittedData.date).toLocaleDateString("en-US", {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border/60">
-                    <span className="text-muted-foreground">Time Window:</span>
-                    <span className="font-semibold text-foreground">{submittedData.time}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-muted-foreground">Confirmation Email:</span>
-                    <span className="font-semibold text-foreground">{submittedData.email}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
-                    Book Another Consultation
-                  </Button>
-                  {mounted && user ? (
-                    <Button asChild className="w-full sm:w-auto">
-                      <Link href="/dashboard/book-appointment">View In Client Dashboard</Link>
-                    </Button>
-                  ) : (
-                    <Button asChild className="w-full sm:w-auto">
-                      <Link href="/signup">Create Free Account to Track</Link>
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            ) : (
-              <Card className="border border-slate-200 bg-white shadow-sm">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-900">
-                        <CalendarCheck className="h-5 w-5 text-blue-600" /> Request Your Consultation
-                      </CardTitle>
-                      <CardDescription className="text-xs mt-1 text-slate-500">
-                        Select a convenient date and let our tax team know what return or guidance you need.
-                      </CardDescription>
+                  <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-lg p-4 text-left text-xs text-slate-300 space-y-2 my-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Practice Area:</span>
+                      <span className="text-white font-medium text-right max-w-[200px] truncate">{submittedData.service}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Target Date:</span>
+                      <span className="text-white font-medium">{submittedData.date}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Preferred Window:</span>
+                      <span className="text-emerald-400 font-semibold">{submittedData.time}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleReset}
+                      className="border-slate-600 text-slate-200 hover:bg-slate-700 text-xs"
+                    >
+                      Book Another Session
+                    </Button>
+                    <Button asChild className="bg-white text-slate-900 hover:bg-slate-100 font-semibold text-xs">
+                      <Link href="/dashboard">Access Client Portal</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Partner Session Reservation
+                    </span>
                     {mounted && user && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px] shrink-0">
-                        Profile Connected
-                      </Badge>
+                      <span className="text-[11px] text-blue-400 bg-blue-950/80 px-2.5 py-0.5 rounded border border-blue-800">
+                        Client Profile Connected
+                      </span>
                     )}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Full Name */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="home-fullName" className="text-xs font-semibold">
-                        Full Name *
+
+                  {/* Name & Work Email */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="sched-name" className="text-xs text-slate-300">
+                        First &amp; Last Name *
                       </Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="home-fullName"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder="e.g. Jane Miller"
-                          className="pl-9 h-10 text-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Email & Phone */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="home-email" className="text-xs font-semibold">
-                          Email Address *
-                        </Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="home-email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="jane@example.com"
-                            className="pl-9 h-10 text-sm"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="home-phone" className="text-xs font-semibold">
-                          Phone Number *
-                        </Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="home-phone"
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="(555) 123-4567"
-                            className="pl-9 h-10 text-sm"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Service Selection */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="home-service" className="text-xs font-semibold">
-                        Tax Service / Consultation Type *
-                      </Label>
-                      <select
-                        id="home-service"
-                        value={service}
-                        onChange={(e) => setService(e.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        {CONSULTATION_SERVICES.map((srv) => (
-                          <option key={srv} value={srv}>
-                            {srv}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Preferred Date & Time Slot */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="home-date" className="text-xs font-semibold">
-                          Preferred Date *
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="home-date"
-                            type="date"
-                            min={minDateStr}
-                            value={preferredDate}
-                            onChange={(e) => setPreferredDate(e.target.value)}
-                            className="h-10 text-sm"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="home-time" className="text-xs font-semibold">
-                          Preferred Time Window
-                        </Label>
-                        <select
-                          id="home-time"
-                          value={preferredTime}
-                          onChange={(e) => setPreferredTime(e.target.value)}
-                          className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          {TIME_WINDOWS.map((tw) => (
-                            <option key={tw} value={tw}>
-                              {tw}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Notes / Tax Situation (Optional) */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="home-notes" className="text-xs font-semibold flex items-center justify-between">
-                        <span>Notes & Tax Situation Details</span>
-                        <span className="text-[11px] font-normal text-muted-foreground">Optional</span>
-                      </Label>
-                      <Textarea
-                        id="home-notes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="e.g. W-2 with stock sales, newly formed single-member LLC, received IRS CP2000 notice..."
-                        rows={3}
-                        className="text-sm resize-none"
+                      <Input
+                        id="sched-name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Alexander Vance"
+                        required
+                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
                       />
                     </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="sched-email" className="text-xs text-slate-300">
+                        Work Email *
+                      </Label>
+                      <Input
+                        id="sched-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="avance@company.com"
+                        required
+                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
+                      />
+                    </div>
+                  </div>
 
-                    {/* Submit Button */}
+                  {/* Phone & Company Name */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="sched-phone" className="text-xs text-slate-300">
+                        Phone Number *
+                      </Label>
+                      <Input
+                        id="sched-phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="(212) 555-0198"
+                        required
+                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="sched-company" className="text-xs text-slate-300">
+                        Entity / Company Name
+                      </Label>
+                      <Input
+                        id="sched-company"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        placeholder="Vance Tech Holdings Inc."
+                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Practice Area Selection */}
+                  <div className="space-y-1">
+                    <Label htmlFor="sched-service" className="text-xs text-slate-300">
+                      Primary Advisory Scope *
+                    </Label>
+                    <select
+                      id="sched-service"
+                      value={service}
+                      onChange={(e) => setService(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-slate-400"
+                    >
+                      {CONSULTATION_SERVICES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Time Slot Pill Buttons */}
+                  <div className="space-y-1.5 pt-1">
+                    <Label className="text-xs text-slate-300">
+                      Select Preferred Consultation Window
+                    </Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {TIME_WINDOWS.map((tw) => (
+                        <button
+                          key={tw}
+                          type="button"
+                          onClick={() => setSelectedTimeSlot(tw)}
+                          className={`text-xs py-2 px-2 rounded border text-center transition-all ${
+                            selectedTimeSlot === tw
+                              ? "bg-slate-700 border-white text-white font-semibold shadow-xs"
+                              : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
+                          }`}
+                        >
+                          {tw}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Date Input */}
+                  <div className="space-y-1 pt-1">
+                    <Label htmlFor="sched-date" className="text-xs text-slate-300">
+                      Earliest Date Available
+                    </Label>
+                    <Input
+                      id="sched-date"
+                      type="date"
+                      min={minDateStr}
+                      value={preferredDate}
+                      onChange={(e) => setPreferredDate(e.target.value)}
+                      className="bg-slate-900 border-slate-700 text-white h-9 text-xs focus-visible:ring-slate-400"
+                    />
+                  </div>
+
+                  {/* Notes / Tax Situation */}
+                  <div className="space-y-1 pt-1">
+                    <Label htmlFor="sched-notes" className="text-xs text-slate-300 flex justify-between">
+                      <span>Primary Objective &amp; Notes</span>
+                      <span className="text-slate-500 font-normal">Optional</span>
+                    </Label>
+                    <Textarea
+                      id="sched-notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="e.g. QSBS qualification for upcoming liquidity event, M&A due diligence, multi-state payroll nexus audit..."
+                      rows={2}
+                      className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 text-xs resize-none focus-visible:ring-slate-400"
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
                     <Button
                       type="submit"
-                      size="lg"
                       disabled={isSubmitting}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs mt-2 flex items-center justify-center gap-2 h-11"
+                      className="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs h-11 shadow-lg flex items-center justify-center gap-2"
                     >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Scheduling Your Appointment...</span>
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-900" />
+                          <span>Registering Consultation...</span>
                         </>
                       ) : (
                         <>
-                          <CalendarCheck className="h-4 w-4" />
-                          <span>Confirm & Book Appointment</span>
+                          <CalendarCheck className="h-4 w-4 text-slate-900" />
+                          <span>Confirm Consultation Request</span>
                         </>
                       )}
                     </Button>
-
-                    <p className="text-[11px] text-center text-muted-foreground pt-1">
-                      No payment or commitment required. We will confirm your appointment time by email or phone.
-                    </p>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </div>
