@@ -5,6 +5,8 @@ export const metadata: Metadata = buildMetadata({
   title: "Create Your Client Account",
   description: "Open a secure Polaris client account to upload tax documents, track your return and message your CPA. Individual returns from $59.",
   path: "/signup",
+  // Client-rendered form with no search value; keep it out of the index.
+  noIndex: true,
   keywords: ["file taxes with a CPA online", "secure tax document upload"],
 });
 

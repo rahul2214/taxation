@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/data/blogs";
 import { absoluteUrl } from "@/lib/seo";
+import { SERVICES } from "@/data/services";
 
 // Bump when the content of the static pages changes meaningfully; Google ignores lastmod values that change on every request.
 const PAGES_UPDATED = new Date("2026-10-28");
@@ -14,7 +15,6 @@ const STATIC_PAGES: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/contact", changeFrequency: "monthly", priority: 0.7 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
   { path: "/guarantee", changeFrequency: "monthly", priority: 0.6 },
-  { path: "/signup", changeFrequency: "yearly", priority: 0.5 },
   { path: "/security", changeFrequency: "yearly", priority: 0.4 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/terms", changeFrequency: "yearly", priority: 0.2 },
@@ -42,5 +42,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     images: [absoluteUrl(`/blogs/${post.slug}/opengraph-image`)],
   }));
 
-  return [...staticRoutes, ...blogRoutes];
+  const serviceRoutes: MetadataRoute.Sitemap = SERVICES.map((service) => ({
+    url: absoluteUrl(`/services/${service.slug}`),
+    lastModified: PAGES_UPDATED,
+    changeFrequency: "monthly",
+    priority: 0.9,
+  }));
+
+  return [...staticRoutes, ...serviceRoutes, ...blogRoutes];
 }

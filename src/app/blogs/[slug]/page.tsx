@@ -3,13 +3,9 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { buildMetadata, SITE } from "@/lib/seo";
+import { SERVICE_FOR_BLOG_CATEGORY, getServiceBySlug } from "@/data/services";
 import { BLOG_POSTS, getBlogPostBySlug, getRelatedBlogs } from "@/data/blogs";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FaqList } from "@/components/public/FaqList";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export function generateStaticParams() {
@@ -75,6 +71,13 @@ export default async function BlogPostPage({
   const siteUrl = SITE.url;
   const articleUrl = `${siteUrl}/blogs/${post.slug}`;
   const relatedPosts = getRelatedBlogs(post.slug, 3);
+  const relatedService = getServiceBySlug(SERVICE_FOR_BLOG_CATEGORY[post.category] ?? "");
+  const updatedLabel = new Date(post.seo.modifiedIso).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
   // Schema.org BlogPosting Structured Data
   const articleSchema = {
@@ -199,6 +202,11 @@ export default async function BlogPostPage({
                   By <span className="font-semibold text-ink">{post.author.name}</span>, {post.author.role}
                 </span>
                 <time dateTime={post.seo.publishedIso}>{post.date}</time>
+                {post.seo.modifiedIso > post.seo.publishedIso && (
+                  <span>
+                    Updated <time dateTime={post.seo.modifiedIso}>{updatedLabel}</time>
+                  </span>
+                )}
                 <span>{post.readTime}</span>
               </div>
             </div>
@@ -250,20 +258,34 @@ export default async function BlogPostPage({
                 <h2 id="faq-section-title" className="font-display text-[30px] leading-tight text-ink">
                   Common questions
                 </h2>
-                <Accordion type="single" collapsible className="mt-6 border-t border-ink">
-                  {post.content.faq.map((item, idx) => (
-                    <AccordionItem key={idx} value={`faq-${idx}`} className="border-b border-paper-line">
-                      <AccordionTrigger className="py-5 text-left text-[17px] font-semibold text-ink hover:no-underline [&>svg]:text-ink-muted">
-                        {item.question}
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-6 text-[15.5px] leading-relaxed text-ink-soft">
-                        {item.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                <div className="mt-6">
+                  <FaqList items={post.content.faq} />
+                </div>
               </section>
             )}
+
+            {post.sources && post.sources.length > 0 && (
+              <section className="mt-14 border-t border-paper-line pt-6" aria-labelledby="sources-title">
+                <h2 id="sources-title" className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-ink-muted">
+                  Sources
+                </h2>
+                <ul className="mt-3 space-y-2 text-[14.5px]">
+                  {post.sources.map((source) => (
+                    <li key={source.url}>
+                      <a href={source.url} target="_blank" rel="noopener" className="text-ink-soft underline decoration-paper-line underline-offset-4 hover:text-ink hover:decoration-ink">
+                        {source.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <p className="mt-10 rounded-[3px] bg-paper-deep px-5 py-4 text-[13.5px] leading-relaxed text-ink-muted">
+              This article is general information, current as of the date above. It isn&apos;t tax advice for your
+              situation, and tax law changes often. See our{" "}
+              <Link href="/disclaimer" className="underline underline-offset-4 hover:text-ink">disclosures</Link>.
+            </p>
 
             <div className="mt-12 flex flex-wrap gap-x-4 gap-y-2 border-t border-paper-line pt-6 text-[14px]">
               <span className="text-ink-muted">Filed under</span>
@@ -294,6 +316,14 @@ export default async function BlogPostPage({
                 <Link href="/book-appointment" className="btn-brass mt-5 w-full">
                   Book a consultation
                 </Link>
+                {relatedService && (
+                  <Link
+                    href={`/services/${relatedService.slug}`}
+                    className="mt-3 block text-center text-[14px] text-paper/75 underline underline-offset-4 hover:text-paper"
+                  >
+                    About our {relatedService.name.toLowerCase()}
+                  </Link>
+                )}
               </div>
             </div>
           </aside>

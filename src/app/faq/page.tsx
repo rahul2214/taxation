@@ -2,12 +2,7 @@ import type { Metadata } from "next";
 import { buildMetadata, breadcrumbSchema, faqSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FaqList } from "@/components/public/FaqList";
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
 
@@ -117,25 +112,12 @@ export default function FaqPage() {
         </nav>
 
         <div className="space-y-16 lg:col-span-9">
-          {FAQ_SECTIONS.map((sec, secIdx) => (
+          {FAQ_SECTIONS.map((sec) => (
             <section key={sec.category} id={slug(sec.category)} className="scroll-mt-32">
               <h2 className="font-display text-[30px] leading-tight text-ink">{sec.category}</h2>
-              <Accordion type="single" collapsible className="mt-6 border-t border-ink">
-                {sec.items.map((item, itemIdx) => (
-                  <AccordionItem
-                    key={itemIdx}
-                    value={`item-${secIdx}-${itemIdx}`}
-                    className="border-b border-paper-line"
-                  >
-                    <AccordionTrigger className="py-5 text-left text-[17px] font-semibold text-ink hover:no-underline [&>svg]:text-ink-muted">
-                      {item.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="max-w-3xl pb-6 text-[15.5px] leading-relaxed text-ink-soft">
-                      {item.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              <div className="mt-6">
+                <FaqList items={sec.items} />
+              </div>
             </section>
           ))}
         </div>

@@ -68,7 +68,7 @@ export function Header() {
 
       <div className="site-container flex h-16 items-center justify-between gap-6">
         <Link href="/" className="flex shrink-0 items-center" aria-label="Polaris Tax Services home">
-          <PolarisLogo theme="light" className="h-9 w-auto" />
+          <PolarisLogo theme="light" className="h-9 w-auto" priority />
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { trackLead } from "@/lib/analytics";
 import { useFirebase } from "@/firebase";
 import { createAppointment, getCustomer, CustomerRecord } from "@/lib/supabase/services";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -151,6 +152,7 @@ export function HomeAppointmentBooking() {
       });
 
       setIsSubmitted(true);
+      trackLead("home");
 
       toast({
         title: "Request received",

@@ -36,12 +36,12 @@ const STEPS = [
 ];
 
 const SERVICES = [
-  { name: "Individual & family returns", detail: "W-2s, stock compensation, crypto, rental property, multi-state moves", price: "from $59" },
-  { name: "Self-employed & single-member LLCs", detail: "Schedule C, quarterly estimates, home office and vehicle", price: "from $199" },
-  { name: "S-Corps & partnerships", detail: "Form 1120-S and 1065, K-1s, reasonable salary, PTET elections", price: "from $499" },
-  { name: "IRS notices & audits", detail: "CP2000 responses, penalty abatement, representation under Form 2848", price: "quoted per case" },
-  { name: "Monthly bookkeeping", detail: "Reconciliations, P&L and balance sheet, books that are ready at tax time", price: "from $250/mo" },
-  { name: "Planning & corporate advisory", detail: "Entity structure, R&D credits, multi-state nexus, QSBS", price: "from $2,500/mo" },
+  { href: "/services/individual-tax-preparation", name: "Individual & family returns", detail: "W-2s, stock compensation, crypto, rental property, multi-state moves", price: "from $59" },
+  { href: "/services/small-business-tax-preparation", name: "Self-employed & single-member LLCs", detail: "Schedule C, quarterly estimates, home office and vehicle", price: "from $199" },
+  { href: "/services/small-business-tax-preparation", name: "S-Corps & partnerships", detail: "Form 1120-S and 1065, K-1s, reasonable salary, PTET elections", price: "from $499" },
+  { href: "/services/irs-notice-audit-help", name: "IRS notices & audits", detail: "CP2000 responses, penalty abatement, representation under Form 2848", price: "quoted per case" },
+  { href: "/services/bookkeeping", name: "Monthly bookkeeping", detail: "Reconciliations, P&L and balance sheet, books that are ready at tax time", price: "from $250/mo" },
+  { href: "/services/tax-planning", name: "Planning & corporate advisory", detail: "Entity structure, R&D credits, multi-state nexus, QSBS", price: "from $2,500/mo" },
 ];
 
 const TIERS = [
@@ -151,43 +151,45 @@ export function HomePage() {
 
   // Individual Mode Calculations
   const individualEstimate = useMemo(() => {
+    // Tax year 2025 figures (returns filed in 2026), as amended by the One Big Beautiful Bill Act.
+    // Source: IRS "Federal income tax rates and brackets" and OBBBA standard deduction guidance.
     const standardDeductions: Record<string, number> = {
-      single: 14600,
-      married: 29200,
-      hoh: 21900,
+      single: 15750,
+      married: 31500,
+      hoh: 23625,
     };
 
     const brackets: Record<string, { rate: number; amount: number }[]> = {
       single: [
-        { rate: 0.1, amount: 11600 },
-        { rate: 0.12, amount: 47150 },
-        { rate: 0.22, amount: 100500 },
-        { rate: 0.24, amount: 191950 },
-        { rate: 0.32, amount: 243700 },
-        { rate: 0.35, amount: 609350 },
+        { rate: 0.1, amount: 11925 },
+        { rate: 0.12, amount: 48475 },
+        { rate: 0.22, amount: 103350 },
+        { rate: 0.24, amount: 197300 },
+        { rate: 0.32, amount: 250525 },
+        { rate: 0.35, amount: 626350 },
         { rate: 0.37, amount: Infinity },
       ],
       married: [
-        { rate: 0.1, amount: 23200 },
-        { rate: 0.12, amount: 94300 },
-        { rate: 0.22, amount: 201050 },
-        { rate: 0.24, amount: 383900 },
-        { rate: 0.32, amount: 487450 },
-        { rate: 0.35, amount: 731200 },
+        { rate: 0.1, amount: 23850 },
+        { rate: 0.12, amount: 96950 },
+        { rate: 0.22, amount: 206700 },
+        { rate: 0.24, amount: 394600 },
+        { rate: 0.32, amount: 501050 },
+        { rate: 0.35, amount: 751600 },
         { rate: 0.37, amount: Infinity },
       ],
       hoh: [
-        { rate: 0.1, amount: 16550 },
-        { rate: 0.12, amount: 63100 },
-        { rate: 0.22, amount: 100500 },
-        { rate: 0.24, amount: 191950 },
-        { rate: 0.32, amount: 243700 },
-        { rate: 0.35, amount: 609350 },
+        { rate: 0.1, amount: 17000 },
+        { rate: 0.12, amount: 64850 },
+        { rate: 0.22, amount: 103350 },
+        { rate: 0.24, amount: 197300 },
+        { rate: 0.32, amount: 250500 },
+        { rate: 0.35, amount: 626350 },
         { rate: 0.37, amount: Infinity },
       ],
     };
 
-    const deduction = standardDeductions[filingStatus] || 14600;
+    const deduction = standardDeductions[filingStatus] || 15750;
     const taxable = Math.max(0, income - deduction);
 
     let tax = 0;
@@ -202,7 +204,8 @@ export function HomePage() {
       }
     }
 
-    const credits = dependents * 2000;
+    // 2025 child tax credit: up to $2,200 per qualifying child (income phase-outs not modelled).
+    const credits = dependents * 2200;
     const finalTax = Math.max(0, tax - credits);
     const refund = withholding - finalTax;
 
@@ -317,12 +320,20 @@ export function HomePage() {
                 </div>
 
                 <table className="mt-4 w-full font-mono text-[13px]">
+                  <caption className="sr-only">Sample return lines</caption>
+                  <thead className="sr-only">
+                    <tr>
+                      <th scope="col">Line</th>
+                      <th scope="col">Description</th>
+                      <th scope="col">Amount</th>
+                    </tr>
+                  </thead>
                   <tbody className="divide-y divide-dashed divide-paper-line">
                     {(previewTab === "1040"
                       ? [
                           ["1z", "Wages, salaries, tips", "125,000"],
-                          ["12", "Standard deduction", "(14,600)"],
-                          ["19", "Child tax credit", "(2,000)"],
+                          ["12", "Standard deduction", "(15,750)"],
+                          ["19", "Child tax credit", "(2,200)"],
                           ["25d", "Federal tax withheld", "24,000"],
                         ]
                       : [
@@ -347,7 +358,7 @@ export function HomePage() {
                       {previewTab === "1040" ? "Refund to direct deposit" : "Tax saved this year"}
                     </p>
                     <p className="mt-0.5 font-display text-[40px] leading-none text-ink">
-                      {previewTab === "1040" ? "$4,320" : "$184,500"}
+                      {previewTab === "1040" ? "$7,133" : "$184,500"}
                     </p>
                   </div>
                   <div className="text-right">
@@ -436,7 +447,7 @@ export function HomePage() {
               {SERVICES.map((s) => (
                 <li key={s.name} className="border-b border-paper-line">
                   <Link
-                    href="/services"
+                    href={s.href}
                     className="group grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1 py-5 sm:grid-cols-[1fr_auto_20px]"
                   >
                     <span className="font-display text-[22px] text-ink transition-colors group-hover:text-brass-dark sm:text-[24px]">
@@ -464,8 +475,9 @@ export function HomePage() {
                 Roughly where will you land this year?
               </h2>
               <p className="mt-4 text-[15.5px] leading-relaxed text-ink-soft">
-                A back-of-the-envelope number using 2025 federal brackets. Your actual return will depend on the
-                details, which is what we&apos;re for.
+                A back-of-the-envelope number for your 2025 return (the one you file in 2026), using IRS brackets
+                and standard deductions for tax year 2025. Your actual return will depend on the details, which is
+                what we&apos;re for.
               </p>
             </div>
 
@@ -557,8 +569,8 @@ export function HomePage() {
                   </div>
                   <p className="text-[13.5px] leading-relaxed text-ink-muted sm:col-span-2">
                     Uses the {formatCurrency(individualEstimate.deduction)} standard deduction and{" "}
-                    {formatCurrency(individualEstimate.credits)} in child tax credit. Doesn&apos;t include state
-                    tax, self-employment tax or itemized deductions.
+                    {formatCurrency(individualEstimate.credits)} in child tax credit ($2,200 per child for 2025).
+                    Doesn&apos;t include state tax, self-employment tax, credit phase-outs or itemized deductions.
                   </p>
                 </div>
               ) : (

@@ -6,11 +6,11 @@ const columns = [
   {
     title: "Services",
     links: [
-      { href: "/services#personal", label: "Individual tax returns" },
-      { href: "/services#business", label: "Small business & LLC taxes" },
-      { href: "/services#consulting", label: "Tax planning" },
-      { href: "/services#audit", label: "IRS notice & audit help" },
-      { href: "/services#bookkeeping", label: "Bookkeeping" },
+      { href: "/services/individual-tax-preparation", label: "Individual tax returns" },
+      { href: "/services/small-business-tax-preparation", label: "Small business & LLC taxes" },
+      { href: "/services/tax-planning", label: "Tax planning" },
+      { href: "/services/irs-notice-audit-help", label: "IRS notice & audit help" },
+      { href: "/services/bookkeeping", label: "Bookkeeping" },
     ],
   },
   {

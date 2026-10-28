@@ -1,73 +1,78 @@
 import { BlogPost, POLARIS_TEAM_AUTHOR } from "./types";
 
+// URL kept from the original article so existing links and rankings carry over.
 export const evTaxCreditPost: BlogPost = {
   id: "7",
   slug: "ev-tax-credit-2026-qualification-checklist",
-  title: "Electric Vehicle (EV) Clean Vehicle Tax Credit in 2026: Who Qualifies?",
-  excerpt: "Everything you need to know about claiming up to $7,500 for new electric cars and $4,000 for used EVs, including instant point-of-sale dealer rebates and income caps.",
+  title: "The Federal EV Tax Credit Has Ended: What It Means If You Bought or Leased an EV",
+  excerpt: "The federal clean vehicle credits ended for vehicles acquired after September 30, 2025. Here is who can still claim one on their return, and what to check if you bought close to the deadline.",
   category: "Tax Deductions",
-  tags: ["EV Tax Credit", "Clean Energy", "Section 30D", "Deductions", "Car Buying", "Inflation Reduction Act"],
+  tags: ["EV Tax Credit", "Clean Vehicle Credit", "Section 30D", "Form 8936", "One Big Beautiful Bill"],
   author: POLARIS_TEAM_AUTHOR,
   date: "September 05, 2026",
-  readTime: "6 min read",
+  readTime: "5 min read",
   imageUrl: "https://images.unsplash.com/photo-1558441719-8b4bee567990?auto=format&fit=crop&q=80&w=1200&h=675",
   trending: false,
   views: 8200,
   seo: {
-    metaTitle: "EV Tax Credit 2026: Qualified Vehicles & Point-of-Sale Rebate",
-    metaDescription: "Complete guide to the up to $7,500 federal EV tax credit under Section 30D. Check MSRP caps, income limits, battery sourcing rules, and dealer point-of-sale rebates.",
+    metaTitle: "EV Tax Credit Ended Sept 30, 2025: Who Can Still Claim It",
+    metaDescription: "The federal EV tax credits (30D, 25E, 45W) ended for vehicles acquired after September 30, 2025. See who can still claim the credit and how Form 8936 works.",
     keywords: [
       "EV tax credit 2026",
-      "federal electric vehicle rebate $7500",
-      "Section 30D clean vehicle credit",
-      "point of sale EV discount dealer",
-      "EV tax credit income limits",
-      "qualifying electric cars 2026",
-      "used EV tax credit $4000"
+      "EV tax credit ended",
+      "clean vehicle credit September 30 2025",
+      "Section 30D credit",
+      "used EV tax credit",
+      "Form 8936",
     ],
     publishedIso: "2026-09-05T14:30:00Z",
-    modifiedIso: "2026-10-11T12:00:00Z",
+    modifiedIso: "2026-10-28T09:00:00Z",
   },
   keyTakeaways: [
-    "The Section 30D credit provides up to $7,500 for new clean vehicles and up to $4,000 (capped at 30% of sales price) for used EVs.",
-    "Buyers can transfer the credit directly to participating registered dealerships for an immediate point-of-sale price reduction.",
-    "Income thresholds: Modified AGI cannot exceed $300,000 for married couples, $225,000 for heads of household, and $150,000 for singles.",
-    "Vehicle MSRP caps apply: Vans, SUVs, and pickup trucks must be under $80,000; all other passenger cars under $55,000.",
+    "The new clean vehicle credit (Section 30D), the used clean vehicle credit (25E) and the commercial clean vehicle credit (45W) are not available for vehicles acquired after September 30, 2025.",
+    "\"Acquired\" means you signed a written binding contract and made a payment, including a nominal down payment or a trade-in, on or before September 30, 2025.",
+    "If you acquired the vehicle by that date, you can still claim the credit when you take delivery, even if delivery happened later.",
+    "Claims are made on Form 8936 with your return, including when the credit was transferred to the dealer at the time of sale.",
+  ],
+  sources: [
+    { label: "IRS: Clean vehicle tax credits", url: "https://www.irs.gov/clean-vehicle-tax-credits" },
+    { label: "IRS: FAQs on the One Big Beautiful Bill changes to clean vehicle credits", url: "https://www.irs.gov/newsroom/faqs-for-modification-of-sections-25c-25d-25e-30c-30d-45l-45w-and-179d-under-public-law-119-21-139-stat-72-july-4-2025-commonly-known-as-the-one-big-beautiful-bill-obbb" },
+    { label: "IRS: Instructions for Form 8936", url: "https://www.irs.gov/instructions/i8936" },
   ],
   content: {
-    introduction: "Federal incentives for purchasing zero-emission vehicles have shifted into their most consumer-friendly phase yet. Instead of waiting until tax filing season to claim a non-refundable credit, car buyers can now receive the cash value of the federal EV tax credit directly at the dealership counter as an upfront discount.",
+    introduction: "For several years, buyers of qualifying electric and plug-in hybrid vehicles could claim a federal credit of up to $7,500 for a new vehicle or up to $4,000 for a used one, often as an instant discount at the dealer. The One Big Beautiful Bill Act, signed in July 2025, ended those credits for vehicles acquired after September 30, 2025. If you are shopping for an EV now, there is no federal credit to plan around. If you bought one in 2025, the details below decide whether you can still claim it.",
     sections: [
       {
-        heading: "Point-of-Sale Transfer Mechanism",
+        heading: "Which credits ended, and when",
         body: [
-          "Under the IRS Energy Credits Online portal, eligible buyers can elect to transfer their full clean vehicle credit to registered licensed auto dealers.",
-          "This means you can walk into a showroom, purchase an eligible $45,000 electric crossover, and immediately walk away with a $7,500 down payment reduction or cash rebate, financing only the net remaining balance.",
-        ],
-        tip: "Even if you choose the point-of-sale transfer, you must still file IRS Form 8936 when preparing your annual tax return. If your actual year-end AGI exceeds the legal statutory cap, you may be required to repay the credit back to the IRS.",
-      },
-      {
-        heading: "Income Limits: The Lookback Provision",
-        body: [
-          "To qualify, your modified adjusted gross income (MAGI) cannot exceed: $300,000 for married couples filing jointly; $225,000 for heads of household; and $150,000 for all other filers.",
-          "Fortunately, the IRS includes a favorable 'lookback provision.' You can qualify using either your MAGI from the year you take delivery of the vehicle, OR your MAGI from the immediately preceding calendar year, whichever is lower.",
+          "Three credits are affected: the new clean vehicle credit under Section 30D, the previously owned (used) clean vehicle credit under Section 25E, and the commercial clean vehicle credit under Section 45W, which is the credit that lessors used to reduce lease payments.",
+          "None of them is allowed for a vehicle acquired after September 30, 2025. There is no phase-down period: a vehicle acquired on October 1, 2025 does not qualify.",
         ],
       },
       {
-        heading: "Critical Mineral & Battery Component Rules",
+        heading: "What counts as \"acquired\"",
         body: [
-          "The full $7,500 credit is split into two equal halves of $3,750: One half is contingent on meeting battery critical mineral extraction and processing criteria with US free-trade partners.",
-          "The second $3,750 half depends on North American manufacturing percentages for battery components. Vehicles containing components sourced from 'Foreign Entities of Concern' (FEOC) are completely disqualified from receiving the credit.",
+          "The IRS treats a vehicle as acquired on the date you entered into a written binding contract and made a payment. A nominal down payment or a vehicle trade-in counts as a payment.",
+          "That means a buyer who signed a contract and paid a deposit on or before September 30, 2025 can still claim the credit when the vehicle is placed in service, that is, when they take possession, even if delivery happened later in 2025 or in 2026. Keep the dated contract and proof of the payment with your tax records.",
+        ],
+        tip: "If you signed near the deadline, check the contract date and the date of your deposit or trade-in before you file. Those two dates, not the delivery date, decide whether you qualify.",
+      },
+      {
+        heading: "Claiming the credit on your return",
+        body: [
+          "Eligible buyers claim the credit on Form 8936, filed with their federal return for the year they took delivery. This applies even if you transferred the credit to the dealer and received it as a discount at the time of sale.",
+          "The income limits that applied before still apply to qualifying vehicles. If your income for the year turns out to be above the limit, a credit you received at the dealer may need to be repaid on your return.",
         ],
       },
     ],
     faq: [
       {
-        question: "Can I get a tax credit on a leased EV?",
-        answer: "Yes! Leased EVs fall under Commercial Clean Vehicle rules (IRC Section 45W), which do not impose North American assembly or consumer income caps. Dealers often pass this full $7,500 credit directly into lower monthly lease payments.",
+        question: "Can I get a federal tax credit for an EV I buy in 2026?",
+        answer: "No. The federal clean vehicle credits are not available for vehicles acquired after September 30, 2025. Some states and utilities run their own incentives, so check your state's energy or revenue department.",
       },
       {
-        question: "How do I check if my specific VIN qualifies?",
-        answer: "Enter the vehicle identification number (VIN) on the official FuelEconomy.gov clean vehicle lookup tool before signing purchase documents, and obtain a Time-of-Sale report from the dealership.",
+        question: "I signed a contract in September 2025 but took delivery later. Can I still claim it?",
+        answer: "Yes, if you entered into a written binding contract and made a payment on or before September 30, 2025, and the vehicle otherwise qualifies. You claim the credit for the year you took delivery, using Form 8936.",
       },
     ],
   },

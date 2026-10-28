@@ -4,19 +4,21 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { Analytics } from '@/components/seo/Analytics';
 import { SITE, CORE_KEYWORDS, organizationSchema, websiteSchema } from '@/lib/seo';
 
 // Self-hosted via next/font: no render-blocking request to Google and no layout shift on load.
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+// Inter is only used inside the client/admin portal, so it isn't preloaded on public pages.
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap', preload: false });
 const instrumentSans = Instrument_Sans({ subsets: ['latin'], variable: '--font-instrument', display: 'swap' });
+// No optical-size axis: it roughly doubled the font files and the headline (the LCP element) waited on them.
 const newsreader = Newsreader({
   subsets: ['latin'],
   style: ['normal', 'italic'],
-  axes: ['opsz'],
   variable: '--font-newsreader',
   display: 'swap',
 });
-const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono', display: 'swap' });
+const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono', display: 'swap', preload: false });
 
 const defaultTitle = `${SITE.name} | CPA Tax Preparation & Filing for Individuals and Small Businesses`;
 
@@ -113,6 +115,7 @@ export default function RootLayout({
           {children}
         </FirebaseClientProvider>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );

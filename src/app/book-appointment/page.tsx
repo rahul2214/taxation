@@ -3,6 +3,7 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { trackLead } from "@/lib/analytics";
 import { useFirebase } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -121,6 +122,7 @@ export default function BookAppointmentPage() {
       }
 
       setIsSuccess(true);
+      trackLead("book-appointment");
       toast({
         title: "Request received",
         description: "We'll be in touch within one business day to confirm a time.",

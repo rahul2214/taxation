@@ -26,8 +26,12 @@ export const backdoorRothIraPost: BlogPost = {
       "Roth IRA income phaseouts"
     ],
     publishedIso: "2026-09-20T08:45:00Z",
-    modifiedIso: "2026-10-14T16:10:00Z",
+    modifiedIso: "2026-10-28T09:00:00Z",
   },
+  sources: [
+    { label: "IRS: 401(k) limit increases to $24,500 for 2026, IRA limit increases to $7,500", url: "https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500" },
+    { label: "IRS: Instructions for Form 8606", url: "https://www.irs.gov/instructions/i8606" },
+  ],
   keyTakeaways: [
     "High income phase-outs prevent direct Roth contributions, but anyone can contribute non-deductible dollars to a Traditional IRA.",
     "Converting non-deductible Traditional IRA funds to a Roth IRA creates a legal backdoor path to tax-free growth.",
@@ -40,7 +44,7 @@ export const backdoorRothIraPost: BlogPost = {
       {
         heading: "The Income Limits and the Backdoor Loophole",
         body: [
-          "For 2026, single filers with MAGI above $165,000 and married joint filers above $246,000 are completely prohibited from making direct contributions to a Roth IRA.",
+          "For 2026, the ability to contribute directly to a Roth IRA phases out between $153,000 and $168,000 of modified AGI for single filers and heads of household, and between $242,000 and $252,000 for married couples filing jointly. At or above $168,000 (single) or $252,000 (joint), direct contributions are not allowed. The 2026 IRA contribution limit is $7,500, or $8,600 if you are 50 or older.",
           "However, there are ZERO income limits on making non-deductible contributions to a Traditional IRA, and zero income caps on converting a Traditional IRA into a Roth IRA. By chaining these two steps together, high earners can fund their Roth IRA legally.",
         ],
       },

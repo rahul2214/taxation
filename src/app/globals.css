@@ -100,7 +100,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-[3px] border border-ink/25 bg-transparent px-5 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass;
   }
   .btn-brass {
-    @apply inline-flex items-center justify-center gap-2 rounded-[3px] bg-brass px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brass-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-light;
+    @apply inline-flex items-center justify-center gap-2 rounded-[3px] bg-brass-dark px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#6F4F19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-light;
   }
   .link-under {
     @apply font-semibold text-ink underline decoration-brass/60 decoration-1 underline-offset-[5px] transition-colors hover:decoration-ink;

@@ -36,6 +36,11 @@ export interface BlogContent {
   faq?: BlogFaq[];
 }
 
+export interface BlogSource {
+  label: string;
+  url: string;
+}
+
 export interface BlogPost {
   id: string;
   slug: string;
@@ -50,6 +55,8 @@ export interface BlogPost {
   trending: boolean;
   views: number;
   keyTakeaways: string[];
+  /** Primary sources (IRS, state agencies) the figures in the article were checked against. */
+  sources?: BlogSource[];
   seo: BlogSeo;
   content: BlogContent;
 }
