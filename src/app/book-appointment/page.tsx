@@ -44,7 +44,13 @@ export default function BookAppointmentPage() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDateStr = tomorrow.toISOString().split("T")[0];
 
-  const cached = getCachedAuth();
+  // localStorage is client-only; read the cached session after mount to keep hydration consistent.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const cached = mounted ? getCachedAuth() : { user: null };
   const hasUser = Boolean(user || cached.user);
 
   useEffect(() => {

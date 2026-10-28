@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getCustomer, upsertCustomer, getReferralRewardAmount } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 export default function AccountPage() {
   const { firestore, user } = useFirebase();
@@ -134,7 +135,7 @@ export default function AccountPage() {
         }
       });
     }
-    toast({ title: "Address Updated", description: "Your mailing address has been saved." });
+    toast({ title: "Address saved", description: "Your mailing address has been updated." });
   };
   
   const handlePasswordUpdate = async () => {
@@ -149,7 +150,7 @@ export default function AccountPage() {
 
       if (error) throw error;
 
-      toast({ title: "Password Updated", description: "Your password has been changed successfully in Supabase." });
+      toast({ title: "Password Updated", description: "Your password has been changed." });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -161,18 +162,14 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Account</h1>
-        <p className="text-muted-foreground">Manage your account settings and personal information.</p>
-      </div>
-      <Separator />
+      <PageHeading title="Your profile" description="Your contact details, mailing address and password." />
 
       {/* Account Identifiers & Wallet Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-muted/40 border-primary/20">
           <CardContent className="pt-4 pb-4">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
-              Customer ID (int8)
+              Client number
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-mono font-bold text-primary">
@@ -180,7 +177,7 @@ export default function AccountPage() {
               </span>
             </div>
             <p className="text-[11px] font-mono text-muted-foreground truncate mt-0.5">
-              UUID: {user?.uid}
+              Account ID {user?.uid}
             </p>
           </CardContent>
         </Card>
@@ -188,7 +185,7 @@ export default function AccountPage() {
         <Card className="bg-muted/40 border-primary/20">
           <CardContent className="pt-4 pb-4">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
-              Referral Coupon Code
+              Your referral code
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-xl font-mono font-bold text-foreground tracking-wider">
@@ -201,18 +198,18 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/20">
+        <Card className="bg-brass/[0.06] border-brass/30">
           <CardContent className="pt-4 pb-4">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 block">
-              Polaris Wallet Credits
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-brass-dark block">
+              Credit balance
             </span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+              <span className="text-2xl font-bold text-brass-dark">
                 ${walletBalance.toFixed(2)}
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Available to apply toward filings
+              Applied to your next return
             </p>
           </CardContent>
         </Card>

@@ -26,6 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument } from "@/lib/supabase/services";
 import { uploadFileToCloudflare } from "@/lib/upload";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type TaxDocument = {
   id: string;
@@ -175,13 +176,10 @@ export default function DocumentsWorkflowPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Document Center</h1>
-        <p className="text-muted-foreground">Follow these steps to complete your tax filing process.</p>
-      </div>
+      <PageHeading title="Your documents" description="Everything from your estimate to your signed return, in the order you'll need it." />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Step 1: Tax Estimation */}
-        <Card className="shadow-md">
+        <Card className="">
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="bg-primary/10 text-primary p-3 rounded-full flex items-center justify-center">
@@ -213,7 +211,7 @@ export default function DocumentsWorkflowPage() {
         </Card>
 
         {/* Step 2: Upload Draft */}
-        <Card className={`shadow-md ${!taxEstimationDoc ? 'bg-muted/50' : ''}`}>
+        <Card className={` ${!taxEstimationDoc ? 'bg-muted/50' : ''}`}>
           <CardHeader>
              <div className="flex items-center gap-4">
               <div className={`p-3 rounded-full flex items-center justify-center ${!taxEstimationDoc ? 'bg-muted-foreground/20 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
@@ -265,7 +263,7 @@ export default function DocumentsWorkflowPage() {
         </Card>
 
         {/* Step 3: Final Document */}
-        <Card className={`shadow-md ${!taxReturnDraftDoc ? 'bg-muted/50' : ''}`}>
+        <Card className={` ${!taxReturnDraftDoc ? 'bg-muted/50' : ''}`}>
            <CardHeader>
              <div className="flex items-center gap-4">
               <div className={`p-3 rounded-full flex items-center justify-center ${!taxReturnDraftDoc ? 'bg-muted-foreground/20 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>

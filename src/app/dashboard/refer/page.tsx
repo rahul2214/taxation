@@ -44,6 +44,7 @@ import {
   getWalletBalance,
   getReferralRewardAmount,
 } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 export default function CustomerReferPage() {
   const { user, firestore } = useFirebase();
@@ -154,31 +155,31 @@ export default function CustomerReferPage() {
   return (
     <div className="space-y-8 max-w-5xl pb-12">
       {/* Page Header */}
-      <div>
-       
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-          <Gift className="h-8 w-8 text-primary" /> Refer a Friend & Earn
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm max-w-2xl">
-          Give <strong>${rewardAmount.toFixed(2)}</strong>, Get <strong>${rewardAmount.toFixed(2)}</strong>! Share your unique referral coupon code or invite link. When friends sign up and file their tax return, both of you get ${rewardAmount.toFixed(2)} credited directly to your Polaris Wallet.
-        </p>
-      </div>
+      <PageHeading
+        title="Refer a friend"
+        description={
+          <>
+            Share your code or link. When a friend signs up and files with us, you each get{" "}
+            <strong className="font-semibold text-foreground">${rewardAmount.toFixed(2)}</strong> in credit toward your next return.
+          </>
+        }
+      />
 
       {/* 3 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Card 1: Wallet Balance */}
-        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-50/60 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10">
+        <Card className="border-brass/30 bg-brass/[0.06]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-brass-dark uppercase tracking-wider">
                 Wallet Balance
               </span>
-              <div className="p-2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <div className="p-2 rounded-full bg-brass/[0.06]0/10 text-brass-dark">
                 <Wallet className="h-4 w-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300">
+              <span className="text-3xl font-bold tracking-tight text-brass-dark">
                 ${walletBalance.toFixed(2)}
               </span>
               
@@ -239,7 +240,7 @@ export default function CustomerReferPage() {
       {/* Share Section: Coupon Code & Invite Link Side by Side */}
       <div className="grid md:grid-cols-2 gap-6 items-stretch">
         {/* Left: Your Coupon Code Box */}
-        <Card className="border-primary/30 relative overflow-hidden bg-gradient-to-br from-card via-card to-primary/5 flex flex-col justify-between">
+        <Card className="border-primary/30 relative overflow-hidden flex flex-col justify-between">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
@@ -254,7 +255,7 @@ export default function CustomerReferPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 rounded-xl border-2 border-dashed border-primary/40 bg-muted/40 text-center relative">
+            <div className="p-4 rounded-md border-2 border-dashed border-primary/40 bg-muted/40 text-center relative">
               <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-widest block mb-1">
                 Coupon / Promo Code
               </span>
@@ -270,7 +271,7 @@ export default function CustomerReferPage() {
             >
               {copiedCode ? (
                 <>
-                  <Check className="h-4 w-4 mr-2 text-emerald-600" /> Coupon Code Copied!
+                  <Check className="h-4 w-4 mr-2 text-brass-dark" /> Coupon Code Copied!
                 </>
               ) : (
                 <>
@@ -308,7 +309,7 @@ export default function CustomerReferPage() {
               >
                 {copiedLink ? (
                   <>
-                    <Check className="h-3.5 w-3.5 mr-1 text-emerald-300" /> Copied
+                    <Check className="h-3.5 w-3.5 mr-1 text-brass-light" /> Copied
                   </>
                 ) : (
                   <>
@@ -319,7 +320,7 @@ export default function CustomerReferPage() {
               <Button
                 onClick={handleShareWhatsApp}
                 variant="outline"
-                className="w-full text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                className="w-full text-xs text-brass-dark hover:text-foreground hover:bg-brass/[0.06]"
                 disabled={!referralLink}
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
@@ -343,7 +344,7 @@ export default function CustomerReferPage() {
         <div className="space-y-6">
           <h2 className="text-xl font-bold tracking-tight text-foreground">How Referral Rewards Work</h2>
           <div className="space-y-3.5">
-            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-card border shadow-sm">
+            <div className="flex items-start gap-3.5 p-4 rounded-md bg-card border">
               <div className="flex-shrink-0 bg-primary/10 text-primary p-2.5 rounded-full mt-0.5">
                 <Ticket className="h-5 w-5" />
               </div>
@@ -355,7 +356,7 @@ export default function CustomerReferPage() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-card border shadow-sm">
+            <div className="flex items-start gap-3.5 p-4 rounded-md bg-card border">
               <div className="flex-shrink-0 bg-primary/10 text-primary p-2.5 rounded-full mt-0.5">
                 <Users className="h-5 w-5" />
               </div>
@@ -367,8 +368,8 @@ export default function CustomerReferPage() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3.5 p-4 rounded-xl bg-card border shadow-sm">
-              <div className="flex-shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-full mt-0.5">
+            <div className="flex items-start gap-3.5 p-4 rounded-md bg-card border">
+              <div className="flex-shrink-0 bg-brass/[0.06]0/10 text-brass-dark p-2.5 rounded-full mt-0.5">
                 <Coins className="h-5 w-5" />
               </div>
               <div>
@@ -382,7 +383,7 @@ export default function CustomerReferPage() {
         </div>
 
         {/* Right: Referral Program Guidelines */}
-        <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
+        <Card className=" border-primary/20">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
             Referral Program Guidelines
@@ -403,7 +404,7 @@ export default function CustomerReferPage() {
 
             <div className="rounded-lg border bg-background/80 p-3.5 space-y-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5 text-emerald-600" /> Instant Wallet Credit
+                <Coins className="h-3.5 w-3.5 text-brass-dark" /> Instant Wallet Credit
               </span>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 When a new customer signs up using your coupon code, ${rewardAmount.toFixed(2)} is automatically credited to their wallet balance, and ${rewardAmount.toFixed(2)} is deposited into your wallet immediately.

@@ -20,6 +20,7 @@ import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { uploadFileToCloudflare } from "@/lib/upload";
 import { getSiteSettings, updateSiteSettings } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type UploadingFile = {
   name: string;
@@ -121,12 +122,13 @@ export default function SiteFormsPage() {
   };
 
   return (
+    <div className="space-y-6">
+    <PageHeading
+      title="Site tax forms"
+      description="Forms every client can download from the Tax forms page in their portal."
+    />
     <Card>
-      <CardHeader>
-        <CardTitle>Global Site Forms</CardTitle>
-        <CardDescription>Upload and manage forms that are downloadable by all users.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-6 py-4">
+      <CardContent className="grid gap-6 pb-6 pt-6">
         {isLoadingForms ? (
              <div className="flex justify-center items-center h-24">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -160,5 +162,6 @@ export default function SiteFormsPage() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }

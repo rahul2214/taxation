@@ -48,6 +48,7 @@ import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
 import { uploadFileToCloudflare } from "@/lib/upload";
 import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type DocumentStatus = "Verified" | "Pending" | "Requires Attention";
 
@@ -325,13 +326,13 @@ export default function TaxDocumentsPage() {
   };
 
   return (
-    <>
+    <div className="space-y-6">
+    <PageHeading
+      title="Client documents"
+      description="Documents clients have uploaded, grouped by client. Review each one and mark it approved or rejected."
+    />
     <Card>
-      <CardHeader>
-        <CardTitle>User Tax Documents</CardTitle>
-        <CardDescription>View and manage all documents uploaded by users, grouped by customer.</CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {isLoading ? (
           <div className="flex justify-center items-center h-48">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
@@ -454,6 +455,6 @@ export default function TaxDocumentsPage() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
-    </>
+    </div>
   );
 }

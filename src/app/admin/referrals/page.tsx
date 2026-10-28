@@ -48,6 +48,7 @@ import {
   updateSiteSettings,
   getSiteSettings,
 } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type ReferralStatus = "Completed" | "Pending" | "Expired";
 
@@ -259,17 +260,10 @@ export default function ReferralsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-          <Gift className="h-8 w-8 text-primary" /> Referrals Management
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Control referral reward payouts dynamically and track client invitations.
-        </p>
-      </div>
+      <PageHeading title="Referrals" description="Set the reward amount, and approve or reject referral payouts." />
 
       {/* Dynamic Reward Money Management Card */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background shadow-sm">
+      <Card className="border-primary/20">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -283,7 +277,7 @@ export default function ReferralsPage() {
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <span className="text-xs text-muted-foreground font-medium">Active Reward:</span>
-              <Badge className="text-sm font-semibold bg-emerald-600 hover:bg-emerald-600 text-white px-3 py-1">
+              <Badge className="text-sm font-semibold bg-brass hover:bg-brass-dark text-white px-3 py-1">
                 ${rewardAmount.toFixed(2)} USD
               </Badge>
             </div>
@@ -380,12 +374,12 @@ export default function ReferralsPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Active Reward
                 </p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                <p className="text-2xl font-bold text-brass-dark mt-1">
                   ${rewardAmount.toFixed(2)}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Per verified signup</p>
               </div>
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-xl">
+              <div className="p-3 bg-brass/[0.06] text-brass-dark rounded-md">
                 <Coins className="h-6 w-6" />
               </div>
             </div>
@@ -402,7 +396,7 @@ export default function ReferralsPage() {
                 <p className="text-2xl font-bold text-foreground mt-1">{completedCount}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Total rewarded accounts</p>
               </div>
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 rounded-xl">
+              <div className="p-3 bg-secondary text-foreground rounded-md">
                 <UsersRound className="h-6 w-6" />
               </div>
             </div>
@@ -419,7 +413,7 @@ export default function ReferralsPage() {
                 <p className="text-2xl font-bold text-primary mt-1">${totalRewarded.toFixed(2)}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Deposited to wallets</p>
               </div>
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-600 rounded-xl">
+              <div className="p-3 bg-secondary text-foreground rounded-md">
                 <TrendingUp className="h-6 w-6" />
               </div>
             </div>
@@ -480,7 +474,7 @@ export default function ReferralsPage() {
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    <TableCell className="font-semibold text-brass-dark">
                       ${Number(ref.rewardAmount || rewardAmount).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">

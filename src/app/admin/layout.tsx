@@ -1,7 +1,8 @@
 "use client";
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { PortalShell } from "@/components/portal/PortalShell";
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { useRouter, usePathname } from "next/navigation";
 import { doc, collection, query, where, getDocs } from "firebase/firestore";
@@ -17,6 +18,16 @@ import {
   getAdminByEmail,
 } from "@/lib/supabase/services";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
+
+const ADMIN_TITLES: Record<string, string> = {
+  "/admin": "Dashboard",
+  "/admin/appointments": "Appointments",
+  "/admin/tax-documents": "Client documents",
+  "/admin/referrals": "Referrals",
+  "/admin/customers": "Clients",
+  "/admin/documents": "Site tax forms",
+  "/admin/admins": "Admin users",
+};
 
 export default function AdminLayout({
   children,
@@ -177,7 +188,7 @@ export default function AdminLayout({
   if (isCheckingAdmin || !isAdmin) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -189,9 +200,9 @@ export default function AdminLayout({
         pendingReferralsCount={(pendingReferrals?.length || 0) + sbCounts.refs}
         pendingDocumentsCount={pendingDocumentsCount + sbCounts.docs}
       />
-      <SidebarInset>
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
-      </SidebarInset>
+      <PortalShell area="Admin" areaHref="/admin" titles={ADMIN_TITLES}>
+        {children}
+      </PortalShell>
     </SidebarProvider>
   );
 }

@@ -37,6 +37,7 @@ import { useState, useEffect } from "react";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import { getAllCustomers, CustomerRecord } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type Customer = {
   id: string; // UUID
@@ -146,13 +147,13 @@ export default function CustomersPage() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      <PageHeading
+        title="Clients"
+        description="Everyone with a client account, newest first."
+      />
       <Card>
-        <CardHeader>
-          <CardTitle>Customers</CardTitle>
-          <CardDescription>View and manage all registered customers.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -243,7 +244,7 @@ export default function CustomersPage() {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Wallet Balance</span>
-                        <span className="col-span-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span className="col-span-3 text-sm font-semibold text-brass-dark">
                           ${(selectedCustomer.walletBalance ?? 0).toFixed(2)}
                         </span>
                     </div>
@@ -273,6 +274,6 @@ export default function CustomersPage() {
             </DialogFooter>
           </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

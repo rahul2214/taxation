@@ -28,6 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument, deleteTaxDocument } from "@/lib/supabase/services";
 import { uploadFileToCloudflare, deleteFileFromCloudflare } from "@/lib/upload";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type UploadingFile = {
   name: string;
@@ -229,10 +230,10 @@ export default function UploadPage() {
 
   return (
     <div className="space-y-6">
-       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Upload Your Documents</h1>
-        <p className="text-muted-foreground">Securely upload your tax documents for processing.</p>
-      </div>
+      <PageHeading
+        title="Upload documents"
+        description="Send us your W-2s, 1099s, receipts and anything else for your return. Files are encrypted and only your preparer can open them."
+      />
 
       <Card>
         <CardHeader>

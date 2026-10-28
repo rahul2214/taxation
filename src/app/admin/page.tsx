@@ -19,7 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ArrowUpRight, Users, CreditCard, Activity, Loader2 } from "lucide-react";
+import { ArrowUpRight, Loader2 } from "lucide-react";
+import { PageHeading } from "@/components/portal/PageHeading";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
@@ -179,116 +180,109 @@ export default function AdminDashboardPage() {
     return `${first}${last}`.toUpperCase();
   };
 
+  const stats = [
+    { label: "Clients", value: totalCustomersCount, loading: allCustomersLoading && isSbLoading, href: "/admin/customers" },
+    { label: "Appointments", value: totalAppointmentsCount, loading: allAppointmentsLoading && isSbLoading, href: "/admin/appointments" },
+    { label: "Referrals awaiting payout", value: totalActiveReferrals, loading: allReferralsLoading && isSbLoading, href: "/admin/referrals" },
+  ];
+
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <main className="flex flex-1 flex-col gap-4 md:gap-8">
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Customers
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {allCustomersLoading && isSbLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold">{totalCustomersCount}</div>}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {allAppointmentsLoading && isSbLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold">{totalAppointmentsCount}</div>}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Active Referrals
-              </CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-               {allReferralsLoading && isSbLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold">{totalActiveReferrals}</div>}
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-          <Card className="xl:col-span-2">
-            <CardHeader className="flex flex-row items-center">
-              <div className="grid gap-2">
-                <CardTitle>Recent Appointments</CardTitle>
-                <CardDescription>
-                  A quick look at upcoming and recent appointments.
-                </CardDescription>
-              </div>
-              <Button asChild size="sm" className="ml-auto gap-1">
-                <Link href="/admin/appointments">
-                  View All
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Requested Date</TableHead>
-                    <TableHead>Status</TableHead>
+    <div className="space-y-8">
+      <PageHeading
+        title="Dashboard"
+        description="What needs attention today: new appointment requests, recent sign-ups and pending referrals."
+      />
+
+      <div className="grid overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-3">
+        {stats.map((stat, i) => (
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className={`group px-6 py-5 transition-colors hover:bg-secondary/60 ${i > 0 ? "border-t border-border sm:border-l sm:border-t-0" : ""}`}
+          >
+            <p className="text-[13.5px] text-muted-foreground">{stat.label}</p>
+            {stat.loading ? (
+              <Loader2 className="mt-3 h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <p className="mt-1 font-display text-[40px] leading-none text-foreground">{stat.value}</p>
+            )}
+            <span className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-brass-dark opacity-0 transition-opacity group-hover:opacity-100">
+              Open <ArrowUpRight className="h-3.5 w-3.5" />
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div className="space-y-1">
+              <CardTitle>Recent appointments</CardTitle>
+              <CardDescription>The latest consultation requests.</CardDescription>
+            </div>
+            <Button asChild size="sm" variant="outline" className="gap-1">
+              <Link href="/admin/appointments">
+                View all
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Requested</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
+                {!isLoading && combinedRecentAppointments && combinedRecentAppointments.map(apt => (
+                  <TableRow key={apt.id}>
+                    <TableCell className="font-medium">{apt.fullName}</TableCell>
+                    <TableCell className="font-mono text-[13px] text-muted-foreground">{formatDate(apt.requestDate)}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[apt.status] || "default"}>{apt.status}</Badge>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
-                  {!isLoading && combinedRecentAppointments && combinedRecentAppointments.map(apt => (
-                    <TableRow key={apt.id}>
-                        <TableCell>{apt.fullName}</TableCell>
-                        <TableCell>{formatDate(apt.requestDate)}</TableCell>
-                        <TableCell>
-                            <Badge variant={statusVariant[apt.status] || "default"}>{apt.status}</Badge>
-                        </TableCell>
-                    </TableRow>
-                  ))}
-                  {!isLoading && (!combinedRecentAppointments || combinedRecentAppointments.length === 0) && (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No recent appointments.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>New Customers</CardTitle>
-              <CardDescription>
-                The latest customers to join Polaris.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-8">
-                {isLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin" />}
-                {!isLoading && combinedNewCustomers && combinedNewCustomers.map((customer) => (
-                    <div key={customer.id} className="flex items-center gap-4">
-                        <Avatar className="hidden h-9 w-9 sm:flex">
-                        <AvatarFallback>{getInitials(customer.firstName, customer.lastName)}</AvatarFallback>
-                        </Avatar>
-                        <div className="grid gap-1">
-                        <p className="text-sm font-medium leading-none">
-                            {customer.firstName} {customer.lastName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                            {customer.email}
-                        </p>
-                        </div>
-                    </div>
                 ))}
-                {!isLoading && (!combinedNewCustomers || combinedNewCustomers.length === 0) && (
-                    <p className="text-center text-muted-foreground">No new customers.</p>
+                {!isLoading && (!combinedRecentAppointments || combinedRecentAppointments.length === 0) && (
+                  <TableRow><TableCell colSpan={3} className="py-8 text-center text-muted-foreground">No appointment requests yet.</TableCell></TableRow>
                 )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle>New clients</CardTitle>
+            <CardDescription>The five most recent sign-ups.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5">
+            {isLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin" />}
+            {!isLoading && combinedNewCustomers && combinedNewCustomers.map((customer) => (
+              <div key={customer.id} className="flex items-center gap-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-secondary font-mono text-[12px] text-foreground">
+                    {getInitials(customer.firstName, customer.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium leading-tight">
+                    {customer.firstName} {customer.lastName}
+                  </p>
+                  <p className="truncate text-[13px] text-muted-foreground">{customer.email}</p>
+                </div>
+              </div>
+            ))}
+            {!isLoading && (!combinedNewCustomers || combinedNewCustomers.length === 0) && (
+              <p className="py-6 text-center text-muted-foreground">No new clients yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

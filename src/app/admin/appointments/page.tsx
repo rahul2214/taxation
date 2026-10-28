@@ -39,6 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc } from "firebase/firestore";
 import { getAppointments, updateAppointmentStatus, AppointmentRecord } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 type AppointmentStatus = "Confirmed" | "Completed" | "Pending" | "Cancelled";
 
@@ -176,13 +177,13 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      <PageHeading
+        title="Appointments"
+        description="Consultation requests from the website and the client portal. Confirm, reschedule or close them here."
+      />
       <Card>
-        <CardHeader>
-          <CardTitle>Booked Appointments</CardTitle>
-          <CardDescription>Manage and view all client appointments.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -281,6 +282,6 @@ export default function AppointmentsPage() {
             </DialogFooter>
           </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

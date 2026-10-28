@@ -37,6 +37,7 @@ import {
   AppointmentRecord,
   CustomerRecord,
 } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 export default function DashboardBookAppointmentPage() {
   const { user } = useFirebase();
@@ -194,7 +195,7 @@ export default function DashboardBookAppointmentPage() {
       case "confirmed":
       case "completed":
         return (
-          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+          <Badge className="bg-brass/[0.06]0/15 text-brass-dark border-brass/30">
             {status || "Confirmed"}
           </Badge>
         );
@@ -213,19 +214,15 @@ export default function DashboardBookAppointmentPage() {
   return (
     <div className="space-y-8 max-w-5xl pb-12">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-          <CalendarCheck className="h-8 w-8 text-primary" /> Book Tax Consultation
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm max-w-2xl">
-          Schedule a dedicated appointment with our CPA & IRS enrolled tax professionals. We'll review your tax situation, explore deductions, and plan your filing.
-        </p>
-      </div>
+      <PageHeading
+        title="Book a call with your CPA"
+        description="Pick a day and a time that suits you. We'll go through your situation, answer questions and plan your filing."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Booking Form */}
         <div className="lg:col-span-7">
-          <Card className="border-sidebar-border shadow-xs">
+          <Card className="border-sidebar-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg">Request an Appointment</CardTitle>
               <CardDescription className="text-xs">
@@ -406,7 +403,7 @@ export default function DashboardBookAppointmentPage() {
         {/* Right Column: Existing Appointments & Preparation Tips */}
         <div className="lg:col-span-5 space-y-6">
           {/* Your Scheduled Consultations */}
-          <Card className="border-sidebar-border shadow-xs">
+          <Card className="border-sidebar-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -470,7 +467,7 @@ export default function DashboardBookAppointmentPage() {
           </Card>
 
           {/* Checklist / Help Card */}
-          <Card className="border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 shadow-xs">
+          <Card className="border-primary/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" /> Preparation Checklist
@@ -481,19 +478,19 @@ export default function DashboardBookAppointmentPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-xs text-muted-foreground">
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 text-brass shrink-0 mt-0.5" />
                 <span>
                   <strong>Tax Documents</strong>: W-2s, 1099s, mortgage interest (1098), or K-1 forms.
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 text-brass shrink-0 mt-0.5" />
                 <span>
                   <strong>Prior Year Return</strong>: Your 2024 or 2025 federal & state returns.
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 text-brass shrink-0 mt-0.5" />
                 <span>
                   <strong>Direct Upload</strong>: You can upload your documents securely beforehand in the vault.
                 </span>

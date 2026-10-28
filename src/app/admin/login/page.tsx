@@ -4,13 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldAlert, ArrowLeft, Lock } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { getCustomer, getAdminById, getAdminByEmail, verifyAdminCredentials } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
 import { getCachedAuth, setCachedAuth } from "@/lib/cache/auth-cache";
@@ -190,107 +186,79 @@ export default function AdminLoginPage() {
 
   if (isRedirecting) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
-        <p className="text-sm font-medium text-slate-400">
-          Already authenticated. Redirecting...
-        </p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-paper font-ui">
+        <Loader2 className="mb-4 h-8 w-8 animate-spin text-ink-muted" />
+        <p className="text-sm text-ink-muted">You're already signed in. Opening the console…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 text-slate-100">
-      {/* Top Bar */}
-      <header className="w-full px-6 py-4 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md">
-        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
-          <PolarisLogo theme="dark" className="h-8 w-auto" />
-        </Link>
-        <Button asChild variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
-          <Link href="/" className="flex items-center gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Back to Website
+    <div className="flex min-h-screen flex-col bg-paper font-ui text-ink">
+      <header className="border-b border-paper-line">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-5">
+          <Link href="/" aria-label="Polaris Tax Services home">
+            <PolarisLogo theme="light" className="h-8 w-auto" />
           </Link>
-        </Button>
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink">
+            <ArrowLeft className="h-4 w-4" /> Back to website
+          </Link>
+        </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md border-slate-800 bg-slate-900/90 backdrop-blur-xl shadow-2xl text-slate-100">
-          <CardHeader className="text-center space-y-3 pb-6">
-            <div className="flex justify-center mb-2">
-              <div className="relative">
-                <PolarisLogo theme="dark" className="h-12 w-auto max-w-[240px]" />
-              </div>
+      <main className="flex flex-1 items-center justify-center px-4 py-14">
+        <div className="w-full max-w-sm">
+          <p className="eyebrow">Admin console</p>
+          <h1 className="mt-4 font-display text-[38px] leading-tight text-ink">Staff sign in</h1>
+          <p className="mt-2 text-[15px] text-ink-muted">For Polaris staff only. Clients should use the client portal.</p>
+
+          <form onSubmit={handleAdminEmailLogin} className="mt-8 space-y-5 rounded-[4px] border border-paper-line bg-white p-6">
+            <div>
+              <label htmlFor="admin-email" className="field-label">Email</label>
+              <input
+                id="admin-email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="field"
+              />
             </div>
             <div>
-              
-              <CardTitle className="text-2xl font-bold font-headline text-white">Administrator Sign In</CardTitle>
-              <CardDescription className="text-slate-400 text-sm mt-1">
-                Restricted access for authorized Polaris administrators only.
-              </CardDescription>
+              <label htmlFor="admin-password" className="field-label">Password</label>
+              <input
+                id="admin-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="field"
+              />
             </div>
-          </CardHeader>
+            <button type="submit" className="btn-ink w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Checking
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+          </form>
 
-          <CardContent>
-            <form onSubmit={handleAdminEmailLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="admin-email" className="text-slate-300 text-sm">Admin Email</Label>
-                <Input
-                  id="admin-email"
-                  type="email"
-                  placeholder="admin@polaris.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-slate-950/80 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="admin-password" className="text-slate-300 text-sm">Password</Label>
-                </div>
-                <Input
-                  id="admin-password"
-                  type="password"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-slate-950/80 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2.5 shadow-lg shadow-cyan-900/30 transition-all mt-2"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying Credentials...
-                  </>
-                ) : (
-                  "Sign In to Admin Console"
-                )}
-              </Button>
-            </form>
-          </CardContent>
-
-          <CardFooter className="flex flex-col space-y-2 border-t border-slate-800/80 pt-4 text-center text-xs text-slate-400">
-            <p>
-              Are you a client?{" "}
-              <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-medium underline underline-offset-4">
-                Go to Client Login
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+          <p className="mt-6 text-center text-sm text-ink-muted">
+            Looking for your return?{" "}
+            <Link href="/login" className="link-under">
+              Client sign in
+            </Link>
+          </p>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-800/50">
-        &copy; {new Date().getFullYear()} Polaris Tax Services. Secure Administrative System.
+      <footer className="border-t border-paper-line py-5 text-center text-[12.5px] text-ink-muted">
+        &copy; {new Date().getFullYear()} Polaris Tax Services Inc.
       </footer>
     </div>
   );

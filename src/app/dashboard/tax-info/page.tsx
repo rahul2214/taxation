@@ -15,6 +15,7 @@ import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { getSiteSettings } from "@/lib/supabase/services";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 export default function TaxInfoPage() {
   const { firestore } = useFirebase();
@@ -48,11 +49,7 @@ export default function TaxInfoPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Download Tax Information Documents</h1>
-        <p className="text-muted-foreground">Access the latest and previous year tax information forms below.</p>
-      </div>
-      <Separator />
+      <PageHeading title="Tax forms" description="Forms and worksheets for this year and previous years, ready to download." />
 
       <Card>
         <CardContent className="pt-6">

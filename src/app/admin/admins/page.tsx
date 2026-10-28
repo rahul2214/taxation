@@ -47,6 +47,7 @@ import {
   RoleRecord,
 } from "@/lib/supabase/services";
 import { useFirebase } from "@/firebase";
+import { PageHeading } from "@/components/portal/PageHeading";
 
 export default function AdminsPage() {
   const { user } = useFirebase();
@@ -169,19 +170,15 @@ export default function AdminsPage() {
   return (
     <div className="space-y-6">
       {/* Top Banner / Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-primary" /> Admin Users
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage system administrator credentials stored in the dedicated Supabase <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">admins</code> table.
-          </p>
-        </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
-          <UserPlus className="h-4 w-4" /> Add New Admin
-        </Button>
-      </div>
+      <PageHeading
+        title="Admin users"
+        description="People who can sign in to this console."
+        actions={
+          <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> Add admin
+          </Button>
+        }
+      />
 
      
 
