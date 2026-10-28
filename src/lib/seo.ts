@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const SITE = {
   name: "Polaris Tax Services",
   legalName: "Polaris Tax Services Inc.",
-  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://polaristaxservices.com").replace(/\/$/, ""),
+  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.plrstax.com").replace(/\/$/, ""),
   tagline: "CPA Tax Preparation, Planning & IRS Help",
   description:
     "Licensed CPAs and Enrolled Agents for individual and small business tax returns, S-Corp filings and IRS notices. Fixed prices from $59. Serving all 50 states.",
