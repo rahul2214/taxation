@@ -1,148 +1,101 @@
-import Image from "next/image";
-import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Target, Eye, Handshake, ShieldCheck, Award, Lock, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PageIntro } from "@/components/public/PageIntro";
+import { ClosingCta } from "@/components/public/ClosingCta";
 
-const teamImage = PlaceHolderImages.find((p) => p.id === "about-team");
-
-const values = [
+const principles = [
   {
-    icon: <Target className="h-6 w-6 text-blue-600" />,
-    title: "Institutional Precision",
-    description: "Every return is subjected to rigorous multi-point verification by licensed CPAs to ensure 100% calculation accuracy and total compliance.",
+    title: "Someone checks every number",
+    description:
+      "Every return is reviewed line by line by a licensed CPA before it's filed. Not sampled. Every one.",
   },
   {
-    icon: <Eye className="h-6 w-6 text-blue-600" />,
-    title: "Transparent Advisory",
-    description: "No hidden fees, no opaque algorithms. We walk you through every deduction, credit, and schedule so you have total financial clarity.",
+    title: "You'll understand your return",
+    description:
+      "We explain what changed from last year and why, in plain language. If a decision is yours to make, we'll lay out the options and let you make it.",
   },
   {
-    icon: <Handshake className="h-6 w-6 text-blue-600" />,
-    title: "Fiduciary Standard",
-    description: "We operate with uncompromised integrity. Your financial well-being and privacy are guarded by strict federal IRC § 7216 standards.",
+    title: "Your information stays with us",
+    description:
+      "Tax return information is protected by federal law under IRC §7216. We don't sell it, share it, or use it for anything except your return.",
   },
 ];
 
 const credentials = [
-  {
-    title: "Licensed CPAs & IRS Enrolled Agents",
-    description: "Our preparers hold active state board licenses and IRS Circular 230 federal practice privileges.",
-  },
-  {
-    title: "IRS Authorized e-File Provider",
-    description: "Direct, encrypted integration with IRS e-file systems for immediate confirmation and rapid refund routing.",
-  },
-  {
-    title: "Bank-Grade 256-Bit TLS Encryption",
-    description: "Sensitive tax documents and identity records are guarded by strict end-to-end encryption protocols.",
-  },
-  {
-    title: "Full Audit Representation",
-    description: "We stand behind every return we file. In the rare event of an IRS inquiry, our CPAs represent you directly.",
-  },
+  ["Licensed CPAs and Enrolled Agents", "Active state board licenses and full practice rights before the IRS under Circular 230."],
+  ["IRS authorized e-file provider", "Returns go directly to the IRS and state agencies, with acceptance confirmation."],
+  ["Encrypted document portal", "Uploads are encrypted in transit and at rest, and only your preparer can open them."],
+  ["Representation if the IRS writes", "If a return we prepared gets a notice, we handle the response with you."],
 ];
 
 export default function AboutUsPage() {
   return (
     <PublicLayout>
-      <div className="bg-slate-50 min-h-screen py-12 md:py-20">
-        <div className="container mx-auto max-w-5xl px-4 md:px-6">
-          {/* Header */}
-          <header className="text-center max-w-2xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-3">
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
-              About Polaris Tax Services
-            </div>
-            <h1 className="text-3xl md:text-5xl font-headline font-bold text-slate-950 tracking-tight">
-              A Higher Standard in Tax Advisory
-            </h1>
-            <p className="mt-3 text-base md:text-lg text-slate-600">
-              Founded on the principle that every taxpayer deserves institutional-grade expertise, transparent pricing, and unwavering audit defense.
+      <PageIntro
+        eyebrow="About the firm"
+        title="A small practice that still answers the phone."
+        lede="Polaris started because tax software couldn't answer real questions, and big firms weren't interested in returns under a certain size. We wanted something in between."
+      />
+
+      <section className="border-b border-paper-line">
+        <div className="site-container grid gap-12 py-16 lg:grid-cols-12 lg:py-24">
+          <div className="space-y-5 text-[17px] leading-relaxed text-ink-soft lg:col-span-7">
+            <p>
+              Most of our clients come to us after a bad year: a notice from the IRS, a refund that was smaller than
+              expected, or an LLC that grew faster than the paperwork behind it. They want someone who will look at
+              the whole picture and explain it.
             </p>
-          </header>
-
-          {/* Team Hero Card */}
-          <section className="mb-14">
-            <Card className="overflow-hidden border border-slate-200 bg-white shadow-xs rounded-xl">
-              {teamImage && (
-                <Image
-                  src={teamImage.imageUrl}
-                  alt={teamImage.description}
-                  width={1200}
-                  height={600}
-                  className="w-full h-64 md:h-80 object-cover"
-                />
-              )}
-              <CardContent className="p-8 md:p-10">
-                <div className="max-w-3xl mx-auto space-y-4 text-center md:text-left">
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Bridging Sophisticated CPA Analysis with Digital Simplicity
-                  </h2>
-                  <p className="text-sm md:text-base text-slate-600 leading-relaxed">
-                    Polaris Tax Services was established to eliminate the frustration of automated tax software and the opacity of traditional accounting practices. By pairing modern digital document ingestion with hands-on licensed CPA oversight, we uncover deductions other filers miss while guaranteeing absolute IRS compliance.
-                  </p>
-                  <p className="text-sm md:text-base text-slate-600 leading-relaxed">
-                    Whether you are an employee managing RSUs and rental properties or an entrepreneur scaling an S-Corp, our firm serves as your trusted year-round financial partner.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Core Values */}
-          <section className="mb-14">
-            <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">Our Core Principles</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {values.map((val) => (
-                <Card key={val.title} className="p-6 border border-slate-200 bg-white shadow-xs rounded-xl space-y-3">
-                  <div className="p-2.5 rounded-lg bg-blue-50 w-fit">{val.icon}</div>
-                  <h3 className="font-semibold text-slate-900 text-base">{val.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">{val.description}</p>
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          {/* Institutional Standards */}
-          <section className="mb-14">
-            <div className="bg-slate-900 text-white rounded-2xl p-8 md:p-10">
-              <h2 className="text-xl md:text-2xl font-bold text-center mb-8">Firm Credentials & Security Standards</h2>
-              <div className="grid sm:grid-cols-2 gap-6">
-                {credentials.map((cred, idx) => (
-                  <div key={idx} className="flex items-start gap-3.5">
-                    <div className="p-2 rounded-lg bg-slate-800 text-blue-400 shrink-0 mt-0.5">
-                      <ShieldCheck className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-slate-100">{cred.title}</h4>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">{cred.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* CTA Strip */}
-          <section className="text-center bg-white border border-slate-200 rounded-xl p-8 shadow-xs">
-            <h3 className="text-xl font-bold text-slate-900">Experience the Polaris Difference</h3>
-            <p className="text-xs text-slate-600 mt-2 max-w-md mx-auto">
-              Schedule a consultation with one of our licensed tax professionals or start filing online today.
+            <p>
+              So that&apos;s how we work. You get one preparer who owns your file. You send documents through a secure
+              portal instead of a shoebox. Your preparer finds what applies to you, asks when something needs a
+              decision, and signs the return.
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-6">
-                <Link href="/book-appointment">Book Consultation</Link>
-              </Button>
-              <Button asChild variant="outline" className="border-slate-300 text-slate-800 text-xs font-semibold px-6">
-                <Link href="/signup">Create Free Account</Link>
-              </Button>
-            </div>
-          </section>
+            <p>
+              We work with employees juggling RSUs and a rental unit, freelancers in their first year on a 1099, and
+              owners of companies with several entities and a payroll in three states. The approach is the same.
+            </p>
+          </div>
+          <aside className="lg:col-span-5 lg:border-l lg:border-paper-line lg:pl-12">
+            <p className="font-display text-[28px] italic leading-snug text-ink">
+              &ldquo;Good tax work is mostly paying attention. We try to pay a lot of it.&rdquo;
+            </p>
+            <p className="mt-5 text-sm text-ink-muted">Polaris Tax Services, New York</p>
+          </aside>
         </div>
-      </div>
+      </section>
+
+      <section className="border-b border-paper-line bg-paper-deep/60">
+        <div className="site-container py-16 lg:py-24">
+          <p className="eyebrow">How we work</p>
+          <ol className="mt-10 grid gap-px overflow-hidden border border-paper-line bg-paper-line md:grid-cols-3">
+            {principles.map((p, i) => (
+              <li key={p.title} className="bg-paper p-8 lg:p-10">
+                <span className="font-display text-[44px] leading-none text-brass">{String(i + 1).padStart(2, "0")}</span>
+                <h3 className="mt-6 text-lg font-semibold text-ink">{p.title}</h3>
+                <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">{p.description}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="border-b border-paper-line">
+        <div className="site-container grid gap-10 py-16 lg:grid-cols-12 lg:py-24">
+          <div className="lg:col-span-4">
+            <p className="eyebrow">Credentials</p>
+            <h2 className="mt-5 font-display text-[34px] leading-[1.1] text-ink">What stands behind the work.</h2>
+          </div>
+          <dl className="border-t border-ink lg:col-span-8">
+            {credentials.map(([title, body]) => (
+              <div key={title} className="grid gap-2 border-b border-paper-line py-6 sm:grid-cols-[minmax(0,240px)_1fr] sm:gap-8">
+                <dt className="font-semibold text-ink">{title}</dt>
+                <dd className="text-[15px] leading-relaxed text-ink-soft">{body}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <ClosingCta />
     </PublicLayout>
   );
 }

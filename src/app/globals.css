@@ -83,3 +83,34 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Public site building blocks */
+@layer components {
+  .site-container {
+    @apply mx-auto w-full max-w-[1180px] px-5 sm:px-8;
+  }
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brass-dark;
+  }
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 rounded-[3px] bg-ink px-5 py-3 text-sm font-semibold text-paper transition-colors hover:bg-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:opacity-60;
+  }
+  .btn-line {
+    @apply inline-flex items-center justify-center gap-2 rounded-[3px] border border-ink/25 bg-transparent px-5 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass;
+  }
+  .btn-brass {
+    @apply inline-flex items-center justify-center gap-2 rounded-[3px] bg-brass px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brass-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-light;
+  }
+  .link-under {
+    @apply font-semibold text-ink underline decoration-brass/60 decoration-1 underline-offset-[5px] transition-colors hover:decoration-ink;
+  }
+  .field {
+    @apply h-11 w-full rounded-[3px] border border-paper-line bg-white px-3.5 text-sm text-ink placeholder:text-ink-muted/60 transition-colors focus:border-ink focus:outline-none focus:ring-0;
+  }
+  .field-label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink-soft;
+  }
+  .rule {
+    @apply border-t border-paper-line;
+  }
+}

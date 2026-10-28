@@ -3,49 +3,92 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { Button } from "@/components/ui/button";
-import {
-  ShieldCheck,
-  Award,
-  Lock,
-  ArrowRight,
-  Calculator,
-  Check,
-  Building2,
-  TrendingDown,
-  Briefcase,
-  Layers,
-  ChevronRight,
-  Clock,
-  Globe,
-  FileCheck2,
-  Sliders,
-  DollarSign,
-  UserCheck,
-  Minus,
-  Plus,
-  FileText,
-  CheckCircle2,
-  ArrowUpRight,
-  BarChart3,
-  Users,
-  Receipt,
-  Star,
-  Shield,
-  FileSpreadsheet,
-} from "lucide-react";
+import { ClosingCta } from "@/components/public/ClosingCta";
+import { ArrowRight, ArrowUpRight, Minus, Plus } from "lucide-react";
 import { BLOG_POSTS } from "@/data/blogs";
 import { HomeAppointmentBooking } from "@/components/home/HomeAppointmentBooking";
 import { useFirebase } from "@/firebase";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
+import { cn } from "@/lib/utils";
 
-// Institutional client badges (monochrome, executive)
-const CLIENT_LOGOS = [
-  { name: "Apex Ventures", tag: "Venture Capital" },
-  { name: "Meridian Bio", tag: "Life Sciences" },
-  { name: "Kestrel Logistics", tag: "Supply Chain" },
-  { name: "Horizon AI", tag: "Enterprise SaaS" },
-  { name: "Vesper Capital", tag: "Private Equity" },
+const STATS = [
+  { value: "10,000+", label: "returns filed across all 50 states" },
+  { value: "$4,280", label: "average in deductions found that clients had missed" },
+  { value: "99.9%", label: "of returns accepted by the IRS on first submission" },
+  { value: "4.9 / 5", label: "average rating from clients after filing" },
+];
+
+const STEPS = [
+  {
+    title: "Send us your documents",
+    body: "Upload W-2s, 1099s, K-1s and statements to your private portal, or forward them by email. We'll tell you if anything is missing.",
+  },
+  {
+    title: "Your CPA prepares the return",
+    body: "One licensed preparer owns your file from start to finish. They'll call if something needs a decision, and they'll explain the choices in plain terms.",
+  },
+  {
+    title: "Review, sign, and file",
+    body: "You get a one-page summary of what changed and why. Sign Form 8879 from your phone and we e-file to the IRS and your state.",
+  },
+];
+
+const SERVICES = [
+  { name: "Individual & family returns", detail: "W-2s, stock compensation, crypto, rental property, multi-state moves", price: "from $59" },
+  { name: "Self-employed & single-member LLCs", detail: "Schedule C, quarterly estimates, home office and vehicle", price: "from $199" },
+  { name: "S-Corps & partnerships", detail: "Form 1120-S and 1065, K-1s, reasonable salary, PTET elections", price: "from $499" },
+  { name: "IRS notices & audits", detail: "CP2000 responses, penalty abatement, representation under Form 2848", price: "quoted per case" },
+  { name: "Monthly bookkeeping", detail: "Reconciliations, P&L and balance sheet, books that are ready at tax time", price: "from $250/mo" },
+  { name: "Planning & corporate advisory", detail: "Entity structure, R&D credits, multi-state nexus, QSBS", price: "from $2,500/mo" },
+];
+
+const TIERS = [
+  {
+    name: "Individual",
+    for: "W-2 earners, investors, homeowners",
+    price: "$59",
+    unit: "simple return",
+    note: "Itemized (Schedule A) $129 · each extra state $39",
+    items: [
+      "Federal 1040 and one state return",
+      "Standard vs. itemized comparison",
+      "Child, education and energy credits",
+      "Reviewed by a licensed CPA before filing",
+      "Refund tracking after e-file",
+    ],
+    cta: "Start your return",
+  },
+  {
+    name: "Business",
+    for: "Freelancers, LLCs and S-Corps",
+    price: "$199",
+    unit: "Schedule C",
+    note: "Form 1120-S or 1065 from $499",
+    items: [
+      "A named CPA assigned to your business",
+      "Schedule C, 1120-S and K-1 preparation",
+      "Section 199A QBI deduction",
+      "Quarterly estimated tax vouchers",
+      "Notice and audit support all year",
+    ],
+    cta: "File a business return",
+    featured: true,
+  },
+  {
+    name: "Advisory",
+    for: "Growing companies, multi-entity groups",
+    price: "$2,500",
+    unit: "per month",
+    note: "All entity returns and planning included",
+    items: [
+      "Partner-level contact for every decision",
+      "R&D credit study and payroll offset",
+      "Multi-state nexus and apportionment",
+      "QSBS and exit planning",
+      "Same-day response on business days",
+    ],
+    cta: "Talk to a partner",
+  },
 ];
 
 export default function Home() {
@@ -57,9 +100,9 @@ export default function Home() {
   const { user } = useFirebase();
   const cached = mounted ? getCachedAuth() : { user: null, role: null, isAdmin: false };
   const activeUser = mounted ? user || cached.user : null;
-  const isAdmin = cached.isAdmin || activeUser?.role === "admin" || activeUser?.role === "superadmin";
+  const isAdmin = cached.isAdmin || (activeUser as any)?.role === "admin" || (activeUser as any)?.role === "superadmin";
   const primaryHref = activeUser ? (isAdmin ? "/admin" : "/dashboard") : "/signup";
-  const primaryLabel = activeUser ? "Go to Dashboard" : "Start Filing Online";
+  const primaryLabel = activeUser ? "Go to your dashboard" : "Start your return";
 
   // Calculator State: Mode Switcher ('individual' vs 'corporate')
   const [calcMode, setCalcMode] = useState<"individual" | "corporate">("individual");
@@ -75,7 +118,7 @@ export default function Home() {
   const [withholding, setWithholding] = useState(24000);
   const [dependents, setDependents] = useState(1);
 
-  // Hero Preview Card State (interactive preview)
+  // Hero document preview tab
   const [previewTab, setPreviewTab] = useState<"1040" | "business">("1040");
 
   // Corporate Mode Calculations
@@ -180,1194 +223,625 @@ export default function Home() {
 
   return (
     <PublicLayout>
-      <div className="bg-white text-slate-900 selection:bg-blue-100 selection:text-slate-900">
-        {/* ========================================================= */}
-        {/* SECTION 1: SPLIT HERO SECTION                             */}
-        {/* High-converting 2-column layout with live interactive card */}
-        {/* ========================================================= */}
-        <section className="relative overflow-hidden bg-white border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-6 pt-10 pb-16 lg:pt-16 lg:pb-24">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-              {/* Left Column: Core Positioning & CTAs */}
-              <div className="lg:col-span-7 flex flex-col justify-center">
-               
-
-                {/* Primary Headline */}
-                <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.12] mb-6">
-                 Strategic Tax Planning & Secure E-Filing for Individuals and Businesses.
-                 </h1>
-
-                {/* Subheadline */}
-                <p className="font-body text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mb-8">
-                  Maximize deductions, minimize tax risks, and file with confidence across all 50 states.
-                </p>
-
-                {/* Dual Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 mb-10">
-                  <Link
-                    href={primaryHref}
-                    className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold text-sm px-7 py-3.5 rounded-md hover:bg-blue-700 transition-colors shadow-sm text-center"
-                  >
-                    <span>{primaryLabel}</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <a
-                    href="#book-consultation"
-                    className="inline-flex items-center justify-center gap-2 bg-white text-slate-900 font-semibold text-sm px-6 py-3.5 rounded-md border border-slate-300 hover:bg-slate-50 transition-colors text-center shadow-xs"
-                  >
-                    <span>Book CPA Consultation</span>
-                  </a>
-                </div>
-
-                {/* Micro-Trust Checks */}
-                <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-slate-600 pt-6 border-t border-slate-200">
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    <span>IRS Authorized Direct e-File</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    <span>100% CPA Accuracy Guarantee</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    <span>256-Bit Bank-Grade Vault</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Live Interactive CPA Return Preview Card */}
-              <div className="lg:col-span-5">
-                <div className="bg-slate-900 text-white rounded-xl border border-slate-800 p-6 sm:p-7 shadow-xl">
-                  {/* Card Header & Tab Switcher */}
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                      <span className="text-xs font-bold tracking-wider uppercase text-slate-300">
-                        Live Filing Snapshot
-                      </span>
-                    </div>
-                    <div className="inline-flex p-0.5 bg-slate-800 rounded-md border border-slate-700">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewTab("1040")}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-colors ${
-                          previewTab === "1040"
-                            ? "bg-blue-600 text-white"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Form 1040
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewTab("business")}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-colors ${
-                          previewTab === "business"
-                            ? "bg-blue-600 text-white"
-                            : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Form 1120-S
-                      </button>
-                    </div>
-                  </div>
-
-                  {previewTab === "1040" ? (
-                    <>
-                      {/* Return Meta */}
-                      <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
-                        <span>Tax Year 2025 • Individual Filer</span>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-800/60">
-                          <Check className="h-3 w-3" /> Ready for IRS e-File
-                        </span>
-                      </div>
-
-                      {/* Main Metric: Refund Display */}
-                      <div className="bg-slate-800/70 rounded-lg p-4 border border-slate-700/60 mb-5">
-                        <span className="text-xs text-slate-400 block font-medium">Estimated Direct Deposit Refund</span>
-                        <div className="text-3xl sm:text-4xl font-extrabold text-blue-400 font-headline tracking-tight mt-1">
-                          $4,320.00
-                        </div>
-                        <p className="text-[11px] text-slate-400 mt-1">
-                          Calculated with full standard deduction ($14,600) + child tax credit + student interest.
-                        </p>
-                      </div>
-
-                      {/* Line Items Breakdown */}
-                      <div className="space-y-2.5 text-xs text-slate-300 mb-5">
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800">
-                          <span className="text-slate-400">Total Adjusted Gross Income (AGI)</span>
-                          <span className="font-semibold text-white">$125,000</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800">
-                          <span className="text-slate-400">Captured Deductions &amp; Credits</span>
-                          <span className="font-semibold text-emerald-400">-$16,600</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800">
-                          <span className="text-slate-400">Federal Taxes Already Remitted</span>
-                          <span className="font-semibold text-white">$24,000</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-slate-400">IRS Form 1040 Audit Risk Score</span>
-                          <span className="font-semibold text-blue-400">0.02% (Lowest Tier)</span>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Return Meta Business */}
-                      <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
-                        <span>Tax Year 2025 • S-Corporation / LLC</span>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-400 bg-blue-950/70 px-2 py-0.5 rounded border border-blue-800/60">
-                          <Check className="h-3 w-3" /> Audit-Defended
-                        </span>
-                      </div>
-
-                      {/* Main Metric: Tax Shield Display */}
-                      <div className="bg-slate-800/70 rounded-lg p-4 border border-slate-700/60 mb-5">
-                        <span className="text-xs text-slate-400 block font-medium">Captured Annual Corporate Shield</span>
-                        <div className="text-3xl sm:text-4xl font-extrabold text-blue-400 font-headline tracking-tight mt-1">
-                          $184,500.00
-                        </div>
-                        <p className="text-[11px] text-slate-400 mt-1">
-                          IRC § 41 R&amp;D credit + Pass-Through Entity Tax (PTET) + Section 179 depreciation.
-                        </p>
-                      </div>
-
-                      {/* Line Items Breakdown Business */}
-                      <div className="space-y-2.5 text-xs text-slate-300 mb-5">
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800">
-                          <span className="text-slate-400">Annual Business Gross Revenue</span>
-                          <span className="font-semibold text-white">$4,200,000</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800">
-                          <span className="text-slate-400">IRC § 41 R&amp;D Wage Capture</span>
-                          <span className="font-semibold text-emerald-400">+$68,000</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800">
-                          <span className="text-slate-400">PTET State Income Tax Deduction</span>
-                          <span className="font-semibold text-emerald-400">+$48,500</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-slate-400">Schedule K-1 Partner Allocation</span>
-                          <span className="font-semibold text-blue-400">Reconciled ✓</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* CPA Verification Seal & CTA */}
-                  <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-blue-400 text-xs font-bold">
-                        CPA
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-white">Robert Sterling, CPA</p>
-                        <p className="text-[10px] text-slate-400">Lead Tax Partner • AICPA #NY-084210</p>
-                      </div>
-                    </div>
-                    <Link
-                      href={primaryHref}
-                      className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-                    >
-                      <span>Get Started</span>
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 2: PERFORMANCE METRICS & CLIENT CREDIBILITY STRIP */}
-        {/* ========================================================= */}
-        <section className="bg-slate-50 py-12 border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-6">
-            {/* 4 Stat Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 pb-10 border-b border-slate-200">
-              <div className="flex flex-col">
-                <span className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  99.9%
-                </span>
-                <span className="text-xs font-bold text-slate-900 mt-1">First-Time IRS Acceptance</span>
-                <span className="text-[11px] text-slate-500 mt-0.5">Zero-defect electronic filing pipeline</span>
-              </div>
-
-              <div className="flex flex-col">
-                <span className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  $4,280+
-                </span>
-                <span className="text-xs font-bold text-slate-900 mt-1">Avg Additional Deductions</span>
-                <span className="text-[11px] text-slate-500 mt-0.5">Identified through CPA review vs self-prep</span>
-              </div>
-
-              <div className="flex flex-col">
-                <span className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  10,000+
-                </span>
-                <span className="text-xs font-bold text-slate-900 mt-1">Returns Successfully Filed</span>
-                <span className="text-[11px] text-slate-500 mt-0.5">Covering all 50 states &amp; international</span>
-              </div>
-
-              <div className="flex flex-col">
-                <span className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  4.9 / 5.0
-                </span>
-                <span className="text-xs font-bold text-slate-900 mt-1">Verified Client Trust Score</span>
-                <span className="text-[11px] text-slate-500 mt-0.5">Rated by founders &amp; professionals</span>
-              </div>
-            </div>
-
-           
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 3: THE 3-STEP FILING FLOW ("HOW IT WORKS")        */}
-        {/* ========================================================= */}
-        <section className="py-20 bg-white border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              
-              <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                How Modern Tax Filing Should Work
-              </h2>
-              <p className="font-body text-slate-600 text-sm sm:text-base mt-3">
-                No endless paperwork, no confusing software questions, and no fear of IRS audit notices.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Step 1 */}
-              <div className="bg-slate-50 p-8 rounded-xl border border-slate-200 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded border border-blue-100">
-                      Step 01
-                    </span>
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <h3 className="font-headline text-xl font-bold text-slate-900 mb-3">
-                    Secure Document Vault
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                    Drag and drop your W-2s, 1099s, K-1s, or financial reports directly into your private 256-bit encrypted portal. We ingest and organize everything automatically.
-                  </p>
-                </div>
-                <div className="text-xs font-medium text-slate-500 border-t border-slate-200 pt-4 flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-blue-600" />
-                  <span>IRC § 7216 strict privacy guaranteed</span>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="bg-slate-50 p-8 rounded-xl border border-slate-200 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded border border-blue-100">
-                      Step 02
-                    </span>
-                    <ShieldCheck className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <h3 className="font-headline text-xl font-bold text-slate-900 mb-3">
-                    Licensed CPA Optimization
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                    A dedicated licensed CPA reviews your data, identifies every available credit (R&amp;D, QBI, PTET, childcare), models filing scenarios, and prepares your full return.
-                  </p>
-                </div>
-                <div className="text-xs font-medium text-slate-500 border-t border-slate-200 pt-4 flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Every return signed by a licensed CPA</span>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="bg-slate-50 p-8 rounded-xl border border-slate-200 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded border border-blue-100">
-                      Step 03
-                    </span>
-                    <FileCheck2 className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <h3 className="font-headline text-xl font-bold text-slate-900 mb-3">
-                    One-Click Review &amp; e-File
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                    Review your clean tax summary, electronically sign Form 8879 from your phone or desktop, and submit directly to the IRS and State departments with tracking.
-                  </p>
-                </div>
-                <div className="text-xs font-medium text-slate-500 border-t border-slate-200 pt-4 flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Real-time direct deposit refund tracking</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 4: INTERACTIVE DIAGNOSTIC TAX ESTIMATOR (BENTO)   */}
-        {/* ========================================================= */}
-        <section id="calculator" className="bg-slate-50 py-20 border-b border-slate-200 scroll-mt-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-              <div>
-                
-                <h2 className="font-headline text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Instant Tax Exposure &amp; Refund Estimator
-                </h2>
-                <p className="font-body text-slate-600 text-sm sm:text-base mt-2">
-                  Simulate your Form 1040 refund or corporate tax shield across federal and multi-state jurisdictions.
-                </p>
-              </div>
-
-              {/* Mode Switcher Tabs */}
-              <div className="inline-flex p-1 bg-slate-200 rounded-lg border border-slate-300 shrink-0 self-start md:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setCalcMode("individual")}
-                  className={`text-xs font-semibold px-4 py-2 rounded-md transition-all ${
-                    calcMode === "individual"
-                      ? "bg-white text-slate-900 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Individual &amp; Family (Form 1040)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCalcMode("corporate")}
-                  className={`text-xs font-semibold px-4 py-2 rounded-md transition-all ${
-                    calcMode === "corporate"
-                      ? "bg-white text-slate-900 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Corporate &amp; Enterprise
-                </button>
-              </div>
-            </div>
-
-            {/* Estimator Bento Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Controls Column */}
-              <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-xs">
-                {calcMode === "individual" ? (
-                  /* Individual Form 1040 Controls */
-                  <div className="space-y-6">
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-900 mb-1.5">
-                          Annual Adjusted Gross Income ($)
-                        </label>
-                        <input
-                          type="number"
-                          value={income}
-                          onChange={(e) => setIncome(Number(e.target.value))}
-                          className="w-full h-11 px-3.5 border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-900 mb-1.5">
-                          Federal Taxes Already Withheld ($)
-                        </label>
-                        <input
-                          type="number"
-                          value={withholding}
-                          onChange={(e) => setWithholding(Number(e.target.value))}
-                          className="w-full h-11 px-3.5 border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-900 mb-1.5">
-                          Tax Filing Status
-                        </label>
-                        <select
-                          value={filingStatus}
-                          onChange={(e) => setFilingStatus(e.target.value as any)}
-                          className="w-full h-11 px-3.5 border border-slate-300 rounded-md text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          <option value="single">Single Filer</option>
-                          <option value="married">Married Filing Jointly</option>
-                          <option value="hoh">Head of Household</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-900 mb-1.5">
-                          Eligible Child / Family Dependents
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setDependents(Math.max(0, dependents - 1))}
-                            className="h-11 w-11 rounded-md border border-slate-300 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <div className="flex-1 text-center font-bold text-base">{dependents}</div>
-                          <button
-                            type="button"
-                            onClick={() => setDependents(dependents + 1)}
-                            className="h-11 w-11 rounded-md border border-slate-300 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-4 rounded-lg text-xs text-slate-600 leading-relaxed border border-slate-200">
-                      Standard deduction applied: <strong className="text-slate-900">{formatCurrency(individualEstimate.deduction)}</strong>. Child Tax Credit applied: <strong className="text-slate-900">{formatCurrency(individualEstimate.credits)}</strong>. All calculations reflect 2025/2026 IRS progressive brackets.
-                    </div>
-                  </div>
-                ) : (
-                  /* Corporate Mode Controls */
-                  <>
-                    {/* Revenue Slider */}
-                    <div className="mb-8">
-                      <div className="flex justify-between items-center mb-2">
-                        <label htmlFor="revRange" className="font-headline text-sm font-semibold text-slate-900">
-                          Annual Gross Revenue
-                        </label>
-                        <span className="font-headline text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded border border-blue-200">
-                          {formatCurrency(revenue)}
-                        </span>
-                      </div>
-                      <input
-                        id="revRange"
-                        type="range"
-                        min="2000000"
-                        max="50000000"
-                        step="500000"
-                        value={revenue}
-                        onChange={(e) => setRevenue(Number(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                      />
-                      <div className="flex justify-between text-[11px] text-slate-400 font-medium mt-1">
-                        <span>$2M (Seed / Series A)</span>
-                        <span>$25M (Mid-Market)</span>
-                        <span>$50M+ (Enterprise)</span>
-                      </div>
-                    </div>
-
-                    {/* Entity Structure Buttons */}
-                    <div className="mb-8">
-                      <label className="block font-headline text-sm font-semibold text-slate-900 mb-2">
-                        Current Entity Architecture
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {[
-                          { id: "c-corp", label: "C-Corporation" },
-                          { id: "s-corp", label: "S-Corporation" },
-                          { id: "partnership", label: "Partnership" },
-                          { id: "multi-holdco", label: "Multi-Entity HoldCo" },
-                        ].map((ent) => (
-                          <button
-                            key={ent.id}
-                            type="button"
-                            onClick={() => setEntityType(ent.id as any)}
-                            className={`text-xs py-2.5 px-3 rounded-md text-center transition-colors border font-semibold ${
-                              entityType === ent.id
-                                ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                            }`}
-                          >
-                            {ent.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* R&D Spend Slider */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label htmlFor="rdRange" className="font-headline text-sm font-semibold text-slate-900">
-                          Annual US Software, Engineering &amp; R&amp;D Outlay
-                        </label>
-                        <span className="font-headline text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded border border-blue-200">
-                          {formatCurrency(rdSpend)}
-                        </span>
-                      </div>
-                      <input
-                        id="rdRange"
-                        type="range"
-                        min="200000"
-                        max="15000000"
-                        step="100000"
-                        value={rdSpend}
-                        onChange={(e) => setRdSpend(Number(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                      />
-                      <p className="text-[12px] text-slate-500 mt-2">
-                        Qualifies for IRC § 41 credits against payroll tax (up to $500K/yr) or federal corporate income tax.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Right Real-Time Results Column */}
-              <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-                    <span className="text-xs uppercase font-bold tracking-wider text-slate-500">
-                      {calcMode === "individual" ? "Projected 1040 Settlement" : "Modeled Tax Shield"}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                      Live Calculation
-                    </span>
-                  </div>
-
-                  {calcMode === "individual" ? (
-                    <>
-                      {/* Individual Main Metric */}
-                      <div className="mb-6">
-                        <span className="text-xs font-medium text-slate-500">
-                          {individualEstimate.refund >= 0 ? "Projected Federal Refund" : "Projected Tax Due"}
-                        </span>
-                        <div
-                          className={`font-headline text-4xl sm:text-5xl font-black tracking-tight mt-1 ${
-                            individualEstimate.refund >= 0 ? "text-blue-600" : "text-amber-600"
-                          }`}
-                        >
-                          {formatCurrency(Math.abs(individualEstimate.refund))}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Direct deposit to your verified bank account upon IRS filing.
-                        </p>
-                      </div>
-
-                      <div className="space-y-3.5 border-t border-slate-100 pt-5">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-600">Calculated Federal Tax Liability:</span>
-                          <span className="font-semibold text-slate-900">{formatCurrency(individualEstimate.tax)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-600">Withholding Already Remitted:</span>
-                          <span className="font-semibold text-slate-900">{formatCurrency(withholding)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-600">Captured Standard Deduction:</span>
-                          <span className="font-semibold text-slate-900">{formatCurrency(individualEstimate.deduction)}</span>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Corporate Main Metric */}
-                      <div className="mb-6">
-                        <span className="text-xs font-medium text-slate-500">Estimated Annual Tax Shield</span>
-                        <div className="font-headline text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mt-1">
-                          {formatCurrency(corporateSavings.totalShield)}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">Direct reduction in federal and state liabilities.</p>
-                      </div>
-
-                      {/* Corporate Breakdown */}
-                      <div className="space-y-3.5 border-t border-slate-100 pt-5">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-600 flex items-center gap-1.5">
-                            <Layers className="h-4 w-4 text-slate-400" />
-                            IRC § 41 R&amp;D Credit
-                          </span>
-                          <span className="font-semibold text-slate-900">
-                            {formatCurrency(corporateSavings.rdCredit)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-600 flex items-center gap-1.5">
-                            <Building2 className="h-4 w-4 text-slate-400" />
-                            State Apportionment &amp; PTET
-                          </span>
-                          <span className="font-semibold text-slate-900">
-                            {formatCurrency(corporateSavings.ptet)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-600 flex items-center gap-1.5">
-                            <Sliders className="h-4 w-4 text-slate-400" />
-                            Depreciation &amp; § 179 / Bonus
-                          </span>
-                          <span className="font-semibold text-slate-900">
-                            {formatCurrency(corporateSavings.depreciation)}
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Action Trigger */}
-                <div className="pt-6 border-t border-slate-100 mt-6">
-                  <Link
-                    href={primaryHref}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 text-white font-semibold text-sm py-3.5 px-4 rounded-md hover:bg-slate-800 transition-colors shadow-xs"
-                  >
-                    <span>{calcMode === "individual" ? "Claim This Refund Online" : "Schedule Corporate Consultation"}</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                  <span className="block text-center text-[11px] text-slate-400 mt-2">
-                    Conducted under strict mutual Non-Disclosure Agreement (NDA).
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 5: CORE TAX PRACTICE AREAS (SERVICES GRID)       */}
-        {/* ========================================================= */}
-        <section id="services" className="max-w-7xl mx-auto px-6 py-24 scroll-mt-16 border-b border-slate-200">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-6 border-b border-slate-200 gap-6">
-            <div>
-              
-              <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                Comprehensive Tax Solutions for Every Stage
-              </h2>
-            </div>
-            <p className="font-body text-slate-600 text-sm max-w-md">
-              From personal Form 1040 e-filing to complex cross-border corporate restructurings, our licensed CPAs provide end-to-end tax leadership.
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-paper-line">
+        <div className="site-container grid items-center gap-14 pb-16 pt-12 md:pt-16 lg:grid-cols-12 lg:gap-10 lg:pb-24 lg:pt-20">
+          <div className="lg:col-span-7">
+            <p className="eyebrow">Tax preparation &amp; advisory · New York</p>
+            <h1 className="mt-6 font-display text-[44px] font-normal leading-[1.04] tracking-[-0.015em] text-ink sm:text-[60px] lg:text-[72px]">
+              Your taxes, prepared and signed by a CPA who{" "}
+              <em className="italic text-brass-dark">knows your file.</em>
+            </h1>
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink-soft">
+              Send your documents, talk to the person actually doing the work, and file knowing every line was
+              checked. For individuals, families and small businesses in all 50 states.
             </p>
-          </div>
 
-          {/* 4-Pillar Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Service 1: Individual & Form 1040 */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 flex flex-col justify-between hover:border-slate-400 transition-colors shadow-xs">
-              <div>
-                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-5 border border-blue-100">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <h3 className="font-headline text-lg font-bold text-slate-900 mb-2">
-                  Individual Form 1040 e-Filing
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed mb-5">
-                  Full federal and multi-state filing for professionals, W-2 employees, tech stock options (ISO/RSU/NSO), crypto transactions, and real estate investments.
-                </p>
-                <ul className="space-y-2 text-xs text-slate-700 mb-6">
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Itemized vs Standard deduction audit</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Alternative Minimum Tax (AMT) defense</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Multi-state residency allocation</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-500">From $59 base</span>
-                <Link href={primaryHref} className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  Start Online <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Service 2: Small Business & Pass-Throughs */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 flex flex-col justify-between hover:border-slate-400 transition-colors shadow-xs">
-              <div>
-                <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center mb-5 border border-slate-200">
-                  <Briefcase className="h-5 w-5" />
-                </div>
-                <h3 className="font-headline text-lg font-bold text-slate-900 mb-2">
-                  Small Business &amp; S-Corps
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed mb-5">
-                  LLC, S-Corporation (1120-S), and Partnership (1065) preparation with Schedule K-1 allocations, reasonable compensation studies, and PTET elections.
-                </p>
-                <ul className="space-y-2 text-xs text-slate-700 mb-6">
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Section 199A QBI 20% deductions</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>State Pass-Through Entity Tax (PTET)</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Quarterly estimated tax modeling</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-500">From $199 base</span>
-                <Link href="#pricing" className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  View Tiers <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Service 3: Corporate & R&D Credits */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 flex flex-col justify-between hover:border-slate-400 transition-colors shadow-xs">
-              <div>
-                <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center mb-5 border border-slate-200">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <h3 className="font-headline text-lg font-bold text-slate-900 mb-2">
-                  Corporate &amp; R&amp;D Credits
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed mb-5">
-                  Full corporate Form 1120 filing, IRC § 41 R&amp;D payroll tax credits, Section 1202 QSBS optimization, and multi-state economic nexus defense.
-                </p>
-                <ul className="space-y-2 text-xs text-slate-700 mb-6">
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>IRC § 41 R&amp;D credit wage studies</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>QSBS $10M+ capital gain exclusion</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Section 382 NOL ownership tracking</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-500">Corporate Retainer</span>
-                <a href="#book-consultation" className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  Consult Partner <ArrowRight className="h-3.5 w-3.5" />
-                </a>
-              </div>
-            </div>
-
-            {/* Service 4: IRS Audit & Notice Defense */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 flex flex-col justify-between hover:border-slate-400 transition-colors shadow-xs">
-              <div>
-                <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center mb-5 border border-slate-200">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <h3 className="font-headline text-lg font-bold text-slate-900 mb-2">
-                  IRS Notice &amp; Audit Defense
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed mb-5">
-                  Full Power of Attorney (Form 2848) representation before the IRS and state authorities. We handle CP2000 notices, audits, penalty abatements, and appeals.
-                </p>
-                <ul className="space-y-2 text-xs text-slate-700 mb-6">
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Direct CPA representation before IRS</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>First-time penalty abatement defense</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                    <span>Zero direct IRS contact required by you</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-500">Immediate Response</span>
-                <a href="#book-consultation" className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  Open Case <ArrowRight className="h-3.5 w-3.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 6: TRANSPARENT PRICING & RETAINER TIERS           */}
-        {/* ========================================================= */}
-        <section id="pricing" className="bg-slate-50 py-24 border-b border-slate-200 scroll-mt-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-             
-              <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                Transparent Pricing, Zero Hidden Fees
-              </h2>
-              <p className="font-body text-slate-600 text-sm sm:text-base mt-3">
-                No billable surprises. Every package includes direct licensed CPA oversight, audit defense coverage, and fast electronic filing.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
-              {/* Tier 1: Simple Individual Return */}
-              <div className="bg-white p-8 rounded-xl border border-slate-200 flex flex-col justify-between shadow-xs">
-                <div>
-                  <div className="mb-4">
-                    <h3 className="font-headline text-lg font-bold text-slate-900">Individual &amp; Family</h3>
-                    <p className="text-xs text-slate-500 mt-1">Form 1040 for W-2 earners, investments, and home owners</p>
-                  </div>
-                  <div className="mb-6 pb-6 border-b border-slate-100">
-                    <div className="flex items-baseline">
-                      <span className="font-headline text-4xl font-extrabold text-slate-900">$59</span>
-                      <span className="text-slate-500 text-xs font-medium ml-1.5">base / simple return</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 block mt-1">Itemized / Schedule A: $129 • Extra State: $39</span>
-                  </div>
-                  <ul className="space-y-3 text-xs text-slate-700 mb-8">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Federal Form 1040 &amp; Primary State Return</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Standard &amp; Itemized Deduction Optimization</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Child Tax Credit &amp; Education Credit Capture</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Licensed CPA Pre-Filing Review</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Direct Deposit IRS e-File Tracking</span>
-                    </li>
-                  </ul>
-                </div>
-                <Link
-                  href={primaryHref}
-                  className="w-full text-center py-3 px-4 rounded-md border border-slate-300 font-semibold text-xs text-slate-800 hover:bg-slate-50 transition-colors block shadow-xs"
-                >
-                  Start My Individual Return
-                </Link>
-              </div>
-
-              {/* Tier 2: Small Business & Freelancer (Featured) */}
-              <div className="bg-white p-8 rounded-xl border-2 border-slate-900 shadow-md flex flex-col justify-between relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded">
-                  Most Popular
-                </div>
-                <div>
-                  <div className="mb-4">
-                    <h3 className="font-headline text-lg font-bold text-slate-900">Business &amp; Pass-Through</h3>
-                    <p className="text-xs text-slate-500 mt-1">For LLCs, 1099 contractors, and S-Corporation entities</p>
-                  </div>
-                  <div className="mb-6 pb-6 border-b border-slate-100">
-                    <div className="flex items-baseline">
-                      <span className="font-headline text-4xl font-extrabold text-slate-900">$199</span>
-                      <span className="text-slate-500 text-xs font-medium ml-1.5">base / Schedule C</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 block mt-1">Form 1120-S / 1065 from $499 flat</span>
-                  </div>
-                  <ul className="space-y-3 text-xs text-slate-700 mb-8">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span className="font-semibold text-slate-900">Dedicated Senior CPA Tax Manager</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Schedule C / Form 1120-S + K-1 Filings</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Section 199A 20% QBI Deduction Calculation</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Quarterly Estimated Tax Calculation Vouchers</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Full Year-Round Audit Defense Protection</span>
-                    </li>
-                  </ul>
-                </div>
-                <Link
-                  href={primaryHref}
-                  className="w-full text-center py-3 px-4 rounded-md bg-blue-600 font-semibold text-xs text-white hover:bg-blue-700 transition-colors shadow-xs block"
-                >
-                  File Business Return
-                </Link>
-              </div>
-
-              {/* Tier 3: Corporate Advisory Retainer */}
-              <div className="bg-white p-8 rounded-xl border border-slate-200 flex flex-col justify-between shadow-xs">
-                <div>
-                  <div className="mb-4">
-                    <h3 className="font-headline text-lg font-bold text-slate-900">Corporate &amp; Advisory</h3>
-                    <p className="text-xs text-slate-500 mt-1">High-growth enterprises, multi-state footprints &amp; holding cos</p>
-                  </div>
-                  <div className="mb-6 pb-6 border-b border-slate-100">
-                    <div className="flex items-baseline">
-                      <span className="font-headline text-3xl font-extrabold text-slate-900">$2,500</span>
-                      <span className="text-slate-500 text-xs font-medium ml-1.5">/ month retainer</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 block mt-1">Includes all entity returns &amp; strategy</span>
-                  </div>
-                  <ul className="space-y-3 text-xs text-slate-700 mb-8">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Big-Four Veteran Partner Lead Desk</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>IRC § 41 R&amp;D Credit Study &amp; Payroll Offset</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Multi-State Nexus &amp; Apportionment Defense</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Section 1202 QSBS Capital Gain Planning</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>Priority 4-Hour Partner Response SLA</span>
-                    </li>
-                  </ul>
-                </div>
-                <a
-                  href="#book-consultation"
-                  className="w-full text-center py-3 px-4 rounded-md border border-slate-300 font-semibold text-xs text-slate-800 hover:bg-slate-50 transition-colors block shadow-xs"
-                >
-                  Schedule Corporate Consultation
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 7: CLIENT TESTIMONIALS & TRUSTED REVIEWS          */}
-        {/* ========================================================= */}
-        <section className="max-w-7xl mx-auto px-6 py-24 border-b border-slate-200">
-          <div className="max-w-2xl mb-16">
-           
-            <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Backed by High-Performing Clients
-            </h2>
-            <p className="font-body text-slate-600 text-sm sm:text-base mt-2">
-              Here is what founders, engineers, and financial executives say about partnering with Polaris.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Review 1 */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-1 text-amber-500 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic mb-6">
-                  &ldquo;Filing both my W-2 and my Schedule C LLC used to be a nightmare of confusing online forms. Polaris had a licensed CPA walk me through every deduction. They found $3,800 in deductions I had overlooked for two years.&rdquo;
-                </p>
-              </div>
-              <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center">
-                  ML
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">Marcus Lin</h4>
-                  <p className="text-[11px] text-slate-500">Staff Engineer &amp; Consultant, Austin TX</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Review 2 */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-1 text-amber-500 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic mb-6">
-                  &ldquo;The Section 41 R&amp;D credit defense alone paid for our annual advisory retainer five times over. Polaris delivers Big-Four caliber analysis with the agility and responsiveness of a modern software partner.&rdquo;
-                </p>
-              </div>
-              <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                  SK
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">Sonia Kapoor</h4>
-                  <p className="text-[11px] text-slate-500">Chief Financial Officer, Algomap</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Review 3 */}
-            <div className="bg-white p-7 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-1 text-amber-500 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic mb-6">
-                  &ldquo;When I sold my company, the QSBS stacking strategy executed by the Polaris partners saved our founding family over $1.2M in capital gains taxes. Their mastery of the tax code is extraordinary.&rdquo;
-                </p>
-              </div>
-              <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center">
-                  DR
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">David Reynolds</h4>
-                  <p className="text-[11px] text-slate-500">Founder &amp; Former CEO, Payshift</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 8: SEAMLESS CONSULTATION SCHEDULER                */}
-        {/* ========================================================= */}
-        <HomeAppointmentBooking />
-
-        {/* ========================================================= */}
-        {/* SECTION 9: TAX ARTICLES & RESEARCH GUIDES                 */}
-        {/* ========================================================= */}
-        <section className="py-20 bg-slate-50 border-t border-slate-200">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-              <div>
-                
-                <h2 className="text-2xl md:text-3xl font-headline font-bold text-slate-950">
-                  Verified Tax Insights by Licensed CPAs
-                </h2>
-              </div>
-              <Button asChild variant="outline" className="border-slate-300 text-slate-800 text-xs font-semibold shrink-0">
-                <Link href="/blogs" className="flex items-center gap-1.5">
-                  <span>Browse Research Library</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {BLOG_POSTS.slice(0, 3).map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-colors"
-                >
-                  <div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 mb-3">
-                      <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded">
-                        {post.category}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {post.readTime}
-                      </span>
-                    </div>
-
-                    <Link href={`/blogs/${post.slug}`}>
-                      <h3 className="font-headline font-bold text-base text-slate-900 hover:text-blue-600 transition-colors line-clamp-2 leading-snug mb-2">
-                        {post.title}
-                      </h3>
-                    </Link>
-
-                    <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">
-                      {post.excerpt}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 font-medium">{post.author.name}</span>
-                    <Link
-                      href={`/blogs/${post.slug}`}
-                      className="text-blue-600 font-semibold hover:underline flex items-center gap-1"
-                    >
-                      Read Briefing <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* SECTION 10: EXECUTIVE BOTTOM CALL-TO-ACTION               */}
-        {/* ========================================================= */}
-        <section className="bg-slate-900 text-white py-20 border-t border-slate-800">
-          <div className="max-w-5xl mx-auto px-6 text-center">
-           
-            <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-6">
-              File Your 2025 Return with 100% CPA Confidence.
-            </h2>
-            <p className="font-body text-slate-300 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-              Join thousands of professionals, high-earners, and growing businesses who trust Polaris for zero-defect tax compliance and maximum legal refund optimization.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-              <Link
-                href={primaryHref}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold text-sm px-8 py-4 rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                <span>{primaryLabel}</span>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link href={primaryHref} className="btn-ink px-6 py-3.5">
+                {primaryLabel}
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <a
-                href="#book-consultation"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-800 text-white font-semibold text-sm px-7 py-4 rounded-md border border-slate-700 hover:bg-slate-700 transition-colors shadow-xs"
-              >
-                <span>Book Partner Consultation</span>
+              <a href="#book-consultation" className="btn-line px-6 py-3.5">
+                Book a free 15-minute call
               </a>
             </div>
 
-            {/* Bottom Security Seals */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 pt-6 border-t border-slate-800">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 text-blue-400" />
-                <span>IRS Authorized e-File Provider</span>
+            <dl className="mt-12 grid max-w-xl grid-cols-3 border-t border-paper-line pt-6 text-[13px] sm:text-sm">
+              <div>
+                <dt className="text-ink-muted">Returns from</dt>
+                <dd className="mt-1 font-display text-xl text-ink sm:text-2xl">$59</dd>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Lock className="h-4 w-4 text-blue-400" />
-                <span>256-Bit Bank-Grade Vault</span>
+              <div className="border-l border-paper-line pl-3 sm:pl-5">
+                <dt className="text-ink-muted">Typical turnaround</dt>
+                <dd className="mt-1 font-display text-xl text-ink sm:text-2xl">2–3 days</dd>
               </div>
-              <div className="flex items-center gap-1.5">
-                <FileCheck2 className="h-4 w-4 text-blue-400" />
-                <span>AICPA Peer-Reviewed Firm</span>
+              <div className="border-l border-paper-line pl-3 sm:pl-5">
+                <dt className="text-ink-muted">Notice support</dt>
+                <dd className="mt-1 font-display text-xl text-ink sm:text-2xl">Included</dd>
               </div>
-            </div>
+            </dl>
           </div>
-        </section>
 
-        {/* ========================================================= */}
-        {/* INSTITUTIONAL SECURITY CREDENTIALS STRIP                 */}
-        {/* ========================================================= */}
-        <section className="py-10 bg-white border-t border-slate-200">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-wrap items-center justify-center md:justify-between gap-6 text-xs text-slate-500">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-slate-700" />
-                <span>AICPA Registered Firm ID #9842104</span>
+          {/* Return summary sheet */}
+          <div className="lg:col-span-5">
+            <div className="relative mx-auto max-w-md">
+              <div className="flex gap-1 pl-4">
+                {[
+                  { id: "1040" as const, label: "Form 1040" },
+                  { id: "business" as const, label: "Form 1120-S" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setPreviewTab(tab.id)}
+                    className={cn(
+                      "rounded-t-[4px] border border-b-0 px-4 py-2 font-mono text-[11.5px] transition-colors",
+                      previewTab === tab.id
+                        ? "border-paper-line bg-white text-ink"
+                        : "border-transparent bg-paper-deep text-ink-muted hover:text-ink"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-slate-700" />
-                <span>SOC 2 Type II Certified Ingestion Pipeline</span>
+
+              <div className="relative rounded-[4px] border border-paper-line bg-white p-6 shadow-[0_1px_0_#DCD5C5,0_24px_48px_-24px_rgba(20,32,46,0.25)] sm:p-8">
+                <div className="flex items-start justify-between border-b border-ink pb-4">
+                  <div>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-muted">Return summary</p>
+                    <p className="mt-1 font-display text-xl text-ink">
+                      {previewTab === "1040" ? "Individual · Tax year 2025" : "S-Corporation · Tax year 2025"}
+                    </p>
+                  </div>
+                  <span className="font-mono text-[11px] text-ink-muted">p. 1 of 1</span>
+                </div>
+
+                <table className="mt-4 w-full font-mono text-[13px]">
+                  <tbody className="divide-y divide-dashed divide-paper-line">
+                    {(previewTab === "1040"
+                      ? [
+                          ["1z", "Wages, salaries, tips", "125,000"],
+                          ["12", "Standard deduction", "(14,600)"],
+                          ["19", "Child tax credit", "(2,000)"],
+                          ["25d", "Federal tax withheld", "24,000"],
+                        ]
+                      : [
+                          ["1a", "Gross receipts", "4,200,000"],
+                          ["—", "R&D wage credit (§41)", "68,000"],
+                          ["—", "PTET state deduction", "48,500"],
+                          ["K-1", "Shareholder allocations", "reconciled"],
+                        ]
+                    ).map(([line, label, amount]) => (
+                      <tr key={label}>
+                        <td className="w-10 py-2.5 text-ink-muted">{line}</td>
+                        <td className="py-2.5 font-ui text-[13.5px] text-ink-soft">{label}</td>
+                        <td className="py-2.5 text-right text-ink">{amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="mt-4 flex items-end justify-between border-t-2 border-double border-ink pt-4">
+                  <div>
+                    <p className="text-[13px] text-ink-muted">
+                      {previewTab === "1040" ? "Refund to direct deposit" : "Tax saved this year"}
+                    </p>
+                    <p className="mt-0.5 font-display text-[40px] leading-none text-ink">
+                      {previewTab === "1040" ? "$4,320" : "$184,500"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-display text-lg italic text-ink">R. Sterling</p>
+                    <p className="font-mono text-[10.5px] uppercase tracking-wider text-ink-muted">Preparer, CPA</p>
+                  </div>
+                </div>
+
+                {/* Review stamp */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-3 -top-12 hidden sm:flex bg-white/70 backdrop-blur-[1px] h-[92px] w-[92px] rotate-[-12deg] flex-col items-center justify-center rounded-full border-2 border-brass/70 text-center text-brass-dark/90 sm:-right-6"
+                >
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em]">Polaris</span>
+                  <span className="font-display text-[17px] font-semibold uppercase leading-tight tracking-wide">Reviewed</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em]">CPA · 2025</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <FileCheck2 className="h-4 w-4 text-slate-700" />
-                <span>IRS IRC § 7216 Strict Confidentiality Standard</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-slate-700" />
-                <span>256-Bit TLS Vault Data Encryption</span>
+              <p className="mt-3 pl-1 text-[12.5px] text-ink-muted">Sample figures for illustration.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Numbers */}
+      <section className="border-b border-paper-line bg-paper-deep/60">
+        <div className="site-container grid grid-cols-2 lg:grid-cols-4">
+          {STATS.map((stat, i) => (
+            <div
+              key={stat.label}
+              className={cn(
+                "py-10 pr-6 lg:py-12",
+                i % 2 === 1 && "border-l border-paper-line pl-6",
+                i >= 2 && "border-t border-paper-line lg:border-t-0",
+                i === 2 && "lg:border-l lg:pl-6"
+              )}
+            >
+              <p className="font-display text-[38px] leading-none text-ink sm:text-[44px]">{stat.value}</p>
+              <p className="mt-3 max-w-[220px] text-[14px] leading-snug text-ink-muted">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-b border-paper-line">
+        <div className="site-container py-20 lg:py-28">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <p className="eyebrow lg:col-span-3 lg:pt-3">How it works</p>
+            <h2 className="font-display text-[36px] leading-[1.1] text-ink sm:text-[46px] lg:col-span-9">
+              Three steps, and no software asking you questions you can&apos;t answer.
+            </h2>
+          </div>
+
+          <ol className="mt-14 grid gap-px overflow-hidden border border-paper-line bg-paper-line md:grid-cols-3">
+            {STEPS.map((step, i) => (
+              <li key={step.title} className="bg-paper p-8 lg:p-10">
+                <span className="font-display text-[56px] leading-none text-brass">{String(i + 1).padStart(2, "0")}</span>
+                <h3 className="mt-8 text-xl font-semibold text-ink">{step.title}</h3>
+                <p className="mt-3 text-[15.5px] leading-relaxed text-ink-soft">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Services */}
+      <section id="services" className="scroll-mt-28 border-b border-paper-line">
+        <div className="site-container py-20 lg:py-28">
+          <div className="grid gap-8 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="eyebrow">What we do</p>
+              <h2 className="mt-5 font-display text-[36px] leading-[1.1] text-ink sm:text-[42px]">
+                From a single W-2 to a group of companies.
+              </h2>
+              <p className="mt-5 text-[15.5px] leading-relaxed text-ink-soft">
+                Every engagement has a fixed price agreed before work starts. If your situation changes, we&apos;ll
+                tell you before the price does.
+              </p>
+              <Link href="/services" className="link-under mt-7 inline-block text-[15px]">
+                See all services
+              </Link>
+            </div>
+
+            <ul className="border-t border-ink lg:col-span-8">
+              {SERVICES.map((s) => (
+                <li key={s.name} className="border-b border-paper-line">
+                  <Link
+                    href="/services"
+                    className="group grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1 py-5 sm:grid-cols-[1fr_auto_20px]"
+                  >
+                    <span className="font-display text-[22px] text-ink transition-colors group-hover:text-brass-dark sm:text-[24px]">
+                      {s.name}
+                    </span>
+                    <span className="font-mono text-[13px] text-ink-muted">{s.price}</span>
+                    <ArrowUpRight className="hidden h-4 w-4 self-center text-ink-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink sm:block" />
+                    <span className="col-span-2 text-[14.5px] text-ink-muted sm:col-span-3">{s.detail}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Estimator */}
+      <section id="estimator" className="scroll-mt-28 border-b border-paper-line bg-paper-deep/60">
+        <span id="calculator" className="sr-only" aria-hidden />
+        <div className="site-container py-20 lg:py-28">
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+            <div className="max-w-2xl">
+              <p className="eyebrow">Quick estimate</p>
+              <h2 className="mt-5 font-display text-[36px] leading-[1.1] text-ink sm:text-[42px]">
+                Roughly where will you land this year?
+              </h2>
+              <p className="mt-4 text-[15.5px] leading-relaxed text-ink-soft">
+                A back-of-the-envelope number using 2025 federal brackets. Your actual return will depend on the
+                details, which is what we&apos;re for.
+              </p>
+            </div>
+
+            <div className="inline-flex self-start rounded-[3px] border border-paper-line bg-paper p-1 md:self-auto">
+              {[
+                { id: "individual" as const, label: "Individual" },
+                { id: "corporate" as const, label: "Business" },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setCalcMode(m.id)}
+                  className={cn(
+                    "rounded-[2px] px-5 py-2 text-sm font-medium transition-colors",
+                    calcMode === m.id ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 grid overflow-hidden rounded-[4px] border border-paper-line bg-white lg:grid-cols-12">
+            {/* Inputs */}
+            <div className="p-6 sm:p-10 lg:col-span-7">
+              {calcMode === "individual" ? (
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="est-income" className="field-label">Total income</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-muted">$</span>
+                      <input
+                        id="est-income"
+                        type="number"
+                        value={income}
+                        onChange={(e) => setIncome(Number(e.target.value))}
+                        className="field pl-7 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="est-withheld" className="field-label">Federal tax already withheld</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-muted">$</span>
+                      <input
+                        id="est-withheld"
+                        type="number"
+                        value={withholding}
+                        onChange={(e) => setWithholding(Number(e.target.value))}
+                        className="field pl-7 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="est-status" className="field-label">Filing status</label>
+                    <select
+                      id="est-status"
+                      value={filingStatus}
+                      onChange={(e) => setFilingStatus(e.target.value as any)}
+                      className="field"
+                    >
+                      <option value="single">Single</option>
+                      <option value="married">Married filing jointly</option>
+                      <option value="hoh">Head of household</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span className="field-label">Qualifying children</span>
+                    <div className="flex h-11 items-center rounded-[3px] border border-paper-line">
+                      <button
+                        type="button"
+                        aria-label="Fewer children"
+                        onClick={() => setDependents(Math.max(0, dependents - 1))}
+                        className="flex h-full w-11 items-center justify-center text-ink-soft hover:bg-paper"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="flex-1 text-center font-mono text-[15px] text-ink">{dependents}</span>
+                      <button
+                        type="button"
+                        aria-label="More children"
+                        onClick={() => setDependents(dependents + 1)}
+                        className="flex h-full w-11 items-center justify-center text-ink-soft hover:bg-paper"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[13.5px] leading-relaxed text-ink-muted sm:col-span-2">
+                    Uses the {formatCurrency(individualEstimate.deduction)} standard deduction and{" "}
+                    {formatCurrency(individualEstimate.credits)} in child tax credit. Doesn&apos;t include state
+                    tax, self-employment tax or itemized deductions.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-9">
+                  <div>
+                    <div className="mb-3 flex items-baseline justify-between">
+                      <label htmlFor="revRange" className="field-label mb-0">Annual revenue</label>
+                      <span className="font-mono text-[15px] text-ink">{formatCurrency(revenue)}</span>
+                    </div>
+                    <input
+                      id="revRange"
+                      type="range"
+                      min="2000000"
+                      max="50000000"
+                      step="500000"
+                      value={revenue}
+                      onChange={(e) => setRevenue(Number(e.target.value))}
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-paper-line accent-[#A97C32]"
+                    />
+                    <div className="mt-2 flex justify-between font-mono text-[11px] text-ink-muted">
+                      <span>$2M</span>
+                      <span>$25M</span>
+                      <span>$50M</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="field-label">Entity type</span>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {[
+                        { id: "c-corp", label: "C-Corp" },
+                        { id: "s-corp", label: "S-Corp" },
+                        { id: "partnership", label: "Partnership" },
+                        { id: "multi-holdco", label: "Holding group" },
+                      ].map((ent) => (
+                        <button
+                          key={ent.id}
+                          type="button"
+                          onClick={() => setEntityType(ent.id as any)}
+                          className={cn(
+                            "rounded-[3px] border px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+                            entityType === ent.id
+                              ? "border-ink bg-ink text-paper"
+                              : "border-paper-line text-ink-soft hover:border-ink/40"
+                          )}
+                        >
+                          {ent.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-3 flex items-baseline justify-between">
+                      <label htmlFor="rdRange" className="field-label mb-0">US engineering &amp; R&amp;D spend</label>
+                      <span className="font-mono text-[15px] text-ink">{formatCurrency(rdSpend)}</span>
+                    </div>
+                    <input
+                      id="rdRange"
+                      type="range"
+                      min="200000"
+                      max="15000000"
+                      step="100000"
+                      value={rdSpend}
+                      onChange={(e) => setRdSpend(Number(e.target.value))}
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-paper-line accent-[#A97C32]"
+                    />
+                    <p className="mt-3 text-[13.5px] text-ink-muted">
+                      Qualifying spend can offset payroll tax (up to $500K a year) or federal income tax under §41.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Result */}
+            <div className="flex flex-col justify-between border-t border-paper-line bg-paper/60 p-6 sm:p-10 lg:col-span-5 lg:border-l lg:border-t-0">
+              {calcMode === "individual" ? (
+                <div>
+                  <p className="text-sm text-ink-muted">
+                    {individualEstimate.refund >= 0 ? "Estimated federal refund" : "Estimated amount you'd owe"}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-2 font-display text-[56px] leading-none",
+                      individualEstimate.refund >= 0 ? "text-ink" : "text-brass-dark"
+                    )}
+                  >
+                    {formatCurrency(Math.abs(individualEstimate.refund))}
+                  </p>
+                  <dl className="mt-8 divide-y divide-dashed divide-paper-line border-y border-paper-line font-mono text-[13.5px]">
+                    <div className="flex justify-between py-3">
+                      <dt className="font-ui text-ink-soft">Federal tax</dt>
+                      <dd className="text-ink">{formatCurrency(individualEstimate.tax)}</dd>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <dt className="font-ui text-ink-soft">Already withheld</dt>
+                      <dd className="text-ink">{formatCurrency(withholding)}</dd>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <dt className="font-ui text-ink-soft">Standard deduction</dt>
+                      <dd className="text-ink">{formatCurrency(individualEstimate.deduction)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-ink-muted">Estimated annual tax savings</p>
+                  <p className="mt-2 font-display text-[56px] leading-none text-ink">
+                    {formatCurrency(corporateSavings.totalShield)}
+                  </p>
+                  <dl className="mt-8 divide-y divide-dashed divide-paper-line border-y border-paper-line font-mono text-[13.5px]">
+                    <div className="flex justify-between py-3">
+                      <dt className="font-ui text-ink-soft">R&amp;D credit (§41)</dt>
+                      <dd className="text-ink">{formatCurrency(corporateSavings.rdCredit)}</dd>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <dt className="font-ui text-ink-soft">State apportionment &amp; PTET</dt>
+                      <dd className="text-ink">{formatCurrency(corporateSavings.ptet)}</dd>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <dt className="font-ui text-ink-soft">Depreciation (§179 / bonus)</dt>
+                      <dd className="text-ink">{formatCurrency(corporateSavings.depreciation)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+
+              <div className="mt-8">
+                <Link
+                  href={calcMode === "individual" ? primaryHref : "#book-consultation"}
+                  className="btn-ink w-full"
+                >
+                  {calcMode === "individual" ? "Get the real number" : "Discuss this with a partner"}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <p className="mt-3 text-center text-[12.5px] text-ink-muted">An estimate only, not tax advice.</p>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="scroll-mt-28 border-b border-paper-line">
+        <div className="site-container py-20 lg:py-28">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <p className="eyebrow lg:col-span-3 lg:pt-3">Pricing</p>
+            <div className="lg:col-span-9">
+              <h2 className="font-display text-[36px] leading-[1.1] text-ink sm:text-[46px]">
+                Published prices. Agreed before we start.
+              </h2>
+              <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-soft">
+                Every package includes CPA review and help with any IRS letter about a return we filed. No hourly
+                billing.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-14 grid gap-6 lg:grid-cols-3 lg:gap-0">
+            {TIERS.map((tier, i) => (
+              <div
+                key={tier.name}
+                className={cn(
+                  "flex flex-col rounded-[4px] border p-8 lg:rounded-none lg:p-10",
+                  tier.featured
+                    ? "border-ink bg-ink text-paper lg:-my-4 lg:rounded-[4px] lg:py-14"
+                    : "border-paper-line bg-white",
+                  i === 0 && "lg:border-r-0",
+                  i === 2 && "lg:border-l-0"
+                )}
+              >
+                <div className="flex items-baseline justify-between">
+                  <h3 className="font-display text-[26px]">{tier.name}</h3>
+                  {tier.featured && (
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-brass-light">Most chosen</span>
+                  )}
+                </div>
+                <p className={cn("mt-1 text-[14px]", tier.featured ? "text-paper/60" : "text-ink-muted")}>{tier.for}</p>
+
+                <div className={cn("mt-8 border-t pt-6", tier.featured ? "border-paper/15" : "border-paper-line")}>
+                  <p className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-display text-[52px] leading-none">{tier.price}</span>
+                    <span className={cn("whitespace-nowrap text-sm", tier.featured ? "text-paper/60" : "text-ink-muted")}>{tier.unit}</span>
+                  </p>
+                  <p className={cn("mt-2 font-mono text-[11.5px]", tier.featured ? "text-paper/50" : "text-ink-muted")}>{tier.note}</p>
+                </div>
+
+                <ul className="mt-8 flex-1 space-y-3 text-[14.5px]">
+                  {tier.items.map((item) => (
+                    <li key={item} className="flex gap-3">
+                      <span className={cn("mt-[9px] h-px w-3 shrink-0", tier.featured ? "bg-brass-light" : "bg-brass")} />
+                      <span className={tier.featured ? "text-paper/85" : "text-ink-soft"}>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={tier.name === "Advisory" ? "#book-consultation" : primaryHref}
+                  className={cn("mt-10 w-full", tier.featured ? "btn-brass" : "btn-line")}
+                >
+                  {tier.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Clients */}
+      <section className="border-b border-paper-line bg-paper-deep/60">
+        <div className="site-container py-20 lg:py-28">
+          <p className="eyebrow">From our clients</p>
+          <div className="mt-10 grid gap-14 lg:grid-cols-12">
+            <figure className="lg:col-span-7">
+              <blockquote className="font-display text-[28px] leading-[1.3] text-ink sm:text-[34px]">
+                &ldquo;I used to dread filing with a W-2 and a side LLC. My CPA walked me through every deduction and
+                found $3,800 I&apos;d missed two years running.&rdquo;
+              </blockquote>
+              <figcaption className="mt-8 text-[15px]">
+                <span className="font-semibold text-ink">Marcus Lin</span>
+                <span className="text-ink-muted"> · Engineer and consultant, Austin</span>
+              </figcaption>
+            </figure>
+
+            <div className="space-y-10 border-t border-paper-line pt-10 lg:col-span-5 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+              <figure>
+                <blockquote className="text-[16.5px] leading-relaxed text-ink-soft">
+                  &ldquo;The R&amp;D credit work paid for the advisory retainer several times over, and they answer the
+                  phone.&rdquo;
+                </blockquote>
+                <figcaption className="mt-4 text-[14px]">
+                  <span className="font-semibold text-ink">Sonia Kapoor</span>
+                  <span className="text-ink-muted"> · CFO, Algomap</span>
+                </figcaption>
+              </figure>
+              <figure className="border-t border-paper-line pt-10">
+                <blockquote className="text-[16.5px] leading-relaxed text-ink-soft">
+                  &ldquo;When we sold the company, their QSBS planning saved our family more than $1.2M in capital
+                  gains tax.&rdquo;
+                </blockquote>
+                <figcaption className="mt-4 text-[14px]">
+                  <span className="font-semibold text-ink">David Reynolds</span>
+                  <span className="text-ink-muted"> · Founder, Payshift</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <HomeAppointmentBooking />
+
+      {/* Articles */}
+      <section className="border-t border-paper-line">
+        <div className="site-container py-20 lg:py-24">
+          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+            <div>
+              <p className="eyebrow">Articles</p>
+              <h2 className="mt-5 font-display text-[34px] leading-[1.1] text-ink sm:text-[40px]">Written by the team</h2>
+            </div>
+            <Link href="/blogs" className="link-under text-[15px]">
+              All articles
+            </Link>
+          </div>
+
+          <div className="mt-12 grid border-t border-ink md:grid-cols-3">
+            {BLOG_POSTS.slice(0, 3).map((post, i) => (
+              <Link
+                key={post.id}
+                href={`/blogs/${post.slug}`}
+                className={cn(
+                  "group flex flex-col border-b border-paper-line py-8 md:border-b-0 md:px-8 md:py-10",
+                  i === 0 && "md:pl-0",
+                  i > 0 && "md:border-l",
+                  i === 2 && "md:pr-0"
+                )}
+              >
+                <p className="font-mono text-[11.5px] uppercase tracking-[0.1em] text-ink-muted">
+                  {post.category} · {post.readTime}
+                </p>
+                <h3 className="mt-4 font-display text-[23px] leading-snug text-ink transition-colors group-hover:text-brass-dark">
+                  {post.title}
+                </h3>
+                <p className="mt-3 line-clamp-3 text-[14.5px] leading-relaxed text-ink-muted">{post.excerpt}</p>
+                <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
+                  Read
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <ClosingCta
+        title="Filing season is easier when it starts early."
+        body="Open an account in two minutes and upload documents as they arrive. We'll start on your return as soon as we have what we need."
+        primary={{ href: primaryHref, label: primaryLabel }}
+        secondary={{ href: "/book-appointment", label: "Talk to a CPA first" }}
+      />
     </PublicLayout>
   );
 }

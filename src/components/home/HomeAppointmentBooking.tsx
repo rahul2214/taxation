@@ -2,49 +2,28 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Calendar,
-  Clock,
-  User,
-  Mail,
-  Phone,
-  CheckCircle2,
-  ShieldCheck,
-  Award,
-  Loader2,
-  CalendarCheck,
-  Lock,
-  ArrowRight,
-  Briefcase,
-  FileText,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { createAppointment, getCustomer, CustomerRecord } from "@/lib/supabase/services";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const CONSULTATION_SERVICES = [
-  "Executive & Private Wealth Advisory (QSBS / Trust)",
-  "Small Business & Corporate Tax (LLC / 1120-S)",
-  "Individual & Family Form 1040 Preparation",
-  "IRS Notice, CP2000 & Audit Defense",
-  "Cross-Border, GILTI & Foreign Asset Reporting",
-  "R&D Tax Credit & Capital Expenditure Scans",
-  "Year-Round Bookkeeping & Strategic Advisory",
+  "Individual or family return (Form 1040)",
+  "Self-employed or single-member LLC",
+  "S-Corp, partnership or C-Corp return",
+  "IRS notice or audit",
+  "Tax planning for a business",
+  "Equity, QSBS or a business sale",
+  "Bookkeeping",
+  "Something else",
 ];
 
 const TIME_WINDOWS = [
-  "Thu • 10:00 AM EDT",
-  "Thu • 2:30 PM EDT",
-  "Fri • 11:30 AM EDT",
-  "Fri • 3:00 PM EDT",
-  "Mon • 1:00 PM EDT",
-  "Custom Window",
+  "Morning (9am–12pm ET)",
+  "Midday (12–3pm ET)",
+  "Afternoon (3–6pm ET)",
+  "Evening (6–8pm ET)",
 ];
 
 export function HomeAppointmentBooking() {
@@ -114,8 +93,8 @@ export function HomeAppointmentBooking() {
     if (!fullName.trim() || !email.trim() || !phone.trim()) {
       toast({
         variant: "destructive",
-        title: "Missing Required Fields",
-        description: "Please provide your full name, email address, and phone number.",
+        title: "A few details are missing",
+        description: "Please add your name, email and phone number.",
       });
       return;
     }
@@ -174,15 +153,15 @@ export function HomeAppointmentBooking() {
       setIsSubmitted(true);
 
       toast({
-        title: "Consultation Request Registered",
-        description: "Your session request has been confirmed. A licensed CPA will follow up with formal calendar coordinates.",
+        title: "Request received",
+        description: "We'll email you within one business day to confirm a time.",
       });
     } catch (err: any) {
       console.error("Booking submission error:", err);
       toast({
         variant: "destructive",
-        title: "Submission Error",
-        description: err?.message || "Could not register your consultation. Please try again or call our partner desk.",
+        title: "That didn't go through",
+        description: err?.message || "Please try again, or call us at (212) 847-1920.",
       });
     } finally {
       setIsSubmitting(false);
@@ -197,275 +176,214 @@ export function HomeAppointmentBooking() {
   };
 
   return (
-    <section id="book-consultation" className="bg-slate-900 text-white py-20 lg:py-24 scroll-mt-16">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="bg-slate-800/80 border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12">
-            {/* Left Info Panel */}
-            <div className="lg:col-span-5 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-slate-700 flex flex-col justify-between">
-              <div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-300 bg-slate-700/60 px-3 py-1 rounded mb-6">
-                  <Lock className="h-3 w-3 text-white" />
-                  <span>Confidential Engagement</span>
+    <section id="book-consultation" className="scroll-mt-28 border-b border-paper-line">
+      <div className="site-container grid gap-14 py-20 lg:grid-cols-12 lg:py-28">
+        <div className="lg:col-span-5">
+          <p className="eyebrow">Free consultation</p>
+          <h2 className="mt-5 font-display text-[36px] leading-[1.1] text-ink sm:text-[44px]">
+            Start with a 15-minute call.
+          </h2>
+          <p className="mt-5 max-w-md text-[16px] leading-relaxed text-ink-soft">
+            Tell us what&apos;s going on. A CPA will look at it, tell you what they&apos;d do, and quote a fixed
+            price. There&apos;s no obligation to go further.
+          </p>
+
+          <ul className="mt-10 space-y-6 border-t border-paper-line pt-8">
+            {[
+              ["Everything stays confidential", "What you share is protected by CPA-client confidentiality and IRC §7216."],
+              ["You talk to a preparer, not a salesperson", "The person on the call is the person who would do the work."],
+              ["A fixed quote before any work", "No hourly billing and no surprise invoices."],
+            ].map(([title, body]) => (
+              <li key={title} className="grid grid-cols-[14px_1fr] gap-4">
+                <span className="mt-[10px] h-px w-3.5 bg-brass" />
+                <div>
+                  <p className="font-semibold text-ink">{title}</p>
+                  <p className="mt-1 text-[14.5px] leading-relaxed text-ink-muted">{body}</p>
                 </div>
+              </li>
+            ))}
+          </ul>
 
-                <h3 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-white">
-                  Schedule a 30-Minute Partner Consultation
+          <p className="mt-10 text-[14.5px] text-ink-muted">
+            Prefer to call?{" "}
+            <a href="tel:+12128471920" className="link-under">
+              (212) 847-1920
+            </a>
+          </p>
+        </div>
+
+        <div className="lg:col-span-7">
+          <div className="rounded-[4px] border border-paper-line bg-white p-6 sm:p-10">
+            {isSubmitted && submittedData ? (
+              <div className="py-6">
+                <p className="eyebrow">Request received</p>
+                <h3 className="mt-4 font-display text-[32px] leading-tight text-ink">
+                  Thanks, {submittedData.name.split(" ")[0]}.
                 </h3>
-
-                <p className="text-sm text-slate-300 leading-relaxed mb-8">
-                  Direct evaluation with a licensed CPA and Big-Four alumni partner. We will examine your entity architecture, state nexus footprints, and tax leakage exposures.
+                <p className="mt-3 max-w-md text-[15.5px] leading-relaxed text-ink-soft">
+                  We&apos;ll email <span className="font-semibold text-ink">{submittedData.email}</span> within one
+                  business day to confirm a time.
                 </p>
 
-                <div className="space-y-4 text-xs text-slate-300">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-white block font-semibold">Mutual Non-Disclosure Agreement (NDA)</strong>
-                      All financial disclosures protected under strict CPA-client statutory privilege.
-                    </div>
+                <dl className="mt-8 divide-y divide-paper-line border-y border-paper-line text-[14.5px]">
+                  <div className="flex justify-between gap-6 py-3">
+                    <dt className="text-ink-muted">Topic</dt>
+                    <dd className="text-right text-ink">{submittedData.service}</dd>
                   </div>
+                  <div className="flex justify-between gap-6 py-3">
+                    <dt className="text-ink-muted">Earliest date</dt>
+                    <dd className="font-mono text-ink">{submittedData.date}</dd>
+                  </div>
+                  <div className="flex justify-between gap-6 py-3">
+                    <dt className="text-ink-muted">Preferred time</dt>
+                    <dd className="text-ink">{submittedData.time}</dd>
+                  </div>
+                </dl>
 
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-white block font-semibold">Preliminary Tax Leakage Diagnostic</strong>
-                      Instant identification of unclaimed R&amp;D credits, multi-state leakage, and QSBS status.
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-white block font-semibold">Custom Advisory Scope &amp; Fixed Pricing</strong>
-                      Clear transparent engagement roadmaps with zero billable hourly surprises.
-                    </div>
-                  </div>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/dashboard" className="btn-ink">
+                    Go to the client portal
+                  </Link>
+                  <button type="button" onClick={handleReset} className="btn-line">
+                    Send another request
+                  </button>
                 </div>
               </div>
-
-              <div className="pt-8 mt-8 border-t border-slate-700/80 text-[11px] text-slate-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <span>
-                  Direct Inquiries: <strong className="text-slate-200">advisory@polaristax.com</strong>
-                </span>
-                <span className="text-slate-400">(212) 847-1920</span>
-              </div>
-            </div>
-
-            {/* Right Interactive Form / Confirmation Panel */}
-            <div className="lg:col-span-7 p-8 lg:p-12 bg-slate-800/40">
-              {isSubmitted && submittedData ? (
-                <div className="h-full flex flex-col items-center justify-center text-center py-6 space-y-4">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                    <CheckCircle2 className="h-8 w-8" />
-                  </div>
-                  <h4 className="text-2xl font-bold text-white">Consultation Request Confirmed</h4>
-                  <p className="text-slate-300 text-sm max-w-md leading-relaxed">
-                    Thank you, <strong className="text-white">{submittedData.name}</strong>. A Polaris Senior Partner will contact you at <strong className="text-white">{submittedData.email}</strong> to deliver your calendar invitation.
+            ) : (
+              <form onSubmit={handleSubmit} className="grid gap-5 sm:grid-cols-2">
+                {mounted && user && (
+                  <p className="font-mono text-[11.5px] text-ink-muted sm:col-span-2">
+                    Signed in · we&apos;ve filled in your details
                   </p>
+                )}
 
-                  <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-lg p-4 text-left text-xs text-slate-300 space-y-2 my-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Practice Area:</span>
-                      <span className="text-white font-medium text-right max-w-[200px] truncate">{submittedData.service}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Target Date:</span>
-                      <span className="text-white font-medium">{submittedData.date}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Preferred Window:</span>
-                      <span className="text-emerald-400 font-semibold">{submittedData.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleReset}
-                      className="border-slate-600 text-slate-200 hover:bg-slate-700 text-xs"
-                    >
-                      Book Another Session
-                    </Button>
-                    <Button asChild className="bg-white text-slate-900 hover:bg-slate-100 font-semibold text-xs">
-                      <Link href="/dashboard">Access Client Portal</Link>
-                    </Button>
-                  </div>
+                <div>
+                  <label htmlFor="sched-name" className="field-label">Full name</label>
+                  <input
+                    id="sched-name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    autoComplete="name"
+                    required
+                    className="field"
+                  />
                 </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="flex items-center justify-between pb-1">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Partner Session Reservation
-                    </span>
-                    {mounted && user && (
-                      <span className="text-[11px] text-blue-400 bg-blue-950/80 px-2.5 py-0.5 rounded border border-blue-800">
-                        Client Profile Connected
-                      </span>
+                <div>
+                  <label htmlFor="sched-email" className="field-label">Email</label>
+                  <input
+                    id="sched-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    required
+                    className="field"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="sched-phone" className="field-label">Phone</label>
+                  <input
+                    id="sched-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    autoComplete="tel"
+                    required
+                    className="field"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="sched-company" className="field-label">
+                    Business name <span className="font-normal text-ink-muted">(optional)</span>
+                  </label>
+                  <input
+                    id="sched-company"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    autoComplete="organization"
+                    className="field"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="sched-service" className="field-label">What do you need help with?</label>
+                  <select
+                    id="sched-service"
+                    value={service}
+                    onChange={(e) => setService(e.target.value)}
+                    className="field"
+                  >
+                    {CONSULTATION_SERVICES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="sched-date" className="field-label">Earliest date</label>
+                  <input
+                    id="sched-date"
+                    type="date"
+                    min={minDateStr}
+                    value={preferredDate}
+                    onChange={(e) => setPreferredDate(e.target.value)}
+                    className="field font-mono"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="sched-time" className="field-label">Best time</label>
+                  <select
+                    id="sched-time"
+                    value={selectedTimeSlot}
+                    onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                    className="field"
+                  >
+                    {TIME_WINDOWS.map((tw) => (
+                      <option key={tw} value={tw}>
+                        {tw}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="sched-notes" className="field-label">
+                    Anything we should know? <span className="font-normal text-ink-muted">(optional)</span>
+                  </label>
+                  <textarea
+                    id="sched-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. I got a CP2000 letter, or I'm thinking about switching my LLC to an S-Corp."
+                    className="field h-auto resize-none py-3"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-4 pt-2 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[13px] text-ink-muted">We reply within one business day.</p>
+                  <button type="submit" disabled={isSubmitting} className="btn-ink px-6">
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending
+                      </>
+                    ) : (
+                      <>
+                        Request a call
+                        <ArrowRight className="h-4 w-4" />
+                      </>
                     )}
-                  </div>
-
-                  {/* Name & Work Email */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="sched-name" className="text-xs text-slate-300">
-                        First &amp; Last Name *
-                      </Label>
-                      <Input
-                        id="sched-name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Alexander Vance"
-                        required
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="sched-email" className="text-xs text-slate-300">
-                        Work Email *
-                      </Label>
-                      <Input
-                        id="sched-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="avance@company.com"
-                        required
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Phone & Company Name */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="sched-phone" className="text-xs text-slate-300">
-                        Phone Number *
-                      </Label>
-                      <Input
-                        id="sched-phone"
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="(212) 555-0198"
-                        required
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="sched-company" className="text-xs text-slate-300">
-                        Entity / Company Name
-                      </Label>
-                      <Input
-                        id="sched-company"
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        placeholder="Vance Tech Holdings Inc."
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 h-9 text-xs focus-visible:ring-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Practice Area Selection */}
-                  <div className="space-y-1">
-                    <Label htmlFor="sched-service" className="text-xs text-slate-300">
-                      Primary Advisory Scope *
-                    </Label>
-                    <select
-                      id="sched-service"
-                      value={service}
-                      onChange={(e) => setService(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-slate-400"
-                    >
-                      {CONSULTATION_SERVICES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Time Slot Pill Buttons */}
-                  <div className="space-y-1.5 pt-1">
-                    <Label className="text-xs text-slate-300">
-                      Select Preferred Consultation Window
-                    </Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {TIME_WINDOWS.map((tw) => (
-                        <button
-                          key={tw}
-                          type="button"
-                          onClick={() => setSelectedTimeSlot(tw)}
-                          className={`text-xs py-2 px-2 rounded border text-center transition-all ${
-                            selectedTimeSlot === tw
-                              ? "bg-slate-700 border-white text-white font-semibold shadow-xs"
-                              : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
-                          }`}
-                        >
-                          {tw}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Date Input */}
-                  <div className="space-y-1 pt-1">
-                    <Label htmlFor="sched-date" className="text-xs text-slate-300">
-                      Earliest Date Available
-                    </Label>
-                    <Input
-                      id="sched-date"
-                      type="date"
-                      min={minDateStr}
-                      value={preferredDate}
-                      onChange={(e) => setPreferredDate(e.target.value)}
-                      className="bg-slate-900 border-slate-700 text-white h-9 text-xs focus-visible:ring-slate-400"
-                    />
-                  </div>
-
-                  {/* Notes / Tax Situation */}
-                  <div className="space-y-1 pt-1">
-                    <Label htmlFor="sched-notes" className="text-xs text-slate-300 flex justify-between">
-                      <span>Primary Objective &amp; Notes</span>
-                      <span className="text-slate-500 font-normal">Optional</span>
-                    </Label>
-                    <Textarea
-                      id="sched-notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="e.g. QSBS qualification for upcoming liquidity event, M&A due diligence, multi-state payroll nexus audit..."
-                      rows={2}
-                      className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 text-xs resize-none focus-visible:ring-slate-400"
-                    />
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="pt-2">
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs h-11 shadow-lg flex items-center justify-center gap-2"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin text-slate-900" />
-                          <span>Registering Consultation...</span>
-                        </>
-                      ) : (
-                        <>
-                          <CalendarCheck className="h-4 w-4 text-slate-900" />
-                          <span>Confirm Consultation Request</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              )}
-            </div>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
     </section>
   );
 }
+

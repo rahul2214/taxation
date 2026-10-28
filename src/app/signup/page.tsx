@@ -294,10 +294,10 @@ function SignupContent() {
 
   return (
     <PublicLayout>
-      <div className="container flex min-h-[80vh] items-center justify-center px-4 py-12 md:px-6">
-        <Card className="w-full max-w-lg shadow-lg border-primary/20">
+      <div className="site-container flex min-h-[75vh] items-center justify-center py-14 md:py-20">
+        <Card className="w-full max-w-lg rounded-[4px] border-paper-line bg-white shadow-none">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight">Create Client Account</CardTitle>
+            <CardTitle className="font-display text-[34px] font-normal tracking-normal text-ink">Create your account</CardTitle>
             <CardDescription>
               Sign up to securely upload tax documents and track your returns with Polaris.
             </CardDescription>
@@ -435,7 +435,7 @@ function SignupContent() {
             </form>
           </CardContent>
 
-          <CardFooter className="flex flex-col border-t bg-muted/20 px-6 py-4 text-center">
+          <CardFooter className="flex flex-col border-t border-paper-line bg-paper/60 px-6 py-4 text-center">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link href="/login" className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">

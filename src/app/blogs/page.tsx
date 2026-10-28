@@ -5,7 +5,7 @@ import { BlogsClient } from "./BlogsClient";
 import { BLOG_POSTS } from "@/data/blogs";
 
 export const metadata: Metadata = {
-  title: "Tax Insights, Guides & IRS Updates (2026) | Polaris Tax Services",
+  title: "Tax Insights, Guides & IRS Updates (2026)",
   description: "Comprehensive tax guides, 2026 IRS tax bracket changes, LLC vs S-Corp strategies, small business deductions, crypto taxation, and expert CPA advice.",
   keywords: [
     "tax blogs",
@@ -74,7 +74,7 @@ export default function BlogsPage() {
       <Suspense
         fallback={
           <div className="container mx-auto px-4 py-24 text-center">
-            <p className="text-muted-foreground">Loading tax intelligence hub...</p>
+            <p className="text-ink-muted">Loading articles…</p>
           </div>
         }
       >

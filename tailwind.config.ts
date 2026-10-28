@@ -13,8 +13,27 @@ export default {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
         code: ['monospace'],
+        display: ['Newsreader', 'Georgia', 'serif'],
+        ui: ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
+        // Public site palette: ink (text/surfaces), paper (backgrounds), brass (accent)
+        ink: {
+          DEFAULT: '#14202E',
+          soft: '#2B3746',
+          muted: '#5E6773',
+        },
+        paper: {
+          DEFAULT: '#F6F3EC',
+          deep: '#EDE8DC',
+          line: '#DCD5C5',
+        },
+        brass: {
+          DEFAULT: '#A97C32',
+          dark: '#86601F',
+          light: '#EBDDBF',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
