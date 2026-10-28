@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { buildMetadata, SITE } from "@/lib/seo";
 import { BLOG_POSTS, getBlogPostBySlug, getRelatedBlogs } from "@/data/blogs";
 import {
   Accordion,
@@ -29,46 +30,32 @@ export async function generateMetadata({
     return {
       title: "Article not found",
       description: "The requested tax guide could not be found.",
+      robots: { index: false, follow: true },
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://polaristaxservices.com";
-  const canonicalUrl = `${siteUrl}/blogs/${post.slug}`;
-
-  return {
+  const base = buildMetadata({
     title: post.seo.metaTitle,
     description: post.seo.metaDescription,
-    keywords: post.seo.keywords,
-    authors: [{ name: post.author.name }],
-    creator: post.author.name,
-    alternates: {
-      canonical: canonicalUrl,
-    },
+    path: `/blogs/${post.slug}`,
+    keywords: [...post.seo.keywords, ...post.tags],
+    ogType: "article",
+    // Keep the full title under ~60 characters so Google doesn't truncate it.
+    absoluteTitle: post.seo.metaTitle.length > 37,
+    images: [{ url: `/blogs/${post.slug}/opengraph-image`, width: 1200, height: 630, alt: post.title }],
+  });
+
+  return {
+    ...base,
+    authors: [{ name: post.author.name, url: SITE.url }],
     openGraph: {
-      title: post.seo.metaTitle,
-      description: post.seo.metaDescription,
-      url: canonicalUrl,
-      siteName: "Polaris Tax Services",
+      ...base.openGraph,
       type: "article",
       publishedTime: post.seo.publishedIso,
       modifiedTime: post.seo.modifiedIso,
       authors: [post.author.name],
+      section: post.category,
       tags: post.tags,
-      images: [
-        {
-          url: `${siteUrl}/icon-512.png`,
-          width: 512,
-          height: 512,
-          alt: post.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary",
-      title: post.seo.metaTitle,
-      description: post.seo.metaDescription,
-      images: [`${siteUrl}/icon-512.png`],
-      creator: "@polaristax",
     },
   };
 }
@@ -85,7 +72,7 @@ export default async function BlogPostPage({
     notFound();
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://polaristaxservices.com";
+  const siteUrl = SITE.url;
   const articleUrl = `${siteUrl}/blogs/${post.slug}`;
   const relatedPosts = getRelatedBlogs(post.slug, 3);
 
@@ -95,22 +82,25 @@ export default async function BlogPostPage({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.seo.metaDescription,
-    image: [`${siteUrl}/icon-512.png`],
+    image: [`${articleUrl}/opengraph-image`],
+    inLanguage: "en-US",
     datePublished: post.seo.publishedIso,
     dateModified: post.seo.modifiedIso,
     author: {
       "@type": "Organization",
       name: post.author.name,
-      url: siteUrl,
-      logo: `${siteUrl}${post.author.avatar}`,
+      url: `${siteUrl}/about`,
     },
     publisher: {
       "@type": "Organization",
-      name: "Polaris Tax Services",
+      "@id": `${siteUrl}/#organization`,
+      name: SITE.name,
       url: siteUrl,
       logo: {
         "@type": "ImageObject",
-        url: `${siteUrl}/icon.svg`,
+        url: `${siteUrl}/icon-512.png`,
+        width: 512,
+        height: 512,
       },
     },
     mainEntityOfPage: {
@@ -119,7 +109,13 @@ export default async function BlogPostPage({
     },
     keywords: post.seo.keywords.join(", "),
     articleSection: post.category,
-    wordCount: 1500,
+    wordCount: [
+      post.content.introduction,
+      ...post.content.sections.flatMap((section) => [section.heading, ...section.body, section.tip ?? ""]),
+    ]
+      .join(" ")
+      .split(/\s+/)
+      .filter(Boolean).length,
   };
 
   // Schema.org BreadcrumbList
@@ -136,7 +132,7 @@ export default async function BlogPostPage({
       {
         "@type": "ListItem",
         position: 2,
-        name: "Tax Insights & Blogs",
+        name: "Articles",
         item: `${siteUrl}/blogs`,
       },
       {

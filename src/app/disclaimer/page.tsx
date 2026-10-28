@@ -1,16 +1,21 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AlertCircle, ShieldCheck, FileText, Scale } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "IRS Circular 230 Notice & Regulatory Disclosures",
-  description: "Official U.S. Treasury Circular 230 disclosure, CPA state licensing, and informational content terms of Polaris Tax Services.",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Circular 230 & Regulatory Disclosures",
+  description: "IRS Circular 230 notice, licensing information and disclaimers for the calculators and articles published by Polaris Tax Services.",
+  path: "/disclaimer",
+  keywords: ["Circular 230 disclosure"],
+});
 
 export default function DisclaimerPage() {
   return (
     <PublicLayout>
+      <JsonLd data={breadcrumbSchema([{ name: "Disclosures", path: "/disclaimer" }])} />
       <div className="py-14 md:py-20">
         <div className="site-container max-w-[920px]">
           {/* Header */}

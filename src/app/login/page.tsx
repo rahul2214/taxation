@@ -187,7 +187,7 @@ function LoginContent() {
       <div className="site-container flex min-h-[75vh] items-center justify-center py-14 md:py-20">
         <Card className="w-full max-w-md rounded-[4px] border-paper-line bg-white shadow-none">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="font-display text-[34px] font-normal tracking-normal text-ink">Sign in</CardTitle>
+            <h1 className="font-display text-[34px] font-normal leading-none text-ink">Sign in</h1>
             <CardDescription>
               Your documents, returns and messages, in one place.
             </CardDescription>

@@ -1,17 +1,22 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { ShieldCheck, Lock, FileText, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = {
-  title: "Taxpayer Privacy Policy & IRC § 7216 Notice",
-  description: "Learn how Polaris Tax Services protects your tax data under IRC Section 7216, GLBA financial privacy rules, and 256-bit AES encryption.",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Privacy Policy & IRC §7216 Notice",
+  description: "How Polaris Tax Services collects, uses and protects your tax information under IRC Section 7216 and federal financial privacy rules. We never sell your data.",
+  path: "/privacy",
+  keywords: ["tax preparer privacy policy", "IRC 7216"],
+});
 
 export default function PrivacyPage() {
   return (
     <PublicLayout>
+      <JsonLd data={breadcrumbSchema([{ name: "Privacy policy", path: "/privacy" }])} />
       <div className="py-14 md:py-20">
         <div className="site-container max-w-[920px]">
           {/* Header */}

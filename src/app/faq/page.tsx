@@ -1,4 +1,6 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema, faqSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import {
   Accordion,
@@ -9,10 +11,12 @@ import {
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
 
-export const metadata: Metadata = {
-  title: "Frequently Asked Questions (FAQ)",
-  description: "Find clear answers about Polaris CPA tax preparation, document upload vault, turnaround times, IRS e-file confirmation, and refund tracking.",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Tax Preparation FAQ: Cost & Timing",
+  description: "How CPA tax preparation works at Polaris: documents you need, how long it takes, when refunds arrive, our accuracy guarantee, data security and IRS notice help.",
+  path: "/faq",
+  keywords: ["tax preparation FAQ", "how long does tax preparation take", "documents needed for tax return", "when will I get my tax refund"],
+});
 
 const FAQ_SECTIONS = [
   {
@@ -92,6 +96,7 @@ const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").re
 export default function FaqPage() {
   return (
     <PublicLayout>
+      <JsonLd data={[breadcrumbSchema([{ name: "FAQ", path: "/faq" }]), faqSchema(FAQ_SECTIONS.flatMap((sec) => sec.items))]} />
       <PageIntro
         eyebrow="Questions & answers"
         title="Things people usually ask us."

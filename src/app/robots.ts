@@ -1,20 +1,17 @@
 import { MetadataRoute } from "next";
+import { SITE } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://polaristaxservices.com";
-
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/admin/",
-          "/dashboard/",
-          "/api/",
-        ],
+        // Private app areas and utility routes have no search value.
+        disallow: ["/admin", "/dashboard", "/api/", "/login", "/refer"],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: `${SITE.url}/sitemap.xml`,
+    host: SITE.url,
   };
 }

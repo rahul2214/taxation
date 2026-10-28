@@ -1,11 +1,15 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageIntro } from "@/components/public/PageIntro";
 
-export const metadata: Metadata = {
-  title: "Security & Data Protection",
-  description: "How Polaris protects your tax documents: encryption, IRS Publication 4557 safeguards, access controls and responsible disclosure.",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "How We Protect Your Tax Documents",
+  description: "AES-256 encryption, multi-factor sign-in, IRS Publication 4557 safeguards and need-to-know access: how Polaris Tax Services keeps your tax documents secure.",
+  path: "/security",
+  keywords: ["secure tax document upload", "IRS Publication 4557", "tax data security"],
+});
 
 const pillars = [
   {
@@ -59,6 +63,7 @@ const details = [
 export default function SecurityPage() {
   return (
     <PublicLayout>
+      <JsonLd data={breadcrumbSchema([{ name: "Security", path: "/security" }])} />
       <PageIntro
         eyebrow="Security"
         title="How we look after your documents."

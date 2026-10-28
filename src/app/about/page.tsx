@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema, SITE } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
+
+export const metadata: Metadata = buildMetadata({
+  title: "About Our New York CPA Firm",
+  description: "A New York CPA and Enrolled Agent practice preparing individual and small business tax returns for clients in all 50 states. Here is how we work.",
+  path: "/about",
+  keywords: ["CPA firm New York", "enrolled agent New York", "independent tax practice", "licensed tax preparer"],
+});
 
 const principles = [
   {
@@ -30,6 +40,7 @@ const credentials = [
 export default function AboutUsPage() {
   return (
     <PublicLayout>
+      <JsonLd data={[breadcrumbSchema([{ name: "About", path: "/about" }]), { "@context": "https://schema.org", "@type": "AboutPage", name: "About Polaris Tax Services", url: `${SITE.url}/about`, about: { "@id": `${SITE.url}/#organization` } }]} />
       <PageIntro
         eyebrow="About the firm"
         title="A small practice that still answers the phone."

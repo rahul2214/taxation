@@ -297,7 +297,7 @@ function SignupContent() {
       <div className="site-container flex min-h-[75vh] items-center justify-center py-14 md:py-20">
         <Card className="w-full max-w-lg rounded-[4px] border-paper-line bg-white shadow-none">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="font-display text-[34px] font-normal tracking-normal text-ink">Create your account</CardTitle>
+            <h1 className="font-display text-[34px] font-normal leading-none text-ink">Create your account</h1>
             <CardDescription>
               Sign up to securely upload tax documents and track your returns with Polaris.
             </CardDescription>

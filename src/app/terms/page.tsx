@@ -1,16 +1,21 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { FileText, ShieldCheck, Scale, CheckCircle2, AlertCircle } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Terms of Service & Client Engagement Agreement",
-  description: "Review the professional engagement terms, client responsibilities, e-filing authorization, and guarantee conditions of Polaris Tax Services.",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Terms of Service & Client Engagement Terms",
+  description: "The terms that apply when you use the Polaris Tax Services website and client portal, and when you engage us to prepare your tax returns.",
+  path: "/terms",
+  keywords: ["tax preparation engagement terms"],
+});
 
 export default function TermsPage() {
   return (
     <PublicLayout>
+      <JsonLd data={breadcrumbSchema([{ name: "Terms of service", path: "/terms" }])} />
       <div className="py-14 md:py-20">
         <div className="site-container max-w-[920px]">
           {/* Header */}

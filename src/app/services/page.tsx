@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema, serviceSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Tax Preparation & IRS Help Services",
+  description: "CPA tax preparation for individuals from $59 and small businesses from $199, plus IRS notice help, bookkeeping and tax planning. Fixed prices, all 50 states.",
+  path: "/services",
+  keywords: ["individual tax return preparation", "small business tax preparation", "S-Corp tax preparation", "partnership tax return 1065", "IRS notice help", "bookkeeping services", "tax planning services", "Roth conversion planning"],
+});
 
 const services = [
   {
@@ -100,6 +110,7 @@ const services = [
 export default function ServicesPage() {
   return (
     <PublicLayout>
+      <JsonLd data={[breadcrumbSchema([{ name: "Services", path: "/services" }]), ...services.map((s) => serviceSchema({ name: s.title, description: s.description, path: `/services#${s.id}`, price: s.price }))]} />
       <PageIntro
         eyebrow="Services"
         title="Tax work for people and the businesses they run."

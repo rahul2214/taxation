@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Accuracy & Maximum Refund Guarantee",
+  description: "Make a calculation error and we pay the IRS penalty. Plus a maximum refund guarantee, pay only if satisfied, and free IRS notice support on every return.",
+  path: "/guarantee",
+  keywords: ["tax preparation accuracy guarantee", "maximum refund guarantee", "audit support included"],
+});
 
 const guarantees = [
   {
@@ -29,6 +39,7 @@ const guarantees = [
 export default function GuaranteePage() {
   return (
     <PublicLayout>
+      <JsonLd data={breadcrumbSchema([{ name: "Our guarantee", path: "/guarantee" }])} />
       <PageIntro
         eyebrow="Our guarantee"
         title="We stand behind the returns we sign."

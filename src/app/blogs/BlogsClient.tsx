@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { BLOG_POSTS, TRENDING_SEARCH_TERMS, BlogPost } from "@/data/blogs";
 import { Search, X, ArrowRight } from "lucide-react";
 import { ClosingCta } from "@/components/public/ClosingCta";
@@ -17,12 +16,17 @@ const CATEGORIES = [
 ] as const;
 
 export function BlogsClient() {
-  const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q") || "";
-  const initialCategory = searchParams.get("category") || "All";
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
+  // Read ?q= and ?category= after mount so the full article list is server-rendered for crawlers.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    const category = params.get("category");
+    if (q) setSearchQuery(q);
+    if (category) setSelectedCategory(category);
+  }, []);
 
   // Filter posts based on search query and category
   const filteredPosts = useMemo(() => {

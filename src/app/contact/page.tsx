@@ -1,11 +1,15 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata, breadcrumbSchema, SITE } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageIntro } from "@/components/public/PageIntro";
 
-export const metadata: Metadata = {
-  title: "Contact Us",
-  description: "Get in touch with Polaris CPAs and tax advisors. Phone, email, office address, and hours of operation.",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Contact Our New York CPA Office",
+  description: "Call (212) 847-1920, email advisory@polaristax.com or visit us at 440 Park Avenue South, New York. A CPA replies within four business hours, Mon–Fri.",
+  path: "/contact",
+  keywords: ["contact CPA New York", "tax accountant Manhattan", "Park Avenue South CPA", "tax preparer phone number"],
+});
 
 const emails = [
   ["New clients & questions", "advisory@polaristax.com"],
@@ -16,6 +20,7 @@ const emails = [
 export default function ContactPage() {
   return (
     <PublicLayout>
+      <JsonLd data={[breadcrumbSchema([{ name: "Contact", path: "/contact" }]), { "@context": "https://schema.org", "@type": "ContactPage", name: "Contact Polaris Tax Services", url: `${SITE.url}/contact`, about: { "@id": `${SITE.url}/#organization` } }]} />
       <PageIntro
         eyebrow="Contact"
         title="Call, write, or come by the office."
