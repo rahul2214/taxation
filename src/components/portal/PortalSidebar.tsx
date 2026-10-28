@@ -58,7 +58,7 @@ export function PortalSidebar({ homeHref, area, groups, identity, footerItems }:
           ) : (
             <>
               <PolarisLogo theme="light" className="h-8 w-auto max-w-[150px]" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-brass-dark">{area}</span>
+              
             </>
           )}
         </Link>
