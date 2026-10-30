@@ -54,14 +54,6 @@ export function PolarisLogo({
   // 2. Explicit dark theme (white text + gold apex on dark backgrounds)
   if (theme === 'dark') return logo('/logo-white.png');
 
-  // 3. Explicit light theme (navy text + gold apex on light backgrounds)
-  if (theme === 'light') return logo('/logo.png');
-
-  // 4. Auto theme (adapts dynamically to dark/light mode)
-  return (
-    <>
-      {logo('/logo.png', 'dark:hidden')}
-      {logo('/logo-white.png', 'hidden dark:inline-block')}
-    </>
-  );
+  // 3. Default and light theme (navy text + gold apex on light backgrounds)
+  return logo('/logo.png');
 }

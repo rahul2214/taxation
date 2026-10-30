@@ -204,7 +204,7 @@ export default function DashboardBookAppointmentPage() {
         return <Badge variant="destructive">{status || "Cancelled"}</Badge>;
       default:
         return (
-          <Badge variant="secondary" className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30">
+          <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 border-amber-500/30">
             Pending Confirmation
           </Badge>
         );

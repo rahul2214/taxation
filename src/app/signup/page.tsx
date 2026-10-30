@@ -304,12 +304,12 @@ function SignupContent() {
           </CardHeader>
           <CardContent className="space-y-4">
             {refParam && (
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs">
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs">
                
                 <div>
                   <span className="font-semibold">Referral Bonus Applied!</span>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You and your friend will each receive a <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">${rewardAmount.toFixed(2)} wallet credit</strong> upon registration!
+                    Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You and your friend will each receive a <strong className="text-emerald-700 font-semibold">${rewardAmount.toFixed(2)} wallet credit</strong> upon registration!
                   </p>
                 </div>
               </div>
@@ -389,7 +389,7 @@ function SignupContent() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="signup-referral-code">Referral or Coupon Code (Optional)</Label>
-                  <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[11px] font-medium text-emerald-700">
                     🎁 Get ${rewardAmount.toFixed(2)} Credit
                   </span>
                 </div>

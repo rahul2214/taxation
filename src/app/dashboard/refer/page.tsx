@@ -220,7 +220,7 @@ export default function CustomerReferPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Total Referral Rewards
               </span>
-              <div className="p-2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <div className="p-2 rounded-full bg-amber-500/10 text-amber-700">
                 <Coins className="h-4 w-4" />
               </div>
             </div>

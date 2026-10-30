@@ -128,7 +128,9 @@ export function BlogsClient() {
                   key={category}
                   onClick={() => setSelectedCategory(category)}
                   className={`whitespace-nowrap rounded-[3px] px-3 py-1.5 text-[14px] transition-colors ${
-                    isSelected ? "bg-ink text-paper" : "text-ink-soft hover:bg-paper-deep hover:text-ink"
+                    isSelected
+                      ? "border border-paper-line bg-white text-ink shadow-xs font-semibold"
+                      : "text-ink-soft hover:bg-paper-deep hover:text-ink"
                   }`}
                 >
                   {category}

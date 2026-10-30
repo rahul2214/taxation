@@ -308,9 +308,9 @@ export default async function BlogPostPage({
                 <p className="mt-1 font-semibold text-ink">{post.author.name}</p>
                 <p className="text-[14px] text-ink-muted">{post.author.role}, Polaris Tax Services</p>
               </div>
-              <div className="rounded-[4px] bg-ink p-6 text-paper">
-                <p className="font-display text-[24px] leading-snug">Want this applied to your return?</p>
-                <p className="mt-3 text-[14.5px] leading-relaxed text-paper/70">
+              <div className="rounded-[4px] border border-paper-line bg-white p-6 shadow-xs">
+                <p className="font-display text-[24px] leading-snug text-ink">Want this applied to your return?</p>
+                <p className="mt-3 text-[14.5px] leading-relaxed text-ink-soft">
                   Book a free 15-minute call and a CPA will tell you what it means for you.
                 </p>
                 <Link href="/book-appointment" className="btn-brass mt-5 w-full">
@@ -319,7 +319,7 @@ export default async function BlogPostPage({
                 {relatedService && (
                   <Link
                     href={`/services/${relatedService.slug}`}
-                    className="mt-3 block text-center text-[14px] text-paper/75 underline underline-offset-4 hover:text-paper"
+                    className="mt-3 block text-center text-[14px] text-ink-muted underline underline-offset-4 hover:text-ink"
                   >
                     About our {relatedService.name.toLowerCase()}
                   </Link>

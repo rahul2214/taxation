@@ -481,7 +481,7 @@ export function HomePage() {
               </p>
             </div>
 
-            <div className="inline-flex self-start rounded-[3px] border border-paper-line bg-paper p-1 md:self-auto">
+            <div className="inline-flex self-start rounded-[3px] border border-paper-line bg-paper-deep/60 p-1 md:self-auto">
               {[
                 { id: "individual" as const, label: "Individual" },
                 { id: "corporate" as const, label: "Business" },
@@ -492,7 +492,9 @@ export function HomePage() {
                   onClick={() => setCalcMode(m.id)}
                   className={cn(
                     "rounded-[2px] px-5 py-2 text-sm font-medium transition-colors",
-                    calcMode === m.id ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"
+                    calcMode === m.id
+                      ? "border border-paper-line bg-white text-ink shadow-xs font-semibold"
+                      : "text-ink-soft hover:text-ink"
                   )}
                 >
                   {m.label}
@@ -613,7 +615,7 @@ export function HomePage() {
                           className={cn(
                             "rounded-[3px] border px-3 py-2.5 text-[13.5px] font-medium transition-colors",
                             entityType === ent.id
-                              ? "border-ink bg-ink text-paper"
+                              ? "border-brass bg-brass/10 text-ink font-semibold"
                               : "border-paper-line text-ink-soft hover:border-ink/40"
                           )}
                         >
@@ -737,7 +739,7 @@ export function HomePage() {
                 className={cn(
                   "flex flex-col rounded-[4px] border p-8 lg:rounded-none lg:p-10",
                   tier.featured
-                    ? "border-ink bg-ink text-paper lg:-my-4 lg:rounded-[4px] lg:py-14"
+                    ? "border-2 border-brass bg-white text-ink shadow-md lg:-my-4 lg:rounded-[4px] lg:py-14"
                     : "border-paper-line bg-white",
                   i === 0 && "lg:border-r-0",
                   i === 2 && "lg:border-l-0"
@@ -746,24 +748,26 @@ export function HomePage() {
                 <div className="flex items-baseline justify-between">
                   <h3 className="font-display text-[26px]">{tier.name}</h3>
                   {tier.featured && (
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-brass-light">Most chosen</span>
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-brass-dark font-medium bg-brass/10 px-2 py-0.5 rounded-[2px] border border-brass/25">
+                      Most chosen
+                    </span>
                   )}
                 </div>
-                <p className={cn("mt-1 text-[14px]", tier.featured ? "text-paper/60" : "text-ink-muted")}>{tier.for}</p>
+                <p className="mt-1 text-[14px] text-ink-muted">{tier.for}</p>
 
-                <div className={cn("mt-8 border-t pt-6", tier.featured ? "border-paper/15" : "border-paper-line")}>
+                <div className="mt-8 border-t border-paper-line pt-6">
                   <p className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="font-display text-[52px] leading-none">{tier.price}</span>
-                    <span className={cn("whitespace-nowrap text-sm", tier.featured ? "text-paper/60" : "text-ink-muted")}>{tier.unit}</span>
+                    <span className="font-display text-[52px] leading-none text-ink">{tier.price}</span>
+                    <span className="whitespace-nowrap text-sm text-ink-muted">{tier.unit}</span>
                   </p>
-                  <p className={cn("mt-2 font-mono text-[11.5px]", tier.featured ? "text-paper/50" : "text-ink-muted")}>{tier.note}</p>
+                  <p className="mt-2 font-mono text-[11.5px] text-ink-muted">{tier.note}</p>
                 </div>
 
                 <ul className="mt-8 flex-1 space-y-3 text-[14.5px]">
                   {tier.items.map((item) => (
                     <li key={item} className="flex gap-3">
-                      <span className={cn("mt-[9px] h-px w-3 shrink-0", tier.featured ? "bg-brass-light" : "bg-brass")} />
-                      <span className={tier.featured ? "text-paper/85" : "text-ink-soft"}>{item}</span>
+                      <span className="mt-[9px] h-px w-3 shrink-0 bg-brass" />
+                      <span className="text-ink-soft">{item}</span>
                     </li>
                   ))}
                 </ul>
