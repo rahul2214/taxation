@@ -3,6 +3,8 @@ import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { ShieldCheck, Lock, FileText, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -176,6 +178,7 @@ export default function PrivacyPage() {
           </div>
         </div>
       </div>
+      <PageFaq items={PAGE_FAQS.legal} />
     </PublicLayout>
   );
 }

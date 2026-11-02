@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { ClosingCta } from "@/components/public/ClosingCta";
-import { ArrowRight, ArrowUpRight, Minus, Plus } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
 import { BLOG_POSTS } from "@/data/blogs";
 import { HomeAppointmentBooking } from "@/components/home/HomeAppointmentBooking";
+import { TaxCompass } from "@/components/home/TaxCompass";
 import { useFirebase } from "@/firebase";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
 import { cn } from "@/lib/utils";
@@ -21,27 +24,61 @@ const STATS = [
 ];
 
 const STEPS = [
-  {
-    title: "Send us your documents",
-    body: "Upload W-2s, 1099s, K-1s and statements to your private portal, or forward them by email. We'll tell you if anything is missing.",
-  },
-  {
-    title: "Your CPA prepares the return",
-    body: "One licensed preparer owns your file from start to finish. They'll call if something needs a decision, and they'll explain the choices in plain terms.",
-  },
-  {
-    title: "Review, sign, and file",
-    body: "You get a one-page summary of what changed and why. Sign Form 8879 from your phone and we e-file to the IRS and your state.",
-  },
+  { title: "Tell us about your situation", body: "Share the basics so the appropriate service can be identified." },
+  { title: "Upload your documents", body: "Use the designated secure client portal and checklist." },
+  { title: "Preparation & questions", body: "Provide any missing information needed to prepare the return." },
+  { title: "Review & approve", body: "Review the return, ask questions and complete required signatures." },
+  { title: "Track & access your copy", body: "Check available status updates and download completed documents." },
 ];
 
 const SERVICES = [
   { href: "/services/individual-tax-preparation", name: "Individual & family returns", detail: "W-2s, stock compensation, crypto, rental property, multi-state moves", price: "from $59" },
   { href: "/services/small-business-tax-preparation", name: "Self-employed & single-member LLCs", detail: "Schedule C, quarterly estimates, home office and vehicle", price: "from $199" },
   { href: "/services/small-business-tax-preparation", name: "S-Corps & partnerships", detail: "Form 1120-S and 1065, K-1s, reasonable salary, PTET elections", price: "from $499" },
+  { href: "/services/mnc-tax-filing", name: "MNC tax filing", detail: "US subsidiaries and parents: Form 1120, 5471, 5472, foreign tax credits", price: "quoted per group" },
   { href: "/services/irs-notice-audit-help", name: "IRS notices & audits", detail: "CP2000 responses, penalty abatement, representation under Form 2848", price: "quoted per case" },
   { href: "/services/bookkeeping", name: "Monthly bookkeeping", detail: "Reconciliations, P&L and balance sheet, books that are ready at tax time", price: "from $250/mo" },
   { href: "/services/tax-planning", name: "Planning & corporate advisory", detail: "Entity structure, R&D credits, multi-state nexus, QSBS", price: "from $2,500/mo" },
+];
+
+// Placeholder reviews: replace with real client feedback (with permission) before launch.
+const REVIEWS = [
+  {
+    quote: "I moved from Pune to New Jersey mid-year and had no idea how to handle income in both countries. They sorted out my foreign tax credit and explained everything on one call.",
+    name: "Priya S.",
+    role: "Software engineer",
+    location: "New Jersey, USA",
+  },
+  {
+    quote: "As an NRI with rental income back home, filing was always confusing. The team was patient, quick to reply, and my return was done in three days.",
+    name: "Rahul M.",
+    role: "NRI professional",
+    location: "Hyderabad, India",
+  },
+  {
+    quote: "We set up a US subsidiary last year. They handled our 1120 and Form 5472 and worked well with our accountants in Bengaluru. No missed deadlines.",
+    name: "Ankit G.",
+    role: "Co-founder, SaaS company",
+    location: "Bengaluru, India",
+  },
+  {
+    quote: "Clear pricing, no surprises. My CPA found deductions I'd missed for two years and actually picked up the phone when I called.",
+    name: "Emily R.",
+    role: "Freelance designer",
+    location: "Austin, USA",
+  },
+  {
+    quote: "I'm a British expat working in the US. They made my dual-status year simple and told me exactly which documents to send.",
+    name: "James W.",
+    role: "Finance manager",
+    location: "London, UK",
+  },
+  {
+    quote: "Our group has entities in Dubai and the US. One team now coordinates all the US filings, which has saved our finance team a lot of time.",
+    name: "Fatima A.",
+    role: "Group CFO",
+    location: "Dubai, UAE",
+  },
 ];
 
 const TIERS = [
@@ -106,125 +143,8 @@ export function HomePage() {
   const primaryHref = activeUser ? (isAdmin ? "/admin" : "/dashboard") : "/signup";
   const primaryLabel = activeUser ? "Go to your dashboard" : "Start your return";
 
-  // Calculator State: Mode Switcher ('individual' vs 'corporate')
-  const [calcMode, setCalcMode] = useState<"individual" | "corporate">("individual");
-
-  // Corporate Mode Parameters
-  const [revenue, setRevenue] = useState(12000000);
-  const [entityType, setEntityType] = useState<"c-corp" | "s-corp" | "partnership" | "multi-holdco">("c-corp");
-  const [rdSpend, setRdSpend] = useState(2400000);
-
-  // Individual Mode Parameters
-  const [income, setIncome] = useState(125000);
-  const [filingStatus, setFilingStatus] = useState<"single" | "married" | "hoh">("single");
-  const [withholding, setWithholding] = useState(24000);
-  const [dependents, setDependents] = useState(1);
-
   // Hero document preview tab
   const [previewTab, setPreviewTab] = useState<"1040" | "business">("1040");
-
-  // Corporate Mode Calculations
-  const corporateSavings = useMemo(() => {
-    const multipliers: Record<string, number> = {
-      "c-corp": 1.15,
-      "s-corp": 1.05,
-      partnership: 0.95,
-      "multi-holdco": 1.3,
-    };
-    const mult = multipliers[entityType] || 1.15;
-
-    // IRC § 41 R&D credit capture (est. 8.5% of QREs)
-    const rdCredit = rdSpend * 0.085;
-    // PTET pass-through tax & multi-state apportionment
-    const ptet = revenue * 0.012 * mult;
-    // Section 179 & bonus depreciation
-    const depreciation = revenue * 0.004 + rdSpend * 0.015;
-    const totalShield = rdCredit + ptet + depreciation;
-
-    return {
-      rdCredit: Math.round(rdCredit),
-      ptet: Math.round(ptet),
-      depreciation: Math.round(depreciation),
-      totalShield: Math.round(totalShield),
-    };
-  }, [revenue, entityType, rdSpend]);
-
-  // Individual Mode Calculations
-  const individualEstimate = useMemo(() => {
-    // Tax year 2025 figures (returns filed in 2026), as amended by the One Big Beautiful Bill Act.
-    // Source: IRS "Federal income tax rates and brackets" and OBBBA standard deduction guidance.
-    const standardDeductions: Record<string, number> = {
-      single: 15750,
-      married: 31500,
-      hoh: 23625,
-    };
-
-    const brackets: Record<string, { rate: number; amount: number }[]> = {
-      single: [
-        { rate: 0.1, amount: 11925 },
-        { rate: 0.12, amount: 48475 },
-        { rate: 0.22, amount: 103350 },
-        { rate: 0.24, amount: 197300 },
-        { rate: 0.32, amount: 250525 },
-        { rate: 0.35, amount: 626350 },
-        { rate: 0.37, amount: Infinity },
-      ],
-      married: [
-        { rate: 0.1, amount: 23850 },
-        { rate: 0.12, amount: 96950 },
-        { rate: 0.22, amount: 206700 },
-        { rate: 0.24, amount: 394600 },
-        { rate: 0.32, amount: 501050 },
-        { rate: 0.35, amount: 751600 },
-        { rate: 0.37, amount: Infinity },
-      ],
-      hoh: [
-        { rate: 0.1, amount: 17000 },
-        { rate: 0.12, amount: 64850 },
-        { rate: 0.22, amount: 103350 },
-        { rate: 0.24, amount: 197300 },
-        { rate: 0.32, amount: 250500 },
-        { rate: 0.35, amount: 626350 },
-        { rate: 0.37, amount: Infinity },
-      ],
-    };
-
-    const deduction = standardDeductions[filingStatus] || 15750;
-    const taxable = Math.max(0, income - deduction);
-
-    let tax = 0;
-    let rem = taxable;
-    let prev = 0;
-    for (const b of brackets[filingStatus] || brackets.single) {
-      if (rem > 0) {
-        const chunk = Math.min(rem, b.amount - prev);
-        tax += chunk * b.rate;
-        rem -= chunk;
-        prev = b.amount;
-      }
-    }
-
-    // 2025 child tax credit: up to $2,200 per qualifying child (income phase-outs not modelled).
-    const credits = dependents * 2200;
-    const finalTax = Math.max(0, tax - credits);
-    const refund = withholding - finalTax;
-
-    return {
-      tax: Math.round(finalTax),
-      refund: Math.round(refund),
-      deduction,
-      credits,
-    };
-  }, [income, filingStatus, withholding, dependents]);
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
 
   const offerCatalog = {
     "@context": "https://schema.org",
@@ -250,12 +170,10 @@ export function HomePage() {
           <div className="lg:col-span-7">
             <p className="eyebrow">Tax preparation &amp; advisory · New York</p>
             <h1 className="mt-6 font-display text-[44px] font-normal leading-[1.04] tracking-[-0.015em] text-ink sm:text-[60px] lg:text-[72px]">
-              Your taxes, prepared and signed by a CPA who{" "}
-              <em className="italic text-brass-dark">knows your file.</em>
+              Your taxes, <em className="italic text-brass-dark">done right.</em>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink-soft">
-              Send your documents, talk to the person actually doing the work, and file knowing every line was
-              checked. For individuals, families and small businesses in all 50 states.
+              Prepared and checked by a licensed CPA. Simple, accurate and on time.
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -407,23 +325,33 @@ export function HomePage() {
       <section className="border-b border-paper-line">
         <div className="site-container py-20 lg:py-28">
           <div className="grid gap-6 lg:grid-cols-12">
-            <p className="eyebrow lg:col-span-3 lg:pt-3">How it works</p>
-            <h2 className="font-display text-[36px] leading-[1.1] text-ink sm:text-[46px] lg:col-span-9">
-              Three steps, and no software asking you questions you can&apos;t answer.
-            </h2>
+            <p className="eyebrow lg:col-span-3 lg:pt-3">A process you can follow</p>
+            <div className="lg:col-span-9">
+              <h2 className="font-display text-[36px] leading-[1.1] text-ink sm:text-[46px]">
+                From first document to final return.
+              </h2>
+              <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-soft">
+                Know what to expect at each stage. The exact steps depend on your filing situation and the services
+                agreed upon.
+              </p>
+            </div>
           </div>
 
-          <ol className="mt-14 grid gap-px overflow-hidden border border-paper-line bg-paper-line md:grid-cols-3">
+          <ol className="mt-14 grid gap-px overflow-hidden border border-paper-line bg-paper-line sm:grid-cols-2 lg:grid-cols-5">
             {STEPS.map((step, i) => (
-              <li key={step.title} className="bg-paper p-8 lg:p-10">
-                <span className="font-display text-[56px] leading-none text-brass">{String(i + 1).padStart(2, "0")}</span>
-                <h3 className="mt-8 text-xl font-semibold text-ink">{step.title}</h3>
-                <p className="mt-3 text-[15.5px] leading-relaxed text-ink-soft">{step.body}</p>
+              <li key={step.title} className="bg-paper p-7 lg:p-8">
+                <span className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-brass-dark">
+                  Step {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3 className="mt-6 text-lg font-semibold leading-snug text-ink">{step.title}</h3>
+                <p className="mt-3 text-[14.5px] leading-relaxed text-ink-soft">{step.body}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
+
+      <TaxCompass />
 
       {/* Services */}
       <section id="services" className="scroll-mt-28 border-b border-paper-line">
@@ -460,258 +388,6 @@ export function HomePage() {
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Estimator */}
-      <section id="estimator" className="scroll-mt-28 border-b border-paper-line bg-paper-deep/60">
-        <span id="calculator" className="sr-only" aria-hidden />
-        <div className="site-container py-20 lg:py-28">
-          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
-            <div className="max-w-2xl">
-              <p className="eyebrow">Quick estimate</p>
-              <h2 className="mt-5 font-display text-[36px] leading-[1.1] text-ink sm:text-[42px]">
-                Roughly where will you land this year?
-              </h2>
-              <p className="mt-4 text-[15.5px] leading-relaxed text-ink-soft">
-                A back-of-the-envelope number for your 2025 return (the one you file in 2026), using IRS brackets
-                and standard deductions for tax year 2025. Your actual return will depend on the details, which is
-                what we&apos;re for.
-              </p>
-            </div>
-
-            <div className="inline-flex self-start rounded-[3px] border border-paper-line bg-paper-deep/60 p-1 md:self-auto">
-              {[
-                { id: "individual" as const, label: "Individual" },
-                { id: "corporate" as const, label: "Business" },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setCalcMode(m.id)}
-                  className={cn(
-                    "rounded-[2px] px-5 py-2 text-sm font-medium transition-colors",
-                    calcMode === m.id
-                      ? "border border-paper-line bg-white text-ink shadow-xs font-semibold"
-                      : "text-ink-soft hover:text-ink"
-                  )}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-12 grid overflow-hidden rounded-[4px] border border-paper-line bg-white lg:grid-cols-12">
-            {/* Inputs */}
-            <div className="p-6 sm:p-10 lg:col-span-7">
-              {calcMode === "individual" ? (
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="est-income" className="field-label">Total income</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-muted">$</span>
-                      <input
-                        id="est-income"
-                        type="number"
-                        value={income}
-                        onChange={(e) => setIncome(Number(e.target.value))}
-                        className="field pl-7 font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="est-withheld" className="field-label">Federal tax already withheld</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-muted">$</span>
-                      <input
-                        id="est-withheld"
-                        type="number"
-                        value={withholding}
-                        onChange={(e) => setWithholding(Number(e.target.value))}
-                        className="field pl-7 font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="est-status" className="field-label">Filing status</label>
-                    <select
-                      id="est-status"
-                      value={filingStatus}
-                      onChange={(e) => setFilingStatus(e.target.value as any)}
-                      className="field"
-                    >
-                      <option value="single">Single</option>
-                      <option value="married">Married filing jointly</option>
-                      <option value="hoh">Head of household</option>
-                    </select>
-                  </div>
-                  <div>
-                    <span className="field-label">Qualifying children</span>
-                    <div className="flex h-11 items-center rounded-[3px] border border-paper-line">
-                      <button
-                        type="button"
-                        aria-label="Fewer children"
-                        onClick={() => setDependents(Math.max(0, dependents - 1))}
-                        className="flex h-full w-11 items-center justify-center text-ink-soft hover:bg-paper"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="flex-1 text-center font-mono text-[15px] text-ink">{dependents}</span>
-                      <button
-                        type="button"
-                        aria-label="More children"
-                        onClick={() => setDependents(dependents + 1)}
-                        className="flex h-full w-11 items-center justify-center text-ink-soft hover:bg-paper"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-[13.5px] leading-relaxed text-ink-muted sm:col-span-2">
-                    Uses the {formatCurrency(individualEstimate.deduction)} standard deduction and{" "}
-                    {formatCurrency(individualEstimate.credits)} in child tax credit ($2,200 per child for 2025).
-                    Doesn&apos;t include state tax, self-employment tax, credit phase-outs or itemized deductions.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-9">
-                  <div>
-                    <div className="mb-3 flex items-baseline justify-between">
-                      <label htmlFor="revRange" className="field-label mb-0">Annual revenue</label>
-                      <span className="font-mono text-[15px] text-ink">{formatCurrency(revenue)}</span>
-                    </div>
-                    <input
-                      id="revRange"
-                      type="range"
-                      min="2000000"
-                      max="50000000"
-                      step="500000"
-                      value={revenue}
-                      onChange={(e) => setRevenue(Number(e.target.value))}
-                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-paper-line accent-[#A97C32]"
-                    />
-                    <div className="mt-2 flex justify-between font-mono text-[11px] text-ink-muted">
-                      <span>$2M</span>
-                      <span>$25M</span>
-                      <span>$50M</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="field-label">Entity type</span>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {[
-                        { id: "c-corp", label: "C-Corp" },
-                        { id: "s-corp", label: "S-Corp" },
-                        { id: "partnership", label: "Partnership" },
-                        { id: "multi-holdco", label: "Holding group" },
-                      ].map((ent) => (
-                        <button
-                          key={ent.id}
-                          type="button"
-                          onClick={() => setEntityType(ent.id as any)}
-                          className={cn(
-                            "rounded-[3px] border px-3 py-2.5 text-[13.5px] font-medium transition-colors",
-                            entityType === ent.id
-                              ? "border-brass bg-brass/10 text-ink font-semibold"
-                              : "border-paper-line text-ink-soft hover:border-ink/40"
-                          )}
-                        >
-                          {ent.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-3 flex items-baseline justify-between">
-                      <label htmlFor="rdRange" className="field-label mb-0">US engineering &amp; R&amp;D spend</label>
-                      <span className="font-mono text-[15px] text-ink">{formatCurrency(rdSpend)}</span>
-                    </div>
-                    <input
-                      id="rdRange"
-                      type="range"
-                      min="200000"
-                      max="15000000"
-                      step="100000"
-                      value={rdSpend}
-                      onChange={(e) => setRdSpend(Number(e.target.value))}
-                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-paper-line accent-[#A97C32]"
-                    />
-                    <p className="mt-3 text-[13.5px] text-ink-muted">
-                      Qualifying spend can offset payroll tax (up to $500K a year) or federal income tax under §41.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Result */}
-            <div className="flex flex-col justify-between border-t border-paper-line bg-paper/60 p-6 sm:p-10 lg:col-span-5 lg:border-l lg:border-t-0">
-              {calcMode === "individual" ? (
-                <div>
-                  <p className="text-sm text-ink-muted">
-                    {individualEstimate.refund >= 0 ? "Estimated federal refund" : "Estimated amount you'd owe"}
-                  </p>
-                  <p
-                    className={cn(
-                      "mt-2 font-display text-[56px] leading-none",
-                      individualEstimate.refund >= 0 ? "text-ink" : "text-brass-dark"
-                    )}
-                  >
-                    {formatCurrency(Math.abs(individualEstimate.refund))}
-                  </p>
-                  <dl className="mt-8 divide-y divide-dashed divide-paper-line border-y border-paper-line font-mono text-[13.5px]">
-                    <div className="flex justify-between py-3">
-                      <dt className="font-ui text-ink-soft">Federal tax</dt>
-                      <dd className="text-ink">{formatCurrency(individualEstimate.tax)}</dd>
-                    </div>
-                    <div className="flex justify-between py-3">
-                      <dt className="font-ui text-ink-soft">Already withheld</dt>
-                      <dd className="text-ink">{formatCurrency(withholding)}</dd>
-                    </div>
-                    <div className="flex justify-between py-3">
-                      <dt className="font-ui text-ink-soft">Standard deduction</dt>
-                      <dd className="text-ink">{formatCurrency(individualEstimate.deduction)}</dd>
-                    </div>
-                  </dl>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-ink-muted">Estimated annual tax savings</p>
-                  <p className="mt-2 font-display text-[56px] leading-none text-ink">
-                    {formatCurrency(corporateSavings.totalShield)}
-                  </p>
-                  <dl className="mt-8 divide-y divide-dashed divide-paper-line border-y border-paper-line font-mono text-[13.5px]">
-                    <div className="flex justify-between py-3">
-                      <dt className="font-ui text-ink-soft">R&amp;D credit (§41)</dt>
-                      <dd className="text-ink">{formatCurrency(corporateSavings.rdCredit)}</dd>
-                    </div>
-                    <div className="flex justify-between py-3">
-                      <dt className="font-ui text-ink-soft">State apportionment &amp; PTET</dt>
-                      <dd className="text-ink">{formatCurrency(corporateSavings.ptet)}</dd>
-                    </div>
-                    <div className="flex justify-between py-3">
-                      <dt className="font-ui text-ink-soft">Depreciation (§179 / bonus)</dt>
-                      <dd className="text-ink">{formatCurrency(corporateSavings.depreciation)}</dd>
-                    </div>
-                  </dl>
-                </div>
-              )}
-
-              <div className="mt-8">
-                <Link
-                  href={calcMode === "individual" ? primaryHref : "#book-consultation"}
-                  className="btn-ink w-full"
-                >
-                  {calcMode === "individual" ? "Get the real number" : "Discuss this with a partner"}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <p className="mt-3 text-center text-[12.5px] text-ink-muted">An estimate only, not tax advice.</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -784,45 +460,41 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Clients */}
-      <section className="border-b border-paper-line bg-paper-deep/60">
+      {/* Reviews */}
+      <section id="reviews" className="scroll-mt-28 border-b border-paper-line bg-paper-deep/60">
         <div className="site-container py-20 lg:py-28">
-          <p className="eyebrow">From our clients</p>
-          <div className="mt-10 grid gap-14 lg:grid-cols-12">
-            <figure className="lg:col-span-7">
-              <blockquote className="font-display text-[28px] leading-[1.3] text-ink sm:text-[34px]">
-                &ldquo;I used to dread filing with a W-2 and a side LLC. My CPA walked me through every deduction and
-                found $3,800 I&apos;d missed two years running.&rdquo;
-              </blockquote>
-              <figcaption className="mt-8 text-[15px]">
-                <span className="font-semibold text-ink">Marcus Lin</span>
-                <span className="text-ink-muted"> · Engineer and consultant, Austin</span>
-              </figcaption>
-            </figure>
-
-            <div className="space-y-10 border-t border-paper-line pt-10 lg:col-span-5 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
-              <figure>
-                <blockquote className="text-[16.5px] leading-relaxed text-ink-soft">
-                  &ldquo;The R&amp;D credit work paid for the advisory retainer several times over, and they answer the
-                  phone.&rdquo;
-                </blockquote>
-                <figcaption className="mt-4 text-[14px]">
-                  <span className="font-semibold text-ink">Sonia Kapoor</span>
-                  <span className="text-ink-muted"> · CFO, Algomap</span>
-                </figcaption>
-              </figure>
-              <figure className="border-t border-paper-line pt-10">
-                <blockquote className="text-[16.5px] leading-relaxed text-ink-soft">
-                  &ldquo;When we sold the company, their QSBS planning saved our family more than $1.2M in capital
-                  gains tax.&rdquo;
-                </blockquote>
-                <figcaption className="mt-4 text-[14px]">
-                  <span className="font-semibold text-ink">David Reynolds</span>
-                  <span className="text-ink-muted"> · Founder, Payshift</span>
-                </figcaption>
-              </figure>
+          <div className="grid gap-6 lg:grid-cols-12">
+            <p className="eyebrow lg:col-span-3 lg:pt-3">Client reviews</p>
+            <div className="lg:col-span-9">
+              <h2 className="font-display text-[36px] leading-[1.1] text-ink sm:text-[46px]">
+                Trusted by clients worldwide.
+              </h2>
+              <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-soft">
+                What people say after working with us, in their own words.
+              </p>
             </div>
           </div>
+
+          <ul className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {REVIEWS.map((review) => (
+              <li key={review.name} className="flex flex-col rounded-[4px] border border-paper-line bg-white p-7">
+                <div className="flex gap-0.5 text-brass" aria-label="Rated 5 out of 5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" aria-hidden />
+                  ))}
+                </div>
+                <blockquote className="mt-5 flex-1 text-[15.5px] leading-relaxed text-ink-soft">
+                  &ldquo;{review.quote}&rdquo;
+                </blockquote>
+                <div className="mt-6 border-t border-paper-line pt-4 text-[14px]">
+                  <p className="font-semibold text-ink">{review.name}</p>
+                  <p className="text-ink-muted">
+                    {review.role} · {review.location}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -869,6 +541,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <PageFaq items={PAGE_FAQS.home} />
 
       <ClosingCta
         title="Filing season is easier when it starts early."

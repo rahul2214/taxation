@@ -157,6 +157,68 @@ export const SERVICES: Service[] = [
     relatedPostSlugs: ["llc-vs-scorp-tax-savings-guide", "top-10-small-business-tax-deductions-checklist"],
   },
   {
+    slug: "mnc-tax-filing",
+    legacyAnchor: "mnc",
+    name: "MNC tax filing",
+    shortName: "MNC tax filing",
+    forms: "Form 1120, 5471, 5472, 1118 and 8858",
+    h1: "Tax filing for multinational companies and their US entities",
+    metaTitle: "MNC Tax Filing for US Subsidiaries & Groups",
+    metaDescription:
+      "US corporate tax filing for multinational companies: Form 1120, 5471 and 5472 information returns, foreign tax credits, GILTI and transfer pricing documentation, prepared by CPAs.",
+    keywords: ["MNC tax filing", "multinational company tax return", "US subsidiary tax filing", "Form 5471 preparation", "Form 5472 foreign-owned corporation", "transfer pricing documentation", "GILTI tax"],
+    summary: "US returns and international information forms for multinational groups and foreign-owned US companies.",
+    intro: [
+      "Multinational groups have US filing obligations that go well beyond a single corporate return. We prepare the US federal and state returns for your subsidiaries, along with the international information returns that carry steep penalties when they are late or incomplete.",
+      "One team coordinates with your group finance function and overseas advisers, so intercompany charges, foreign tax credits and related-party disclosures are consistent across every filing.",
+    ],
+    whoFor: [
+      "Foreign-owned US subsidiaries and branches",
+      "US parent companies with controlled foreign corporations",
+      "Groups with intercompany services, loans or royalties",
+      "Companies expanding into the US for the first time",
+      "Finance teams that need a US filing partner for the group calendar",
+    ],
+    included: [
+      "Federal Form 1120 and state corporate returns",
+      "Form 5472 for 25% foreign-owned US corporations",
+      "Form 5471 and 8858 for foreign subsidiaries and branches",
+      "Foreign tax credit (Form 1118), GILTI and FDII calculations",
+      "Review of intercompany pricing and documentation",
+      "Multi-state nexus and apportionment review",
+    ],
+    documents: [
+      "Group structure chart showing ownership percentages",
+      "Trial balance and financial statements for each US entity",
+      "Intercompany agreements and transaction summaries",
+      "Financial statements for foreign subsidiaries, if you are a US parent",
+      "Prior-year federal and state returns",
+    ],
+    steps: [
+      { title: "Scope", body: "We map your entities and filing obligations and agree a fixed fee for the year." },
+      { title: "Prepare", body: "Our team prepares the returns and information forms, working with your finance team and overseas advisers." },
+      { title: "Review and file", body: "You review a filing summary for each entity, sign, and we file and track every deadline." },
+    ],
+    price: "Quoted",
+    pricePeriod: "per group",
+    priceNote: "Fees depend on the number of entities and international forms. You receive a fixed quote before work begins.",
+    faqs: [
+      {
+        question: "Does a foreign-owned US company have to file Form 5472?",
+        answer: "Generally yes, if a foreign person owns at least 25% of the US corporation, or if a foreign-owned single-member LLC has reportable transactions with its owner. The penalty for a missing or late form starts at $25,000, so it is worth confirming early.",
+      },
+      {
+        question: "Can you work with our overseas accountants?",
+        answer: "Yes. Most of our multinational clients have advisers in other countries. We agree who provides what, share a filing calendar, and keep intercompany figures consistent on both sides.",
+      },
+      {
+        question: "Do you prepare transfer pricing studies?",
+        answer: "We review intercompany pricing as part of the return and prepare documentation for smaller groups. For complex groups we coordinate with a dedicated transfer pricing specialist and reflect their study in the filings.",
+      },
+    ],
+    relatedPostSlugs: ["remote-work-state-taxes-multi-state-guide", "llc-vs-scorp-tax-savings-guide"],
+  },
+  {
     slug: "irs-notice-audit-help",
     legacyAnchor: "audit",
     name: "IRS notice and audit help",

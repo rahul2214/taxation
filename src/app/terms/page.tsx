@@ -3,6 +3,8 @@ import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { FileText, ShieldCheck, Scale, CheckCircle2, AlertCircle } from "lucide-react";
 
 export const metadata: Metadata = buildMetadata({
@@ -174,6 +176,7 @@ export default function TermsPage() {
           </div>
         </div>
       </div>
+      <PageFaq items={PAGE_FAQS.legal} />
     </PublicLayout>
   );
 }

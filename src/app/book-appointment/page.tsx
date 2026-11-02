@@ -1,6 +1,8 @@
 "use client";
 
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackLead } from "@/lib/analytics";
@@ -271,6 +273,7 @@ export default function BookAppointmentPage() {
           </div>
         </div>
       </div>
+      <PageFaq items={PAGE_FAQS.booking} />
     </PublicLayout>
   );
 }

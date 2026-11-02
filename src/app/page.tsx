@@ -13,7 +13,6 @@ export const metadata: Metadata = buildMetadata({
     "small business CPA",
     "tax return from $59",
     "free tax consultation",
-    "tax refund estimator",
   ],
 });
 

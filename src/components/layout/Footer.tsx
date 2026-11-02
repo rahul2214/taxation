@@ -11,6 +11,7 @@ const columns = [
       { href: "/services/tax-planning", label: "Tax planning" },
       { href: "/services/irs-notice-audit-help", label: "IRS notice & audit help" },
       { href: "/services/bookkeeping", label: "Bookkeeping" },
+      { href: "/services/mnc-tax-filing", label: "MNC tax filing" },
     ],
   },
   {
@@ -19,7 +20,7 @@ const columns = [
       { href: "/about", label: "About us" },
       { href: "/guarantee", label: "Our guarantee" },
       { href: "/security", label: "How we protect your data" },
-      { href: "/blogs", label: "Articles" },
+      { href: "/blogs", label: "Tax resources" },
       { href: "/faq", label: "FAQ" },
     ],
   },

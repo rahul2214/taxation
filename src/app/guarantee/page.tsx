@@ -3,6 +3,8 @@ import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
 
@@ -73,6 +75,8 @@ export default function GuaranteePage() {
           </div>
         </div>
       </section>
+
+      <PageFaq items={PAGE_FAQS.guarantee} />
 
       <ClosingCta
         title="File knowing someone has your back."

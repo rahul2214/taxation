@@ -13,10 +13,10 @@ import { supabase } from "@/lib/supabase/client";
 
 const navLinks = [
   { href: "/services", label: "Services" },
+  { href: "/#tax-tools", label: "Tax Tools" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "/#estimator", label: "Estimator" },
-  { href: "/about", label: "About" },
-  { href: "/blogs", label: "Articles" },
+  { href: "/blogs", label: "Tax Resources" },
+  { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -71,7 +71,7 @@ export function Header() {
           <PolarisLogo theme="light" className="h-9 w-auto" priority />
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
+        <nav className="hidden items-center gap-6 lg:flex" aria-label="Main">
           {navLinks.map((link) => (
             <Link
               key={link.href}

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { buildMetadata, breadcrumbSchema, absoluteUrl, SITE } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { BlogsClient } from "./BlogsClient";
 import { BLOG_POSTS } from "@/data/blogs";
 
@@ -35,6 +37,7 @@ export default function BlogsPage() {
     <PublicLayout>
       <JsonLd data={[collection, breadcrumbSchema([{ name: "Articles", path: "/blogs" }])]} />
       <BlogsClient />
+      <PageFaq items={PAGE_FAQS.resources} />
     </PublicLayout>
   );
 }

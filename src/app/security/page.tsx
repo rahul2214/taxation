@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { PageIntro } from "@/components/public/PageIntro";
 
 export const metadata: Metadata = buildMetadata({
@@ -124,6 +126,7 @@ export default function SecurityPage() {
           </div>
         </section>
       </div>
+      <PageFaq items={PAGE_FAQS.security} />
     </PublicLayout>
   );
 }

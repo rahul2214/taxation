@@ -4,6 +4,8 @@ import { SERVICES } from "@/data/services";
 import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { PageIntro } from "@/components/public/PageIntro";
 import { ClosingCta } from "@/components/public/ClosingCta";
 import { ArrowRight } from "lucide-react";
@@ -12,7 +14,7 @@ export const metadata: Metadata = buildMetadata({
   title: "Tax Preparation & IRS Help Services",
   description: "CPA tax preparation for individuals from $59 and small businesses from $199, plus IRS notice help, bookkeeping and tax planning. Fixed prices, all 50 states.",
   path: "/services",
-  keywords: ["individual tax return preparation", "small business tax preparation", "S-Corp tax preparation", "partnership tax return 1065", "IRS notice help", "bookkeeping services", "tax planning services", "Roth conversion planning"],
+  keywords: ["individual tax return preparation", "small business tax preparation", "S-Corp tax preparation", "partnership tax return 1065", "IRS notice help", "bookkeeping services", "tax planning services", "Roth conversion planning", "MNC tax filing"],
 });
 
 // Hub view of the catalogue; each entry links to its own landing page.
@@ -50,7 +52,7 @@ export default function ServicesPage() {
       <PageIntro
         eyebrow="Services"
         title="Tax work for people and the businesses they run."
-        lede="Six areas of practice, each handled by licensed CPAs and Enrolled Agents. Prices are fixed and agreed before any work begins."
+        lede="Seven areas of practice, each handled by licensed CPAs and Enrolled Agents. Prices are fixed and agreed before any work begins."
         aside={
           <nav aria-label="Services on this page" className="border-t border-ink pt-4">
             <ul className="space-y-2 text-[14.5px]">
@@ -120,6 +122,8 @@ export default function ServicesPage() {
           right one.
         </p>
       </section>
+
+      <PageFaq items={PAGE_FAQS.services} />
 
       <ClosingCta />
     </PublicLayout>

@@ -3,11 +3,13 @@ import { buildMetadata, breadcrumbSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageFaq } from "@/components/public/PageFaq";
+import { PAGE_FAQS } from "@/data/faqs";
 import { AlertCircle, ShieldCheck, FileText, Scale } from "lucide-react";
 
 export const metadata: Metadata = buildMetadata({
   title: "Circular 230 & Regulatory Disclosures",
-  description: "IRS Circular 230 notice, licensing information and disclaimers for the calculators and articles published by Polaris Tax Services.",
+  description: "IRS Circular 230 notice, licensing information and disclaimers for the articles and tax information published by Polaris Tax Services.",
   path: "/disclaimer",
   keywords: ["Circular 230 disclosure"],
 });
@@ -41,13 +43,13 @@ export default function DisclaimerPage() {
               </div>
             </section>
 
-            {/* Section 2: Informational Estimates Disclaimer */}
+            {/* Section 2: Informational Content Disclaimer */}
             <section className="space-y-3">
               <h2 className="font-display text-[26px] font-normal text-ink">
-                1. Nature of Website Estimators &amp; Articles
+                1. Nature of Website Content &amp; Articles
               </h2>
               <p>
-                All calculators, interactive tax estimators, tax bracket tables, and blog posts provided on this website are designed strictly for educational, informational, and preliminary diagnostic purposes. They do not constitute formal, individualized tax, legal, or investment advice.
+                All tax bracket tables, examples, and blog posts provided on this website are designed strictly for educational, informational, and preliminary diagnostic purposes. They do not constitute formal, individualized tax, legal, or investment advice.
               </p>
               <p>
                 Actual tax liabilities, eligible deductions, and refund determinations require a comprehensive review of your official source documents (Forms W-2, 1099, K-1, P&amp;L records) and execution of a formal client engagement agreement. A CPA-client fiduciary relationship is only formed once you execute our engagement agreement and verify your identity.
@@ -92,6 +94,7 @@ export default function DisclaimerPage() {
           </div>
         </div>
       </div>
+      <PageFaq items={PAGE_FAQS.legal} />
     </PublicLayout>
   );
 }
