@@ -13,9 +13,8 @@ import { supabase } from "@/lib/supabase/client";
 
 const navLinks = [
   { href: "/services", label: "Services" },
-  { href: "/#tax-tools", label: "Tax Tools" },
+  { href: "/resources", label: "Tools & Resources" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "/blogs", label: "Tax Resources" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ];
@@ -47,7 +46,9 @@ export function Header() {
     }
   };
 
-  const isActive = (href: string) => !href.includes("#") && pathname.startsWith(href);
+  // Articles live under /blogs but belong to the Tools & Resources section.
+  const isActive = (href: string) =>
+    !href.includes("#") && (pathname.startsWith(href) || (href === "/resources" && pathname.startsWith("/blogs")));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-paper-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">

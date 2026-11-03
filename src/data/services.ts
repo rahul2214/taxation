@@ -7,8 +7,12 @@
 
 export type ServiceFaq = { question: string; answer: string };
 
+export type ServiceAudience = "individual" | "business";
+
 export type Service = {
   slug: string;
+  /** Groups the /services hub into personal and business sections. */
+  audience: ServiceAudience;
   /** Anchor id used by older /services#id links. */
   legacyAnchor: string;
   name: string;
@@ -34,6 +38,7 @@ export type Service = {
 export const SERVICES: Service[] = [
   {
     slug: "individual-tax-preparation",
+    audience: "individual",
     legacyAnchor: "personal",
     name: "Individual tax preparation",
     shortName: "Individual returns",
@@ -96,6 +101,7 @@ export const SERVICES: Service[] = [
   },
   {
     slug: "small-business-tax-preparation",
+    audience: "business",
     legacyAnchor: "business",
     name: "Small business tax preparation",
     shortName: "Small business taxes",
@@ -158,6 +164,7 @@ export const SERVICES: Service[] = [
   },
   {
     slug: "mnc-tax-filing",
+    audience: "business",
     legacyAnchor: "mnc",
     name: "MNC tax filing",
     shortName: "MNC tax filing",
@@ -220,6 +227,7 @@ export const SERVICES: Service[] = [
   },
   {
     slug: "irs-notice-audit-help",
+    audience: "individual",
     legacyAnchor: "audit",
     name: "IRS notice and audit help",
     shortName: "IRS notices & audits",
@@ -276,6 +284,7 @@ export const SERVICES: Service[] = [
   },
   {
     slug: "tax-planning",
+    audience: "business",
     legacyAnchor: "consulting",
     name: "Tax planning",
     shortName: "Tax planning",
@@ -332,6 +341,7 @@ export const SERVICES: Service[] = [
   },
   {
     slug: "bookkeeping",
+    audience: "business",
     legacyAnchor: "bookkeeping",
     name: "Monthly bookkeeping",
     shortName: "Bookkeeping",
@@ -384,7 +394,131 @@ export const SERVICES: Service[] = [
     relatedPostSlugs: ["top-10-small-business-tax-deductions-checklist", "llc-vs-scorp-tax-savings-guide"],
   },
   {
+    slug: "payroll",
+    audience: "business",
+    legacyAnchor: "payroll",
+    name: "Payroll services",
+    shortName: "Payroll",
+    forms: "Forms 941, 940, W-2 and state filings",
+    h1: "Payroll services for small businesses and S-Corp owners",
+    metaTitle: "Small Business Payroll Services",
+    metaDescription:
+      "Payroll run by the CPA firm that files your taxes: direct deposit, payroll tax deposits, Forms 941 and 940, W-2s and state filings, including owner salaries for S-Corps.",
+    keywords: ["small business payroll services", "payroll for S-Corp owner", "outsourced payroll", "Form 941 filing", "payroll tax filing service"],
+    summary: "Pay runs, payroll tax deposits and year-end W-2s, handled for you.",
+    intro: [
+      "Payroll mistakes are expensive: late deposits and missed quarterly filings carry penalties that build quickly. We run payroll on your schedule, make the federal and state tax deposits, and file the quarterly and annual returns that go with them.",
+      "Because the same firm prepares your business return, wages, payroll taxes and owner compensation line up with your books and your K-1s, with no year-end reconciliation scramble.",
+    ],
+    whoFor: [
+      "Small businesses hiring their first employee",
+      "S-Corp owners who need to pay themselves a reasonable salary",
+      "Employers with staff in more than one state",
+      "Owners who want to stop running payroll themselves",
+    ],
+    included: [
+      "Weekly, biweekly, semi-monthly or monthly pay runs with direct deposit",
+      "Federal and state payroll tax calculations and deposits",
+      "Quarterly Form 941 and state withholding returns",
+      "Annual Form 940, W-2s and W-3",
+      "State unemployment filings and new hire reporting",
+      "Payroll reports tied out to your bookkeeping",
+    ],
+    documents: [
+      "Your EIN and state employer account numbers",
+      "Completed Form W-4 and state withholding form for each employee",
+      "Pay rates, schedules and any benefit deductions",
+      "Prior payroll reports, if you are switching providers mid-year",
+    ],
+    steps: [
+      { title: "Set up", body: "We register any missing state accounts and load your employees and pay schedules." },
+      { title: "Run payroll", body: "You approve each pay run; we pay your team and make the tax deposits." },
+      { title: "File", body: "We file the quarterly and annual returns and send W-2s at year-end." },
+    ],
+    price: "Quoted",
+    pricePeriod: "per month",
+    priceNote: "Fees depend on the number of employees, pay frequency and states. You receive a fixed monthly quote before setup.",
+    faqs: [
+      {
+        question: "I'm the only person in my S-Corp. Do I need payroll?",
+        answer: "Generally yes. An S-Corp owner who works in the business should be paid a reasonable salary through payroll, with tax withheld, before taking distributions. We set this up and help you choose a defensible salary figure.",
+      },
+      {
+        question: "Can you take over payroll partway through the year?",
+        answer: "Yes. We import your year-to-date figures from your current provider so quarterly returns and W-2s are complete and correct for the whole year.",
+      },
+      {
+        question: "Do you handle contractors as well as employees?",
+        answer: "Contractors aren't paid through payroll, but we file their 1099-NEC forms through our bookkeeping service and can help you decide whether someone should be treated as an employee.",
+      },
+    ],
+    relatedPostSlugs: ["llc-vs-scorp-tax-savings-guide", "top-10-small-business-tax-deductions-checklist"],
+  },
+  {
+    slug: "business-formation",
+    audience: "business",
+    legacyAnchor: "formation",
+    name: "Business formation",
+    shortName: "Business formation",
+    forms: "LLC or corporation, EIN, Form 2553",
+    h1: "Business formation and entity selection",
+    metaTitle: "Business Formation & Entity Selection Help",
+    metaDescription:
+      "Choose the right structure for your business with a CPA: LLC, partnership, S-Corp or C-Corp. We handle the state filing, EIN, S-Corp election and tax registrations.",
+    keywords: ["business formation services", "LLC formation", "choose a business entity", "S-Corp election Form 2553", "EIN application", "sole proprietor vs LLC"],
+    summary: "The right entity from day one, with the filings to set it up.",
+    intro: [
+      "The structure you choose decides how your profits are taxed, how you pay yourself and how much paperwork you file each year. We compare sole proprietorship, LLC, partnership, S-Corp and C-Corp treatment using your expected income, then recommend the one that fits.",
+      "Once you decide, we prepare the state formation filing, obtain your EIN and make any tax elections, so the business is set up correctly before its first transaction.",
+    ],
+    whoFor: [
+      "People starting a business or side business",
+      "Sole proprietors whose profits have grown",
+      "LLC owners considering an S-Corp election",
+      "Partners bringing a new co-owner into the business",
+      "Foreign founders setting up a US company",
+    ],
+    included: [
+      "Entity comparison based on your projected income",
+      "State formation filing for an LLC or corporation",
+      "EIN application with the IRS",
+      "S-Corp election on Form 2553, where it makes sense",
+      "State tax registrations such as sales tax and withholding",
+      "A first-year tax calendar for the new entity",
+    ],
+    documents: [
+      "Owners' names, addresses and ownership percentages",
+      "The state where the business will operate",
+      "A rough estimate of first-year revenue and expenses",
+      "Your current business registration, if converting an existing business",
+    ],
+    steps: [
+      { title: "Compare", body: "We talk through your plans and model the tax under each structure." },
+      { title: "Form", body: "We prepare the state filing and EIN application, and any tax elections." },
+      { title: "Get ready", body: "You receive your formation documents, registrations and a calendar of filing dates." },
+    ],
+    price: "Quoted",
+    pricePeriod: "one-time",
+    priceNote: "State filing fees are passed through at cost. We don't draft operating or shareholder agreements; we work alongside your attorney when you need one.",
+    faqs: [
+      {
+        question: "Should I form an LLC or a corporation?",
+        answer: "Most small businesses start as an LLC because it is simple to run and flexible for tax. A C-Corp can suit companies planning to raise venture capital or reinvest most of their profit. We'll compare both with your numbers.",
+      },
+      {
+        question: "When should an LLC elect S-Corp status?",
+        answer: "Usually once profit is high enough that savings on self-employment tax outweigh the cost of running payroll and filing Form 1120-S. The election generally has to be filed within two months and 15 days of the start of the tax year it applies to.",
+      },
+      {
+        question: "Can a non-US resident form a US company?",
+        answer: "Yes. Foreign owners can form a US LLC or corporation and obtain an EIN. Foreign-owned companies often have extra reporting, such as Form 5472, which we set up from the start.",
+      },
+    ],
+    relatedPostSlugs: ["llc-vs-scorp-tax-savings-guide", "top-10-small-business-tax-deductions-checklist"],
+  },
+  {
     slug: "retirement-estate-tax-planning",
+    audience: "individual",
     legacyAnchor: "retirement",
     name: "Retirement and estate tax planning",
     shortName: "Retirement & estate",
@@ -441,6 +575,19 @@ export const SERVICES: Service[] = [
 ];
 
 export const getServiceBySlug = (slug: string) => SERVICES.find((s) => s.slug === slug);
+
+export const SERVICE_GROUPS: { audience: ServiceAudience; title: string; lede: string }[] = [
+  {
+    audience: "individual",
+    title: "For individuals and families",
+    lede: "Personal returns, letters from the IRS and the tax side of retirement.",
+  },
+  {
+    audience: "business",
+    title: "For businesses",
+    lede: "What a business needs from its tax firm: formation, books, payroll, returns and planning.",
+  },
+];
 
 /** Which service an article's readers most likely need next, by article category. */
 export const SERVICE_FOR_BLOG_CATEGORY: Record<string, string> = {

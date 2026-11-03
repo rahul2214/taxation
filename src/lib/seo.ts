@@ -10,7 +10,7 @@ export const SITE = {
     "Licensed CPAs and Enrolled Agents for individual and small business tax returns, S-Corp filings and IRS notices. Fixed prices from $59. Serving all 50 states.",
   phone: "+1-212-847-1920",
   phoneDisplay: "(212) 847-1920",
-  email: "advisory@polaristax.com",
+  email: "plrstaxservices@gmail.com",
   address: {
     street: "440 Park Avenue South, 12th Floor",
     city: "New York",
@@ -24,8 +24,12 @@ export const SITE = {
   locale: "en_US",
   twitter: "@polaristax",
   logo: "/icon-512.png",
-  // Add real profile URLs (Google Business Profile, LinkedIn, Yelp, etc.) as they go live.
-  sameAs: [] as string[],
+  // Add more profile URLs (Google Business Profile, LinkedIn, Yelp, etc.) as they go live.
+  sameAs: [
+    "https://www.instagram.com/polaristaxservices",
+    "https://www.threads.com/@polaristaxservices",
+    "https://www.facebook.com/share/19qUcAJoKB/",
+  ] as string[],
 };
 
 export const absoluteUrl = (path = "/") => `${SITE.url}${path.startsWith("/") ? path : `/${path}`}`;

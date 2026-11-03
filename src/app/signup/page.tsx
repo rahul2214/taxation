@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Gift, CheckCircle2, ArrowRight } from "lucide-react";
 import { useFirebase } from "@/firebase";
@@ -23,6 +24,7 @@ import {
   CustomerRecord,
 } from "@/lib/supabase/services";
 import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
+import { HEARD_ABOUT_OPTIONS, heardAboutValue as toHeardAboutValue } from "@/data/heard-about";
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -45,6 +47,8 @@ function SignupContent() {
   const [signupReferralCode, setSignupReferralCode] = useState(refParam);
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [heardAbout, setHeardAbout] = useState("");
+  const [heardAboutOther, setHeardAboutOther] = useState("");
 
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -135,9 +139,19 @@ function SignupContent() {
       return;
     }
 
+    if (!heardAbout || (heardAbout === "Other" && !heardAboutOther.trim())) {
+      toast({
+        variant: "destructive",
+        title: "One More Question",
+        description: "Please tell us how you heard about Polaris Tax Services.",
+      });
+      return;
+    }
+
     setIsSigningUp(true);
     const cleanEmail = signupEmail.trim().toLowerCase();
     const cleanReferral = signupReferralCode.trim();
+    const heardAboutValue = toHeardAboutValue(heardAbout, heardAboutOther);
 
     // 1. Generate unique branded coupon code
     const userReferralCode = generateReferralCode(signupFirstName, cleanEmail);
@@ -170,6 +184,7 @@ function SignupContent() {
             last_name: signupLastName.trim(),
             phone: signupPhone.trim(),
             referral_code: userReferralCode,
+            heard_about: heardAboutValue,
           },
         },
       });
@@ -190,6 +205,7 @@ function SignupContent() {
             referral_code: userReferralCode,
             wallet_balance: 0.0,
             referred_by: referredById || undefined,
+            heard_about: heardAboutValue,
           });
         } catch (profileErr) {
           console.warn("Profile upsert notice:", profileErr);
@@ -359,6 +375,33 @@ function SignupContent() {
                   value={signupPhone}
                   onChange={(e) => setSignupPhone(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="heard-about">How did you hear about us?</Label>
+                <Select value={heardAbout} onValueChange={setHeardAbout}>
+                  <SelectTrigger id="heard-about" aria-required="true">
+                    <SelectValue placeholder="Select one" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HEARD_ABOUT_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {heardAbout === "Other" && (
+                  <Input
+                    id="heard-about-other"
+                    aria-label="Where did you hear about us?"
+                    placeholder="Please tell us where"
+                    required
+                    maxLength={120}
+                    value={heardAboutOther}
+                    onChange={(e) => setHeardAboutOther(e.target.value)}
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

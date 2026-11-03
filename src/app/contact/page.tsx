@@ -8,16 +8,12 @@ import { PageIntro } from "@/components/public/PageIntro";
 
 export const metadata: Metadata = buildMetadata({
   title: "Contact Our New York CPA Office",
-  description: "Call (212) 847-1920, email advisory@polaristax.com or visit us at 440 Park Avenue South, New York. A CPA replies within four business hours, Mon–Fri.",
+  description: "Call (212) 847-1920, email plrstaxservices@gmail.com or visit us at 440 Park Avenue South, New York. A CPA replies within four business hours, Mon–Fri.",
   path: "/contact",
   keywords: ["contact CPA New York", "tax accountant Manhattan", "Park Avenue South CPA", "tax preparer phone number"],
 });
 
-const emails = [
-  ["New clients & questions", "advisory@polaristax.com"],
-  ["Help with the client portal", "support@polaristax.com"],
-  ["IRS or state letters", "notices@polaristax.com"],
-];
+const emails = [["New clients, portal help and IRS letters", SITE.email]];
 
 export default function ContactPage() {
   return (

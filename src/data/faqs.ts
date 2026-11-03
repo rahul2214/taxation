@@ -115,7 +115,7 @@ export const PAGE_FAQS: Record<string, Faq[]> = {
     },
     {
       question: "Can I reschedule?",
-      answer: "Yes. Call the office or email advisory@polaristax.com and we'll move it.",
+      answer: "Yes. Call the office or email plrstaxservices@gmail.com and we'll move it.",
     },
     {
       question: "What should I have ready?",
@@ -125,7 +125,7 @@ export const PAGE_FAQS: Record<string, Faq[]> = {
   legal: [
     {
       question: "Who can I contact about these terms or policies?",
-      answer: "Email advisory@polaristax.com or call (212) 847-1920 and we'll answer your question.",
+      answer: "Email plrstaxservices@gmail.com or call (212) 847-1920 and we'll answer your question.",
     },
     {
       question: "Is information on this website tax advice?",

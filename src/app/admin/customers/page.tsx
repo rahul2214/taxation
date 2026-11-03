@@ -58,6 +58,7 @@ type Customer = {
   role_id?: number;
   referralCode?: string;
   walletBalance?: number;
+  heardAbout?: string;
   referredBy?: string | number | null;
 };
 
@@ -94,6 +95,7 @@ export default function CustomersPage() {
             referralCode: r.referral_code,
             walletBalance: r.wallet_balance !== undefined ? Number(r.wallet_balance) : 0,
             referredBy: r.referred_by,
+            heardAbout: r.heard_about || undefined,
           }));
         setSupabaseCustomers(mapped);
       } catch (err) {
@@ -160,6 +162,7 @@ export default function CustomersPage() {
                 <TableHead className="w-20">User ID</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Heard about us</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
@@ -167,7 +170,7 @@ export default function CustomersPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={6} className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                   </TableCell>
                 </TableRow>
@@ -181,6 +184,7 @@ export default function CustomersPage() {
                       <div className="font-medium">{customer.firstName} {customer.lastName}</div>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{customer.heardAbout || "-"}</TableCell>
                   <TableCell>{formatDate(customer.signupDate)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -200,7 +204,7 @@ export default function CustomersPage() {
               ))}
               {!isLoading && (!customers || customers.length === 0) && (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">No customers found.</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">No customers found.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -233,6 +237,10 @@ export default function CustomersPage() {
                      <div className="grid grid-cols-4 items-start gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Address</span>
                         <span className="col-span-3 text-sm">{formatAddress(selectedCustomer.address)}</span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="col-span-1 text-sm font-medium text-muted-foreground">Heard via</span>
+                        <span className="col-span-3 text-sm">{selectedCustomer.heardAbout || 'N/A'}</span>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <span className="col-span-1 text-sm font-medium text-muted-foreground">Joined</span>

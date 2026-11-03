@@ -4,12 +4,13 @@ import { absoluteUrl } from "@/lib/seo";
 import { SERVICES } from "@/data/services";
 
 // Bump when the content of the static pages changes meaningfully; Google ignores lastmod values that change on every request.
-const PAGES_UPDATED = new Date("2026-10-28");
+const PAGES_UPDATED = new Date("2026-11-03");
 
 const STATIC_PAGES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1.0 },
   { path: "/services", changeFrequency: "monthly", priority: 0.9 },
   { path: "/book-appointment", changeFrequency: "monthly", priority: 0.9 },
+  { path: "/resources", changeFrequency: "monthly", priority: 0.8 },
   { path: "/blogs", changeFrequency: "weekly", priority: 0.8 },
   { path: "/about", changeFrequency: "monthly", priority: 0.7 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.7 },

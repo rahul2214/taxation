@@ -23,6 +23,7 @@ export interface CustomerRecord {
   referral_code?: string;
   wallet_balance?: number;
   referred_by?: string | number | null; // Stores referrer's int8 userid value
+  heard_about?: string | null; // "How did you hear about us?" answer from signup
   signup_date?: string;
   created_at?: string;
   updated_at?: string;
@@ -134,6 +135,7 @@ export async function upsertCustomer(customer: CustomerRecord) {
   if (customer.referred_by !== undefined) {
     fullPayload.referred_by = customer.referred_by !== null ? String(customer.referred_by) : null;
   }
+  if (customer.heard_about !== undefined) fullPayload.heard_about = customer.heard_about;
 
   try {
     const { data, error } = await supabase
@@ -376,6 +378,23 @@ export async function createTaxDocument(doc: TaxDocumentRecord) {
 
   if (error) throw error;
   apiCache.invalidate('tax_docs');
+  return data;
+}
+
+/** Saves the "How did you hear about us?" answer for an existing customer. */
+export async function updateCustomerHeardAbout(id: string, heardAbout: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('customers')
+    .update({ heard_about: heardAbout, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  apiCache.invalidate('customers:all');
+  apiCache.set(`customer:${id}`, data, 120_000);
+  if (data?.userid) apiCache.set(`customer:${data.userid}`, data, 120_000);
   return data;
 }
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageFaq } from "@/components/public/PageFaq";
 import { PAGE_FAQS } from "@/data/faqs";
@@ -38,6 +39,8 @@ const SERVICES = [
   { href: "/services/mnc-tax-filing", name: "MNC tax filing", detail: "US subsidiaries and parents: Form 1120, 5471, 5472, foreign tax credits", price: "quoted per group" },
   { href: "/services/irs-notice-audit-help", name: "IRS notices & audits", detail: "CP2000 responses, penalty abatement, representation under Form 2848", price: "quoted per case" },
   { href: "/services/bookkeeping", name: "Monthly bookkeeping", detail: "Reconciliations, P&L and balance sheet, books that are ready at tax time", price: "from $250/mo" },
+  { href: "/services/payroll", name: "Payroll", detail: "Pay runs, payroll tax deposits, Forms 941 and 940, W-2s, S-Corp owner salaries", price: "quoted monthly" },
+  { href: "/services/business-formation", name: "Business formation", detail: "Entity choice, LLC or corporation filing, EIN and S-Corp election", price: "quoted one-time" },
   { href: "/services/tax-planning", name: "Planning & corporate advisory", detail: "Entity structure, R&D credits, multi-state nexus, QSBS", price: "from $2,500/mo" },
 ];
 
@@ -143,9 +146,6 @@ export function HomePage() {
   const primaryHref = activeUser ? (isAdmin ? "/admin" : "/dashboard") : "/signup";
   const primaryLabel = activeUser ? "Go to your dashboard" : "Start your return";
 
-  // Hero document preview tab
-  const [previewTab, setPreviewTab] = useState<"1040" | "business">("1040");
-
   const offerCatalog = {
     "@context": "https://schema.org",
     "@type": "OfferCatalog",
@@ -202,100 +202,29 @@ export function HomePage() {
             </dl>
           </div>
 
-          {/* Return summary sheet */}
+          {/* Hero image */}
           <div className="lg:col-span-5">
             <div className="relative mx-auto max-w-md">
-              <div className="flex gap-1 pl-4">
-                {[
-                  { id: "1040" as const, label: "Form 1040" },
-                  { id: "business" as const, label: "Form 1120-S" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setPreviewTab(tab.id)}
-                    className={cn(
-                      "rounded-t-[4px] border border-b-0 px-4 py-2 font-mono text-[11.5px] transition-colors",
-                      previewTab === tab.id
-                        ? "border-paper-line bg-white text-ink"
-                        : "border-transparent bg-paper-deep text-ink-muted hover:text-ink"
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[4px] border border-paper-line bg-paper-deep shadow-[0_1px_0_#DCD5C5,0_24px_48px_-24px_rgba(20,32,46,0.25)]">
+                <Image
+                  src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000&h=1250"
+                  alt="Tax professional reviewing documents with a calculator"
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 448px, 100vw"
+                  className="object-cover"
+                />
               </div>
 
-              <div className="relative rounded-[4px] border border-paper-line bg-white p-6 shadow-[0_1px_0_#DCD5C5,0_24px_48px_-24px_rgba(20,32,46,0.25)] sm:p-8">
-                <div className="flex items-start justify-between border-b border-ink pb-4">
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-muted">Return summary</p>
-                    <p className="mt-1 font-display text-xl text-ink">
-                      {previewTab === "1040" ? "Individual · Tax year 2025" : "S-Corporation · Tax year 2025"}
-                    </p>
-                  </div>
-                  <span className="font-mono text-[11px] text-ink-muted">p. 1 of 1</span>
-                </div>
-
-                <table className="mt-4 w-full font-mono text-[13px]">
-                  <caption className="sr-only">Sample return lines</caption>
-                  <thead className="sr-only">
-                    <tr>
-                      <th scope="col">Line</th>
-                      <th scope="col">Description</th>
-                      <th scope="col">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-dashed divide-paper-line">
-                    {(previewTab === "1040"
-                      ? [
-                          ["1z", "Wages, salaries, tips", "125,000"],
-                          ["12", "Standard deduction", "(15,750)"],
-                          ["19", "Child tax credit", "(2,200)"],
-                          ["25d", "Federal tax withheld", "24,000"],
-                        ]
-                      : [
-                          ["1a", "Gross receipts", "4,200,000"],
-                          ["—", "R&D wage credit (§41)", "68,000"],
-                          ["—", "PTET state deduction", "48,500"],
-                          ["K-1", "Shareholder allocations", "reconciled"],
-                        ]
-                    ).map(([line, label, amount]) => (
-                      <tr key={label}>
-                        <td className="w-10 py-2.5 text-ink-muted">{line}</td>
-                        <td className="py-2.5 font-ui text-[13.5px] text-ink-soft">{label}</td>
-                        <td className="py-2.5 text-right text-ink">{amount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="mt-4 flex items-end justify-between border-t-2 border-double border-ink pt-4">
-                  <div>
-                    <p className="text-[13px] text-ink-muted">
-                      {previewTab === "1040" ? "Refund to direct deposit" : "Tax saved this year"}
-                    </p>
-                    <p className="mt-0.5 font-display text-[40px] leading-none text-ink">
-                      {previewTab === "1040" ? "$7,133" : "$184,500"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-display text-lg italic text-ink">R. Sterling</p>
-                    <p className="font-mono text-[10.5px] uppercase tracking-wider text-ink-muted">Preparer, CPA</p>
-                  </div>
-                </div>
-
-                {/* Review stamp */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -right-3 -top-12 hidden sm:flex bg-white/70 backdrop-blur-[1px] h-[92px] w-[92px] rotate-[-12deg] flex-col items-center justify-center rounded-full border-2 border-brass/70 text-center text-brass-dark/90 sm:-right-6"
-                >
-                  <span className="font-mono text-[9px] uppercase tracking-[0.18em]">Polaris</span>
-                  <span className="font-display text-[17px] font-semibold uppercase leading-tight tracking-wide">Reviewed</span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.18em]">CPA · 2025</span>
-                </div>
+              {/* Review stamp */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-3 -top-8 hidden sm:flex bg-white/80 backdrop-blur-[1px] h-[92px] w-[92px] rotate-[-12deg] flex-col items-center justify-center rounded-full border-2 border-brass/70 text-center text-brass-dark/90 sm:-right-6"
+              >
+                <span className="font-mono text-[9px] uppercase tracking-[0.18em]">Polaris</span>
+                <span className="font-display text-[17px] font-semibold uppercase leading-tight tracking-wide">Reviewed</span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.18em]">CPA · 2025</span>
               </div>
-              <p className="mt-3 pl-1 text-[12.5px] text-ink-muted">Sample figures for illustration.</p>
             </div>
           </div>
         </div>

@@ -158,7 +158,7 @@ export default function PrivacyPage() {
               </p>
               <div className="bg-paper border border-paper-line rounded-[3px] p-4 space-y-1 text-xs">
                 <p><strong className="text-ink">Polaris Tax Services Inc. — Privacy &amp; Compliance Office</strong></p>
-                <p>Email: <a href="mailto:privacy@polaristax.com" className="text-brass-dark hover:underline">privacy@polaristax.com</a></p>
+                <p>Email: <a href="mailto:plrstaxservices@gmail.com" className="text-brass-dark hover:underline">plrstaxservices@gmail.com</a></p>
                 <p>Direct Compliance Line: (212) 847-1920</p>
                 <p>Mailing Address: 440 Park Avenue South, 12th Floor, New York, NY 10016</p>
               </div>

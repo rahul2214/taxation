@@ -55,10 +55,10 @@ function recommend(situation: Situation, goal: Goal) {
       };
     case "learn":
       return {
-        title: "Start with our tax resources",
+        title: "Start with our tools and resources",
         text: "Read plain-English guides written by our CPAs, then ask a question when you're ready.",
-        href: "/blogs",
-        cta: "Browse tax resources",
+        href: "/resources",
+        cta: "Browse tools & resources",
       };
     default:
       return {
@@ -97,7 +97,7 @@ export function TaxCompass() {
     <section id="tax-tools" className="scroll-mt-28 border-b border-paper-line">
       <div className="site-container grid gap-12 py-20 lg:grid-cols-12 lg:py-28">
         <div className="lg:col-span-5">
-          <p className="eyebrow">Tax tools · A Polaris original</p>
+          <p className="eyebrow">Tools · A Polaris original</p>
           <h2 className="mt-5 font-display text-[36px] leading-[1.1] text-ink sm:text-[46px]">Meet your Tax Compass.</h2>
           <p className="mt-5 text-[15.5px] leading-relaxed text-ink-soft">
             Not sure where to begin? Answer two simple questions and get a suggested place to start. No Social

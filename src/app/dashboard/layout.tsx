@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { doc } from "firebase/firestore";
 import { getCustomer } from "@/lib/supabase/services";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
+import { HeardAboutPrompt } from "@/components/dashboard/HeardAboutPrompt";
 
 const DASHBOARD_TITLES: Record<string, string> = {
   "/dashboard/upload": "Upload documents",
@@ -87,6 +88,7 @@ export default function DashboardLayout({
       <PortalShell area="Client portal" areaHref="/dashboard/account" titles={DASHBOARD_TITLES}>
         {children}
       </PortalShell>
+      <HeardAboutPrompt customer={supabaseUserData} />
     </SidebarProvider>
   );
 }

@@ -118,8 +118,8 @@ export default function SecurityPage() {
             </p>
             <p className="mt-4">
               Email{" "}
-              <a href="mailto:security@polaristax.com" className="link-under">
-                security@polaristax.com
+              <a href="mailto:plrstaxservices@gmail.com" className="link-under">
+                plrstaxservices@gmail.com
               </a>
               . Our PGP key is available on request.
             </p>
