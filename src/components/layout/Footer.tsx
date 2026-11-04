@@ -126,7 +126,20 @@ export function Footer() {
             </Link>
           </p>
           <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} Polaris Tax Services Inc.</p>
+            <div className="flex flex-col gap-1 sm:flex-row sm:gap-3">
+              <p>© {new Date().getFullYear()} Polaris Tax Services Inc.</p>
+              <p>
+                Developed by{" "}
+                <a
+                  href="https://veltria.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-ink underline-offset-4 hover:underline"
+                >
+                  Veltria
+                </a>
+              </p>
+            </div>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <Link href="/privacy" className="hover:text-ink">Privacy</Link>
               <Link href="/terms" className="hover:text-ink">Terms</Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, LayoutDashboard, LogOut, Phone } from "lucide-react";
 import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -72,13 +73,13 @@ export function Header() {
           <PolarisLogo theme="light" className="h-9 w-auto" priority />
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex" aria-label="Main">
+        <nav className="hidden items-center gap-4 lg:flex xl:gap-6" aria-label="Main">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className={cn(
-                "relative py-1 text-[14.5px] transition-colors",
+                "relative whitespace-nowrap py-1 text-[14.5px] transition-colors",
                 isActive(link.href)
                   ? "font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-[21px] after:h-[2px] after:bg-brass"
                   : "text-ink-soft hover:text-ink"
@@ -117,6 +118,14 @@ export function Header() {
             </>
           )}
 
+          <Image
+            src="/irs-efile-badge.webp"
+            alt="Authorized IRS e-file Provider"
+            width={298}
+            height={162}
+            className="hidden h-11 w-auto rounded-[3px] border border-paper-line bg-white p-1 sm:block"
+          />
+
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <button
@@ -152,6 +161,13 @@ export function Header() {
               </nav>
 
               <div className="mt-auto space-y-3 border-t border-paper-line px-6 py-6">
+                <Image
+                  src="/irs-efile-badge.webp"
+                  alt="Authorized IRS e-file Provider"
+                  width={298}
+                  height={162}
+                  className="mx-auto h-14 w-auto rounded-[3px] border border-paper-line bg-white p-1 sm:hidden"
+                />
                 {activeUser ? (
                   <>
                     <Link href={dashboardHref} onClick={() => setIsOpen(false)} className="btn-ink w-full">
