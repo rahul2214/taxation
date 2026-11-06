@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { buildMetadata, breadcrumbSchema, SITE } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -68,6 +69,15 @@ export default function AboutUsPage() {
             </p>
           </div>
           <aside className="lg:col-span-5 lg:border-l lg:border-paper-line lg:pl-12">
+            <div className="relative mb-8 aspect-[4/3] overflow-hidden rounded-[4px] border border-paper-line bg-paper-deep">
+              <Image
+                src="/images/family-at-home.webp"
+                alt="Parents and their young son laughing together on a sofa at home"
+                fill
+                sizes="(min-width: 1024px) 40vw, 100vw"
+                className="object-cover"
+              />
+            </div>
             <p className="font-display text-[28px] italic leading-snug text-ink">
               &ldquo;Good tax work is mostly paying attention. We try to pay a lot of it.&rdquo;
             </p>

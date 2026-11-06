@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -100,7 +101,18 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
 
-          <aside className="lg:col-span-4 lg:self-end">
+          <aside className="space-y-6 lg:col-span-4 lg:self-end">
+            {service.image && (
+              <Image
+                src={service.image.src}
+                alt={service.image.alt}
+                width={service.image.width}
+                height={service.image.height}
+                priority
+                sizes="(min-width: 1024px) 33vw, 100vw"
+                className="h-auto w-full rounded-[4px] border border-paper-line bg-paper-deep"
+              />
+            )}
             <div className="rounded-[4px] border border-paper-line bg-white p-6">
               <p className="text-[13.5px] text-ink-muted">Price</p>
               <p className="mt-1 flex flex-wrap items-baseline gap-x-2">

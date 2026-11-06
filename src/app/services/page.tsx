@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { buildMetadata, breadcrumbSchema, absoluteUrl } from "@/lib/seo";
 import { SERVICES, SERVICE_GROUPS } from "@/data/services";
 import { JsonLd } from "@/components/seo/JsonLd";
+import Image from "next/image";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageFaq } from "@/components/public/PageFaq";
@@ -149,11 +150,20 @@ export default function ServicesPage() {
         </div>
       ))}
 
-      <section className="site-container py-16">
-        <p className="max-w-3xl font-display text-[24px] leading-snug text-ink-soft sm:text-[28px]">
+      <section className="site-container grid items-center gap-10 py-16 lg:grid-cols-12">
+        <p className="font-display text-[24px] leading-snug text-ink-soft sm:text-[28px] lg:col-span-7">
           Not sure which of these fits? Most clients aren&apos;t. Book a short call and we&apos;ll point you to the
           right one.
         </p>
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] border border-paper-line bg-paper-deep lg:col-span-5">
+          <Image
+            src="/images/advisor-client-consultation.webp"
+            alt="Tax advisor walking a smiling client through a tax savings chart on a laptop"
+            fill
+            sizes="(min-width: 1024px) 40vw, 100vw"
+            className="object-cover"
+          />
+        </div>
       </section>
 
       <PageFaq items={PAGE_FAQS.services} />

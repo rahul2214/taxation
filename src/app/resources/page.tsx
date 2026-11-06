@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { buildMetadata, breadcrumbSchema, absoluteUrl, SITE } from "@/lib/seo";
@@ -68,18 +69,29 @@ export default function ResourcesPage() {
         title="Estimates, deadlines and straight answers."
         lede="Estimate your refund, check what you owe on freelance income, see the dates that matter this filing season, and read plain-English guides written by our CPAs."
         aside={
-          <nav aria-label="On this page" className="border-t border-ink pt-4">
-            <ul className="space-y-2 text-[14.5px]">
-              {SECTIONS.map((s, i) => (
-                <li key={s.id}>
-                  <a href={`#${s.id}`} className="flex gap-3 text-ink-soft hover:text-ink">
-                    <span className="font-mono text-[12px] text-ink-muted">{String(i + 1).padStart(2, "0")}</span>
-                    {s.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <div className="space-y-8">
+            <Image
+              src="/images/researching-tax-forms.webp"
+              alt="Man comparing a tax form with the IRS website on his laptop"
+              width={935}
+              height={553}
+              priority
+              sizes="(min-width: 1024px) 33vw, 100vw"
+              className="h-auto w-full rounded-[4px] border border-paper-line bg-paper-deep"
+            />
+            <nav aria-label="On this page" className="border-t border-ink pt-4">
+              <ul className="space-y-2 text-[14.5px]">
+                {SECTIONS.map((s, i) => (
+                  <li key={s.id}>
+                    <a href={`#${s.id}`} className="flex gap-3 text-ink-soft hover:text-ink">
+                      <span className="font-mono text-[12px] text-ink-muted">{String(i + 1).padStart(2, "0")}</span>
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
         }
       />
 

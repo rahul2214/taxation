@@ -18,6 +18,8 @@ export type Service = {
   name: string;
   shortName: string;
   forms: string;
+  /** Optional photo shown above the price card on the landing page. */
+  image?: { src: string; alt: string; width: number; height: number };
   h1: string;
   metaTitle: string;
   metaDescription: string;
@@ -43,6 +45,12 @@ export const SERVICES: Service[] = [
     name: "Individual tax preparation",
     shortName: "Individual returns",
     forms: "Form 1040 and state returns",
+    image: {
+      src: "/images/individual-tax-at-home.webp",
+      alt: "Woman at her dining table sorting receipts with a calculator and laptop",
+      width: 1176,
+      height: 881,
+    },
     h1: "Individual tax return preparation by a CPA",
     metaTitle: "Individual Tax Preparation by a CPA",
     metaDescription:
@@ -106,6 +114,12 @@ export const SERVICES: Service[] = [
     name: "Small business tax preparation",
     shortName: "Small business taxes",
     forms: "Schedule C, Form 1065, Form 1120-S",
+    image: {
+      src: "/images/business-financial-review.webp",
+      alt: "Accountant reviewing a financial statement beside a tablet showing tax adjustments",
+      width: 1531,
+      height: 859,
+    },
     h1: "Small business and self-employed tax preparation",
     metaTitle: "Small Business Tax Preparation Services",
     metaDescription:
@@ -232,6 +246,12 @@ export const SERVICES: Service[] = [
     name: "IRS notice and audit help",
     shortName: "IRS notices & audits",
     forms: "CP2000, CP504, Form 2848",
+    image: {
+      src: "/images/irs-notice-consultation.webp",
+      alt: "Tax advisor holding an IRS notice while explaining it to a smiling client",
+      width: 1196,
+      height: 796,
+    },
     h1: "Help with IRS notices and audits",
     metaTitle: "IRS Notice & Audit Help (CP2000, CP504)",
     metaDescription:

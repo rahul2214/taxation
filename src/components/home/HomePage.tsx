@@ -207,8 +207,8 @@ export function HomePage() {
             <div className="relative mx-auto max-w-md">
               <div className="relative aspect-[4/5] overflow-hidden rounded-[4px] border border-paper-line bg-paper-deep shadow-[0_1px_0_#DCD5C5,0_24px_48px_-24px_rgba(20,32,46,0.25)]">
                 <Image
-                  src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000&h=1250"
-                  alt="Tax professional reviewing documents with a calculator"
+                  src="/images/home-hero-cpa-review.webp"
+                  alt="Tax professional in a navy blazer smiling as she reviews a tax return at her office desk"
                   fill
                   priority
                   sizes="(min-width: 1024px) 448px, 100vw"
@@ -298,6 +298,15 @@ export function HomePage() {
               <Link href="/services" className="link-under mt-7 inline-block text-[15px]">
                 See all services
               </Link>
+              <div className="relative mt-10 aspect-[4/3] overflow-hidden rounded-[4px] border border-paper-line bg-paper-deep">
+                <Image
+                  src="/images/tax-return-review.webp"
+                  alt="Hands checking a Form 1040 on a clipboard next to a calculator and laptop"
+                  fill
+                  sizes="(min-width: 1024px) 33vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
             </div>
 
             <ul className="border-t border-ink lg:col-span-8">
