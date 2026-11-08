@@ -19,7 +19,7 @@ import {
   getCustomer,
   generateReferralCode,
   getCustomerByReferralCode,
-  processReferralReward,
+  applyReferralSignup,
   getReferralRewardAmount,
   CustomerRecord,
 } from "@/lib/supabase/services";
@@ -192,6 +192,7 @@ function SignupContent() {
       if (error) throw error;
 
       const newUserId = data.user?.id;
+      let welcomeBonus = 0;
       if (newUserId) {
         // 4. Save Customer profile with coupon code & starting wallet balance at 0.00
         try {
@@ -211,17 +212,14 @@ function SignupContent() {
           console.warn("Profile upsert notice:", profileErr);
         }
 
-        // 5. If referred, reward both users with the exact same reward amount!
+        // 5. If referred: the new user gets a usable credit now; the referrer's
+        //    credit stays locked until this new user pays for a plan (done in the DB).
         if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
           try {
-            await processReferralReward({
-              referrer: referrerMatch,
-              newUserId,
-              newUserName: `${signupFirstName} ${signupLastName}`.trim() || cleanEmail,
-              newUserEmail: cleanEmail,
-              referralCodeUsed: cleanReferral.toUpperCase(),
-              rewardAmount: rewardAmount,
-            });
+            const result = await applyReferralSignup(newUserId, cleanReferral);
+            if (result.applied) {
+              welcomeBonus = Number(result.amount ?? rewardAmount);
+            }
           } catch (rewardErr) {
             console.warn("Referral reward process notice:", rewardErr);
           }
@@ -233,11 +231,11 @@ function SignupContent() {
         ? "Your account has been successfully created. You can now access your client dashboard."
         : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
 
-      if (referrerMatch) {
-        msg += `\n\n🎉 Welcome Bonus: $${rewardAmount.toFixed(2)} has been credited to your Polaris Wallet!`;
+      if (welcomeBonus > 0) {
+        msg += `\n\n🎉 Welcome Bonus: $${welcomeBonus.toFixed(2)} has been credited to your Polaris Wallet. Use it toward any plan!`;
       }
 
-      msg += `\n\n💳 Your Personal Referral Coupon: ${userReferralCode}\nShare this with friends to earn $${rewardAmount.toFixed(2)} every time someone files!`;
+      msg += `\n\n💳 Your Personal Referral Coupon: ${userReferralCode}\nShare it with friends: they get $${rewardAmount.toFixed(2)} right away, and you earn $${rewardAmount.toFixed(2)} once they purchase a plan.`;
 
       setWelcomeMessage(msg);
       setShowWelcomeDialog(true);
@@ -325,7 +323,7 @@ function SignupContent() {
                 <div>
                   <span className="font-semibold">Referral Bonus Applied!</span>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You and your friend will each receive a <strong className="text-emerald-700 font-semibold">${rewardAmount.toFixed(2)} wallet credit</strong> upon registration!
+                    Code <strong className="font-mono text-foreground font-bold">{refParam}</strong> is active. You'll receive a <strong className="text-emerald-700 font-semibold">${rewardAmount.toFixed(2)} wallet credit</strong> as soon as you register.
                   </p>
                 </div>
               </div>
@@ -505,7 +503,7 @@ function SignupContent() {
             <div className="p-3 bg-muted/60 rounded-lg border border-dashed border-primary/40 text-center space-y-1">
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Your Referral Coupon Code</span>
               <p className="text-xl font-mono font-bold text-primary tracking-wider select-all">{createdCouponCode}</p>
-              <p className="text-[11px] text-muted-foreground">Share this with friends to earn ${rewardAmount.toFixed(2)} for every referral!</p>
+              <p className="text-[11px] text-muted-foreground">Earn ${rewardAmount.toFixed(2)} for every friend who joins and purchases a plan.</p>
             </div>
           )}
 

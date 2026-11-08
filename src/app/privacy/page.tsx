@@ -89,6 +89,10 @@ export default function PrivacyPage() {
                   <strong className="text-ink">Banking &amp; Disbursement Data:</strong> Bank routing numbers and account numbers provided solely for direct IRS electronic refund deposit or authorized electronic tax payments.
                 </li>
                 <li>
+                  <strong className="text-ink">Payment Information:</strong> Online payments are processed by PayPal. We receive only the payment status, amount, and PayPal transaction ID needed to confirm your order. Your card number and PayPal login are handled by PayPal under the{" "}
+                  <a href="https://www.paypal.com/us/legalhub/privacy-full" target="_blank" rel="noopener noreferrer" className="text-brass-dark hover:underline">PayPal Privacy Statement</a> and are never stored by Polaris.
+                </li>
+                <li>
                   <strong className="text-ink">Digital Portal Metadata:</strong> Timestamps of document uploads, IP addresses associated with electronic signature events (IRS Form 8879 compliance), and multi-factor authentication logs.
                 </li>
               </ul>

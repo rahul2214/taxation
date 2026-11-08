@@ -11,6 +11,7 @@ import {
   LogOut,
   CalendarCheck,
   Globe,
+  CreditCard,
 } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { DocumentData } from "firebase/firestore";
@@ -68,6 +69,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
     {
       label: "Account",
       items: [
+        { href: "/dashboard/plans", label: "Plans & pricing", icon: CreditCard },
         { href: "/dashboard/book-appointment", label: "Book a call", icon: CalendarCheck },
         { href: "/dashboard/refer", label: "Refer a friend", icon: Gift, badge: `+$${rewardAmount.toFixed(0)}` },
         { href: "/dashboard/account", label: "Profile", icon: User },

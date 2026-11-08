@@ -52,6 +52,7 @@ export default function CustomerReferPage() {
 
   const [referrals, setReferrals] = useState<ReferralRecord[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0.0);
+  const [lockedBalance, setLockedBalance] = useState<number>(0.0);
   const [couponCode, setCouponCode] = useState<string>("");
   const [customerUserid, setCustomerUserid] = useState<number | null>(null);
   const [rewardAmount, setRewardAmount] = useState<number>(25.0);
@@ -77,10 +78,11 @@ export default function CustomerReferPage() {
     setIsLoading(true);
     try {
       // 1. Get or generate user's coupon code
-      const customer = await getCustomer(user.uid);
+      const customer = await getCustomer(user.uid, { forceRefresh: true });
       if (customer?.userid) {
         setCustomerUserid(customer.userid);
       }
+      setLockedBalance(Number(customer?.locked_wallet_balance || 0));
 
       const code = customer?.referral_code || await ensureCustomerReferralCode(
         user.uid,
@@ -90,7 +92,7 @@ export default function CustomerReferPage() {
       setCouponCode(code);
 
       // 2. Load wallet balance
-      const balance = await getWalletBalance(user.uid);
+      const balance = await getWalletBalance(user.uid, { forceRefresh: true });
       setWalletBalance(balance);
 
       // 3. Load referral records
@@ -146,11 +148,16 @@ export default function CustomerReferPage() {
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
-  // Stats calculation
-  const completedReferralsCount = referrals.filter(
-    (r) => r.status?.toLowerCase() === "rewarded" || r.status?.toLowerCase() === "completed"
-  ).length;
-  const totalEarned = completedReferralsCount * rewardAmount;
+  // Stats calculation ("rewarded" = legacy referrals credited before locking existed)
+  const isEarned = (r: ReferralRecord) => {
+    const s = r.status?.toLowerCase();
+    return s === "unlocked" || s === "rewarded" || s === "completed";
+  };
+  const completedReferralsCount = referrals.filter(isEarned).length;
+  const lockedReferralsCount = referrals.filter((r) => r.status?.toLowerCase() === "locked").length;
+  const totalEarned = referrals
+    .filter(isEarned)
+    .reduce((sum, r) => sum + Number(r.reward_amount ?? rewardAmount), 0);
 
   return (
     <div className="space-y-8 max-w-5xl pb-12">
@@ -159,8 +166,9 @@ export default function CustomerReferPage() {
         title="Refer a friend"
         description={
           <>
-            Share your code or link. When a friend signs up and files with us, you each get{" "}
-            <strong className="font-semibold text-foreground">${rewardAmount.toFixed(2)}</strong> in credit toward your next return.
+            Share your code or link. Your friend gets{" "}
+            <strong className="font-semibold text-foreground">${rewardAmount.toFixed(2)}</strong> in credit when they sign up. You get{" "}
+            <strong className="font-semibold text-foreground">${rewardAmount.toFixed(2)}</strong> too, which unlocks once they purchase a plan.
           </>
         }
       />
@@ -185,7 +193,9 @@ export default function CustomerReferPage() {
               
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              Applicable toward tax prep & consulting fees
+              {lockedBalance > 0
+                ? `+ $${lockedBalance.toFixed(2)} locked until your referrals purchase a plan`
+                : "Available to use toward any plan"}
             </p>
           </CardContent>
         </Card>
@@ -205,10 +215,10 @@ export default function CustomerReferPage() {
               <span className="text-3xl font-bold tracking-tight text-foreground">
                 {completedReferralsCount}
               </span>
-              <span className="text-xs text-muted-foreground">clients referred</span>
+              <span className="text-xs text-muted-foreground">purchased a plan</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              {completedReferralsCount} joined with your coupon code
+              {referrals.length} joined with your code · {lockedReferralsCount} waiting to purchase
             </p>
           </CardContent>
         </Card>
@@ -231,7 +241,7 @@ export default function CustomerReferPage() {
               <span className="text-xs text-muted-foreground">earned to date</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              ${rewardAmount.toFixed(2)} bonus per completed filing
+              ${lockedBalance.toFixed(2)} more pending (locked)
             </p>
           </CardContent>
         </Card>
@@ -375,7 +385,7 @@ export default function CustomerReferPage() {
               <div>
                 <h3 className="font-semibold text-sm">3. Both of You Get Rewarded</h3>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  You automatically receive <strong>${rewardAmount.toFixed(2)}</strong> added to your Polaris Wallet. Use your wallet balance to pay for tax returns, bookkeeping, or advisory services!
+                  You receive <strong>${rewardAmount.toFixed(2)}</strong> in your Polaris Wallet right away, but it stays <strong>locked</strong> until your friend pays for any plan. Once unlocked, use it toward your own plan.
                 </p>
               </div>
             </div>
@@ -404,10 +414,10 @@ export default function CustomerReferPage() {
 
             <div className="rounded-lg border bg-background/80 p-3.5 space-y-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5 text-brass-dark" /> Instant Wallet Credit
+                <Coins className="h-3.5 w-3.5 text-brass-dark" /> When Credits Become Usable
               </span>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                When a new customer signs up using your coupon code, ${rewardAmount.toFixed(2)} is automatically credited to their wallet balance, and ${rewardAmount.toFixed(2)} is deposited into your wallet immediately.
+                Your friend's ${rewardAmount.toFixed(2)} is usable immediately after signup. Your ${rewardAmount.toFixed(2)} is added as locked credit and unlocks automatically once your friend's payment for a plan is confirmed.
               </p>
             </div>
 
@@ -480,15 +490,17 @@ export default function CustomerReferPage() {
                     <TableCell className="text-right">
                       <Badge
                         variant={
-                          r.status?.toLowerCase() === "rewarded" || r.status?.toLowerCase() === "completed"
+                          isEarned(r)
                             ? "default"
-                            : r.status?.toLowerCase() === "accepted"
+                            : r.status?.toLowerCase() === "locked"
                             ? "secondary"
                             : "outline"
                         }
                       >
-                        {r.status?.toLowerCase() === "rewarded"
-                          ? `Rewarded (+$${(r.reward_amount || rewardAmount).toFixed(0)})`
+                        {isEarned(r)
+                          ? `Unlocked (+$${Number(r.reward_amount ?? rewardAmount).toFixed(0)})`
+                          : r.status?.toLowerCase() === "locked"
+                          ? `Locked · awaiting purchase`
                           : (r.status || "Pending")}
                       </Badge>
                     </TableCell>

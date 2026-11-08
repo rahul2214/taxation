@@ -20,6 +20,7 @@ const columns = [
     title: "Firm",
     links: [
       { href: "/about", label: "About us" },
+      { href: "/pricing", label: "Pricing" },
       { href: "/guarantee", label: "Our guarantee" },
       { href: "/security", label: "How we protect your data" },
       { href: "/resources", label: "Tools & resources" },
@@ -143,6 +144,8 @@ export function Footer() {
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <Link href="/privacy" className="hover:text-ink">Privacy</Link>
               <Link href="/terms" className="hover:text-ink">Terms</Link>
+              <Link href="/refund-policy" className="hover:text-ink">Refunds</Link>
+              <Link href="/service-delivery" className="hover:text-ink">Service delivery</Link>
               <Link href="/security" className="hover:text-ink">Security</Link>
               <Link href="/disclaimer" className="hover:text-ink">Disclosures</Link>
             </div>

@@ -22,6 +22,7 @@ export interface CustomerRecord {
   role?: string;
   referral_code?: string;
   wallet_balance?: number;
+  locked_wallet_balance?: number; // Referral bonus held until the referred user pays for a plan
   referred_by?: string | number | null; // Stores referrer's int8 userid value
   heard_about?: string | null; // "How did you hear about us?" answer from signup
   signup_date?: string;
@@ -68,9 +69,62 @@ export interface ReferralRecord {
   referred_name?: string;
   referral_code?: string;
   reward_amount?: number;
-  status?: string;
+  status?: string; // 'Locked' | 'Unlocked' | 'Cancelled' | 'Rewarded' (legacy, before locking existed)
+  reward_id?: string | null; // referral_rewards.id when tracked
+  unlocked_at?: string | null;
   referral_date?: string;
   created_at?: string;
+}
+
+export interface ReferralRewardRecord {
+  id: string;
+  referrer_id: string;
+  referred_id: string;
+  referral_code?: string | null;
+  referrer_amount: number;
+  referred_amount: number;
+  status: 'locked' | 'unlocked' | 'cancelled';
+  unlocked_at?: string | null;
+  unlocked_by_purchase_id?: string | null;
+  created_at?: string;
+}
+
+export type PlanBillingPeriod = 'one_time' | 'monthly' | 'yearly';
+
+export interface PlanRecord {
+  id?: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  billing_period: PlanBillingPeriod;
+  features: string[];
+  is_active: boolean;
+  is_popular: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type PlanPurchaseStatus = 'pending' | 'paid' | 'cancelled';
+
+export interface PlanPurchaseRecord {
+  id: string;
+  customer_id: string;
+  customer_userid?: number | null;
+  plan_id?: string | null;
+  plan_name: string;
+  plan_price: number;
+  wallet_applied: number;
+  amount_due: number;
+  status: PlanPurchaseStatus;
+  payment_method?: string | null;
+  payment_reference?: string | null;
+  notes?: string | null;
+  paypal_order_id?: string | null;
+  paypal_capture_id?: string | null;
+  paid_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface WalletTransactionRecord {
@@ -78,7 +132,7 @@ export interface WalletTransactionRecord {
   customer_id: string; // UUID foreign key to customers(id)
   customer_userid?: number | null; // int8 foreign key to customers(userid)
   amount: number;
-  type: 'referral_bonus' | 'welcome_bonus' | 'service_discount' | 'manual_adjustment';
+  type: 'referral_bonus' | 'referral_bonus_locked' | 'welcome_bonus' | 'service_discount' | 'manual_adjustment';
   description: string;
   reference_id?: string;
   created_at?: string;
@@ -577,8 +631,30 @@ export async function getReferrals(
         });
 
         const currentReward = await getReferralRewardAmount(options);
+
+        // Locked / unlocked state lives in referral_rewards (one row per referred customer)
+        const rewardMap = new Map<string, ReferralRewardRecord>();
+        try {
+          const { data: rewards, error: rewardsErr } = await supabase
+            .from('referral_rewards')
+            .select('*')
+            .in('referred_id', referredUsers.map(u => u.id));
+          if (!rewardsErr && rewards) {
+            rewards.forEach((r: ReferralRewardRecord) => rewardMap.set(r.referred_id, r));
+          }
+        } catch (e) {
+          // referral_rewards table not created yet; fall back to legacy status
+        }
+
+        const statusLabel: Record<ReferralRewardRecord['status'], string> = {
+          locked: 'Locked',
+          unlocked: 'Unlocked',
+          cancelled: 'Cancelled',
+        };
+
         return referredUsers.map(u => {
           const ref = u.referred_by ? customerMap.get(u.referred_by) : null;
+          const reward = rewardMap.get(u.id);
           return {
             id: u.id,
             referrer_id: ref?.id,
@@ -590,8 +666,10 @@ export async function getReferrals(
             referred_name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
             referred_email: u.email,
             referral_code: ref?.referral_code,
-            reward_amount: currentReward,
-            status: 'Rewarded',
+            reward_amount: reward ? Number(reward.referrer_amount) : currentReward,
+            status: reward ? statusLabel[reward.status] : 'Rewarded',
+            reward_id: reward?.id ?? null,
+            unlocked_at: reward?.unlocked_at ?? null,
             referral_date: u.signup_date || u.created_at,
             created_at: u.created_at,
           };
@@ -792,48 +870,201 @@ export async function getReferralRewardAmount(options?: CacheOptions): Promise<n
   );
 }
 
+function invalidateCustomerMoneyCaches(customerId?: string | null) {
+  if (customerId) {
+    apiCache.invalidate(`wallet_balance:${customerId}`);
+    apiCache.invalidate(`wallet_txs:${customerId}`);
+  }
+  // Balances of other customers (e.g. the referrer) can change too, so drop all customer entries
+  apiCache.invalidate('customer');
+  apiCache.invalidate('referrals');
+  apiCache.invalidate('plan_purchases');
+}
+
+/**
+ * Applies a referral code to a newly created customer (runs atomically in the DB).
+ * - New user: bonus goes to wallet_balance and is usable right away.
+ * - Referrer: bonus goes to locked_wallet_balance and only becomes usable once
+ *   the new user pays for a plan (see markPlanPurchasePaid).
+ */
+export async function applyReferralSignup(
+  newUserId: string,
+  referralCode: string
+): Promise<{ applied: boolean; amount?: number; reason?: string }> {
+  if (!isSupabaseConfigured || !newUserId || !referralCode?.trim()) {
+    return { applied: false, reason: 'not_configured' };
+  }
+  const { data, error } = await supabase.rpc('apply_referral_signup', {
+    p_referred_id: newUserId,
+    p_referral_code: referralCode.trim(),
+  });
+  if (error) throw error;
+  invalidateCustomerMoneyCaches(newUserId);
+  return (data || { applied: false }) as { applied: boolean; amount?: number; reason?: string };
+}
+
+/** @deprecated Use applyReferralSignup. Kept so older callers keep working. */
 export async function processReferralReward({
-  referrer,
   newUserId,
-  newUserName,
-  newUserEmail,
   referralCodeUsed,
-  rewardAmount,
 }: {
-  referrer: CustomerRecord;
+  referrer?: CustomerRecord;
   newUserId: string;
-  newUserName: string;
-  newUserEmail: string;
+  newUserName?: string;
+  newUserEmail?: string;
   referralCodeUsed: string;
   rewardAmount?: number;
 }) {
-  if (!isSupabaseConfigured) return;
+  return applyReferralSignup(newUserId, referralCodeUsed);
+}
 
-  try {
-    const actualReward = rewardAmount !== undefined && rewardAmount !== null
-      ? rewardAmount
-      : await getReferralRewardAmount();
+/** Admin override for a locked referral reward: release it now, or cancel it. */
+export async function setReferralRewardStatus(rewardId: string, status: 'unlocked' | 'cancelled') {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.rpc('admin_set_referral_reward_status', {
+    p_reward_id: rewardId,
+    p_status: status,
+  });
+  if (error) throw error;
+  invalidateCustomerMoneyCaches((data as ReferralRewardRecord | null)?.referrer_id);
+  return data as ReferralRewardRecord;
+}
 
-    // 1. Credit Referrer Wallet
-    await creditCustomerWallet(
-      referrer.id,
-      actualReward,
-      'referral_bonus',
-      `Referral bonus: ${newUserName} signed up using your code ${referralCodeUsed}`,
-      newUserId
-    );
+// -------------------------------------------------------------
+// Plans Service (admin-managed pricing)
+// -------------------------------------------------------------
+function normalizePlan(row: any): PlanRecord {
+  return {
+    ...row,
+    price: Number(row.price || 0),
+    features: Array.isArray(row.features) ? row.features.map(String) : [],
+    is_active: Boolean(row.is_active),
+    is_popular: Boolean(row.is_popular),
+    sort_order: Number(row.sort_order || 0),
+  };
+}
 
-    // 2. Credit New User Wallet
-    await creditCustomerWallet(
-      newUserId,
-      actualReward,
-      'welcome_bonus',
-      `Welcome credit: $${actualReward.toFixed(2)} bonus for joining with code ${referralCodeUsed}`,
-      referrer.id
-    );
-  } catch (err) {
-    console.error("Error processing referral reward:", err);
-  }
+export async function getPlans(
+  { includeInactive = false }: { includeInactive?: boolean } = {},
+  options?: CacheOptions
+): Promise<PlanRecord[]> {
+  if (!isSupabaseConfigured) return [];
+  return apiCache.getOrFetch(
+    `plans:${includeInactive ? 'all' : 'active'}`,
+    async () => {
+      let query = supabase.from('plans').select('*');
+      if (!includeInactive) query = query.eq('is_active', true);
+      const { data, error } = await query
+        .order('sort_order', { ascending: true })
+        .order('price', { ascending: true });
+      if (error) {
+        if (error.code === '42P01') return [];
+        throw error;
+      }
+      return (data || []).map(normalizePlan);
+    },
+    { ttlMs: 60_000, ...options }
+  );
+}
+
+export async function savePlan(plan: PlanRecord): Promise<PlanRecord | null> {
+  if (!isSupabaseConfigured) return null;
+  const payload: any = {
+    name: plan.name.trim(),
+    description: plan.description?.trim() || null,
+    price: Number(plan.price),
+    billing_period: plan.billing_period,
+    features: plan.features.map(f => f.trim()).filter(Boolean),
+    is_active: plan.is_active,
+    is_popular: plan.is_popular,
+    sort_order: Number(plan.sort_order) || 0,
+    updated_at: new Date().toISOString(),
+  };
+  const query = plan.id
+    ? supabase.from('plans').update(payload).eq('id', plan.id)
+    : supabase.from('plans').insert([payload]);
+  const { data, error } = await query.select().single();
+  if (error) throw error;
+  apiCache.invalidate('plans');
+  return normalizePlan(data);
+}
+
+export async function deletePlan(id: string) {
+  if (!isSupabaseConfigured) return null;
+  const { error } = await supabase.from('plans').delete().eq('id', id);
+  if (error) throw error;
+  apiCache.invalidate('plans');
+  return true;
+}
+
+// -------------------------------------------------------------
+// Plan Purchases Service
+// -------------------------------------------------------------
+function normalizePurchase(row: any): PlanPurchaseRecord {
+  return {
+    ...row,
+    plan_price: Number(row.plan_price || 0),
+    wallet_applied: Number(row.wallet_applied || 0),
+    amount_due: Number(row.amount_due || 0),
+  };
+}
+
+export async function getPlanPurchases(
+  customerId?: string,
+  options?: CacheOptions
+): Promise<PlanPurchaseRecord[]> {
+  if (!isSupabaseConfigured) return [];
+  return apiCache.getOrFetch(
+    `plan_purchases:${customerId || 'all'}`,
+    async () => {
+      let query = supabase.from('plan_purchases').select('*');
+      if (customerId) query = query.eq('customer_id', customerId);
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) {
+        if (error.code === '42P01') return [];
+        throw error;
+      }
+      return (data || []).map(normalizePurchase);
+    },
+    { ttlMs: 30_000, ...options }
+  );
+}
+
+/** Customer orders a plan. Usable wallet credit is applied first when useWallet is true. */
+export async function createPlanPurchase(customerId: string, planId: string, useWallet: boolean) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.rpc('create_plan_purchase', {
+    p_customer_id: customerId,
+    p_plan_id: planId,
+    p_use_wallet: useWallet,
+  });
+  if (error) throw error;
+  invalidateCustomerMoneyCaches(customerId);
+  return normalizePurchase(data);
+}
+
+/** Admin confirms payment. This unlocks the referrer's locked bonus, if any. */
+export async function markPlanPurchasePaid(purchaseId: string, paymentMethod?: string, paymentReference?: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.rpc('mark_plan_purchase_paid', {
+    p_purchase_id: purchaseId,
+    p_payment_method: paymentMethod || null,
+    p_payment_reference: paymentReference || null,
+  });
+  if (error) throw error;
+  invalidateCustomerMoneyCaches((data as any)?.customer_id);
+  apiCache.invalidate('wallet_balance');
+  apiCache.invalidate('wallet_txs');
+  return normalizePurchase(data);
+}
+
+/** Cancels a pending purchase and refunds any wallet credit that was applied. */
+export async function cancelPlanPurchase(purchaseId: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.rpc('cancel_plan_purchase', { p_purchase_id: purchaseId });
+  if (error) throw error;
+  invalidateCustomerMoneyCaches((data as any)?.customer_id);
+  return normalizePurchase(data);
 }
 
 // -------------------------------------------------------------

@@ -9,7 +9,7 @@ export const PAGE_FAQS: Record<string, Faq[]> = {
   home: [
     {
       question: "How much does tax preparation cost?",
-      answer: "Simple individual returns start at $59, self-employed Schedule C returns at $199 and S-Corp or partnership returns at $499. You see a fixed price before any work begins.",
+      answer: "Simple individual returns start at $99 (Basic Filing), itemized returns at $199 (Standard Filing), self-employed Schedule C returns at $349 (Premium Filing) and S-Corp or partnership returns at $499. You see a fixed price before any work begins.",
     },
     {
       question: "Do you file returns for clients outside New York?",

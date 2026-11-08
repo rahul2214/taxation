@@ -16,6 +16,7 @@ import { getCachedAuth } from "@/lib/cache/auth-cache";
 import { cn } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE } from "@/lib/seo";
+import { getPlans, type PlanRecord } from "@/lib/supabase/services";
 
 const STATS = [
   { value: "10,000+", label: "returns filed across all 50 states" },
@@ -33,8 +34,8 @@ const STEPS = [
 ];
 
 const SERVICES = [
-  { href: "/services/individual-tax-preparation", name: "Individual & family returns", detail: "W-2s, stock compensation, crypto, rental property, multi-state moves", price: "from $59" },
-  { href: "/services/small-business-tax-preparation", name: "Self-employed & single-member LLCs", detail: "Schedule C, quarterly estimates, home office and vehicle", price: "from $199" },
+  { href: "/services/individual-tax-preparation", name: "Individual & family returns", detail: "W-2s, stock compensation, crypto, rental property, multi-state moves", price: "from $99" },
+  { href: "/services/small-business-tax-preparation", name: "Self-employed & single-member LLCs", detail: "Schedule C, quarterly estimates, home office and vehicle", price: "from $349" },
   { href: "/services/small-business-tax-preparation", name: "S-Corps & partnerships", detail: "Form 1120-S and 1065, K-1s, reasonable salary, PTET elections", price: "from $499" },
   { href: "/services/mnc-tax-filing", name: "MNC tax filing", detail: "US subsidiaries and parents: Form 1120, 5471, 5472, foreign tax credits", price: "quoted per group" },
   { href: "/services/irs-notice-audit-help", name: "IRS notices & audits", detail: "CP2000 responses, penalty abatement, representation under Form 2848", price: "quoted per case" },
@@ -84,60 +85,88 @@ const REVIEWS = [
   },
 ];
 
-const TIERS = [
+type Tier = {
+  name: string;
+  for: string;
+  price: string;
+  unit: string;
+  note: string;
+  items: string[];
+  cta: string;
+  featured?: boolean;
+};
+
+const PERIOD_UNIT: Record<string, string> = { one_time: "one-time", monthly: "per month", yearly: "per year" };
+const formatPrice = (n: number) => `$${Number.isInteger(n) ? n.toLocaleString() : n.toFixed(2)}`;
+
+// Fallback shown before live plans load (and in structured data). Mirrors the plans in the database;
+// the section below replaces these with the live admin-managed plans once fetched.
+const TIERS: Tier[] = [
   {
-    name: "Individual",
-    for: "W-2 earners, investors, homeowners",
-    price: "$59",
-    unit: "simple return",
-    note: "Itemized (Schedule A) $129 · each extra state $39",
-    items: [
-      "Federal 1040 and one state return",
-      "Standard vs. itemized comparison",
-      "Child, education and energy credits",
-      "Reviewed by a licensed CPA before filing",
-      "Refund tracking after e-file",
-    ],
+    name: "Basic Filing",
+    for: "Federal + one state return for W-2 earners",
+    price: "$99",
+    unit: "one-time",
+    note: "All prices in USD",
+    items: ["Federal return (Form 1040)", "One state return", "W-2 income", "Standard deduction review"],
     cta: "Start your return",
   },
   {
-    name: "Business",
-    for: "Freelancers, LLCs and S-Corps",
+    name: "Standard Filing",
+    for: "Itemizers, investors and multiple income sources",
     price: "$199",
-    unit: "Schedule C",
-    note: "Form 1120-S or 1065 from $499",
-    items: [
-      "A named CPA assigned to your business",
-      "Schedule C, 1120-S and K-1 preparation",
-      "Section 199A QBI deduction",
-      "Quarterly estimated tax vouchers",
-      "Notice and audit support all year",
-    ],
-    cta: "File a business return",
+    unit: "one-time",
+    note: "All prices in USD",
+    items: ["Everything in Basic", "Itemized deductions", "1099 / investment income", "Up to 2 state returns", "Priority support"],
+    cta: "Start your return",
     featured: true,
   },
   {
-    name: "Advisory",
-    for: "Growing companies, multi-entity groups",
-    price: "$2,500",
-    unit: "per month",
-    note: "All entity returns and planning included",
+    name: "Premium Filing",
+    for: "Self-employed, rental property and complex situations",
+    price: "$349",
+    unit: "one-time",
+    note: "All prices in USD",
     items: [
-      "Partner-level contact for every decision",
-      "R&D credit study and payroll offset",
-      "Multi-state nexus and apportionment",
-      "QSBS and exit planning",
-      "Same-day response on business days",
+      "Everything in Standard",
+      "Schedule C / self-employment",
+      "Rental property (Schedule E)",
+      "Unlimited state returns",
+      "Audit support",
     ],
-    cta: "Talk to a partner",
+    cta: "Start your return",
   },
 ];
 
+function planToTier(plan: PlanRecord): Tier {
+  return {
+    name: plan.name,
+    for: plan.description || "",
+    price: formatPrice(plan.price),
+    unit: PERIOD_UNIT[plan.billing_period] || "",
+    note: "All prices in USD",
+    items: plan.features,
+    cta: "Start your return",
+    featured: plan.is_popular,
+  };
+}
+
 export function HomePage() {
   const [mounted, setMounted] = useState(false);
+  const [tiers, setTiers] = useState<Tier[]>(TIERS);
   useEffect(() => {
     setMounted(true);
+    // Show the same plans and prices clients are charged at checkout
+    getPlans()
+      .then((plans) => {
+        if (plans.length > 0) setTiers(plans.slice(0, 3).map(planToTier));
+      })
+      .catch(() => {});
   }, []);
+  const lowestPrice = tiers.reduce((min, t) => {
+    const n = Number(t.price.replace(/[^0-9.]/g, ""));
+    return n > 0 && n < min ? n : min;
+  }, Infinity);
 
   const { user } = useFirebase();
   const cached = mounted ? getCachedAuth() : { user: null, role: null, isAdmin: false };
@@ -189,7 +218,9 @@ export function HomePage() {
             <dl className="mt-12 grid max-w-xl grid-cols-3 border-t border-paper-line pt-6 text-[13px] sm:text-sm">
               <div>
                 <dt className="text-ink-muted">Returns from</dt>
-                <dd className="mt-1 font-display text-xl text-ink sm:text-2xl">$59</dd>
+                <dd className="mt-1 font-display text-xl text-ink sm:text-2xl">
+                  {Number.isFinite(lowestPrice) ? formatPrice(lowestPrice) : "$99"}
+                </dd>
               </div>
               <div className="border-l border-paper-line pl-3 sm:pl-5">
                 <dt className="text-ink-muted">Typical turnaround</dt>
@@ -347,7 +378,7 @@ export function HomePage() {
           </div>
 
           <div className="mt-14 grid gap-6 lg:grid-cols-3 lg:gap-0">
-            {TIERS.map((tier, i) => (
+            {tiers.map((tier, i) => (
               <div
                 key={tier.name}
                 className={cn(
@@ -387,7 +418,7 @@ export function HomePage() {
                 </ul>
 
                 <Link
-                  href={tier.name === "Advisory" ? "#book-consultation" : primaryHref}
+                  href={primaryHref}
                   className={cn("mt-10 w-full", tier.featured ? "btn-brass" : "btn-line")}
                 >
                   {tier.cta}
@@ -395,6 +426,13 @@ export function HomePage() {
               </div>
             ))}
           </div>
+
+          <p className="mt-10 text-center text-[13.5px] text-ink-muted">
+            Pay securely online with PayPal or card. Full refund before you approve your return for filing.{" "}
+            <Link href="/pricing" className="text-brass-dark hover:underline">See all plans</Link>
+            {" · "}
+            <Link href="/refund-policy" className="text-brass-dark hover:underline">Refund policy</Link>
+          </p>
         </div>
       </section>
 

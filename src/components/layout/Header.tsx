@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase/client";
 const navLinks = [
   { href: "/services", label: "Services" },
   { href: "/resources", label: "Tools & Resources" },
-  { href: "/#pricing", label: "Pricing" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ];

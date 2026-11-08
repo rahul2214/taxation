@@ -8,6 +8,6 @@ export default function OpenGraphImage() {
   return renderOgCard({
     eyebrow: "CPA tax preparation · New York",
     title: "Your taxes, prepared and signed by a CPA who knows your file.",
-    footer: "Individual & small business returns from $59",
+    footer: "Individual & small business returns from $99",
   });
 }

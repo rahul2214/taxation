@@ -7,7 +7,7 @@ export const SITE = {
   url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.plrstax.com").replace(/\/$/, ""),
   tagline: "CPA Tax Preparation, Planning & IRS Help",
   description:
-    "Licensed CPAs and Enrolled Agents for individual and small business tax returns, S-Corp filings and IRS notices. Fixed prices from $59. Serving all 50 states.",
+    "Licensed CPAs and Enrolled Agents for individual and small business tax returns, S-Corp filings and IRS notices. Fixed prices from $99. Serving all 50 states.",
   phone: "+1-212-847-1920",
   phoneDisplay: "(212) 847-1920",
   email: "plrstaxservices@gmail.com",
@@ -20,7 +20,7 @@ export const SITE = {
   },
   geo: { latitude: 40.7432, longitude: -73.9846 },
   hours: { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "20:00" },
-  priceRange: "$59 - $2,500",
+  priceRange: "$99 - $2,500",
   locale: "en_US",
   twitter: "@polaristax",
   logo: "/icon-512.png",

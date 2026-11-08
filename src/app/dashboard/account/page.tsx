@@ -42,6 +42,7 @@ export default function AccountPage() {
   const [userid, setUserid] = useState<number | null>(null);
   const [referralCode, setReferralCode] = useState<string>("");
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [lockedBalance, setLockedBalance] = useState<number>(0);
   const [rewardAmount, setRewardAmount] = useState<number>(25.0);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -56,6 +57,7 @@ export default function AccountPage() {
           if (c.userid) setUserid(c.userid);
           if (c.referral_code) setReferralCode(c.referral_code);
           if (c.wallet_balance !== undefined) setWalletBalance(Number(c.wallet_balance));
+          setLockedBalance(Number(c.locked_wallet_balance || 0));
           if (c.first_name) setFirstName(c.first_name);
           if (c.last_name) setLastName(c.last_name);
           if (c.phone) setPhone(c.phone);
@@ -193,7 +195,7 @@ export default function AccountPage() {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Share to earn ${rewardAmount.toFixed(2)} per friend
+              Earn ${rewardAmount.toFixed(2)} when a friend buys a plan
             </p>
           </CardContent>
         </Card>
@@ -209,7 +211,9 @@ export default function AccountPage() {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Applied to your next return
+              {lockedBalance > 0
+                ? `+ $${lockedBalance.toFixed(2)} locked until your referrals purchase a plan`
+                : "Usable toward any plan"}
             </p>
           </CardContent>
         </Card>

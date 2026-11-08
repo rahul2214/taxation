@@ -27,7 +27,7 @@ export default function TermsPage() {
               Terms of Service &amp; Client Engagement Agreement
             </h1>
             <p className="mt-3 text-sm md:text-base text-ink-soft">
-              Last Revised: October 2026 • Polaris Tax Services Inc.
+              Last Revised: November 2026 • Polaris Tax Services Inc.
             </p>
           </header>
 
@@ -99,6 +99,24 @@ export default function TermsPage() {
                 <li><strong className="text-ink">Pre-Filing Satisfaction Guarantee:</strong> If you are dissatisfied with our service for any reason prior to signing Form 8879 or authorizing transmission, you may cancel without filing, and preparation fees paid will be refunded.</li>
                 <li><strong className="text-ink">Post-Transmission Finality:</strong> Once a return has been electronically transmitted and accepted by the IRS, preparation fees are non-refundable.</li>
                 <li><strong className="text-ink">Unforeseen Complexity Adjustments:</strong> If during return review undeclared multi-state nexus, unorganized foreign assets (Form 5471), or complex K-1 allocations are discovered, Polaris will provide written notification of scope adjustments before proceeding.</li>
+              </ul>
+              <p>
+                Full details of cancellations and refunds are in our{" "}
+                <Link href="/refund-policy" className="text-brass-dark hover:underline">Refund &amp; Cancellation Policy</Link>.
+              </p>
+            </section>
+
+            {/* Section 4A */}
+            <section className="space-y-3">
+              <h2 className="font-display text-[26px] font-normal text-ink">
+                4A. Online Orders &amp; Payments
+              </h2>
+              <ul className="list-disc pl-5 space-y-1.5 text-ink-soft">
+                <li>Current plan prices are published on our <Link href="/pricing" className="text-brass-dark hover:underline">pricing page</Link>. All prices are in U.S. dollars (USD). The price shown when you place an order is the price you pay.</li>
+                <li>Online payments are processed by <strong className="text-ink">PayPal</strong>, which accepts PayPal balances and debit or credit cards. Polaris does not receive or store your full card number or PayPal login details. Your use of PayPal is also subject to PayPal&apos;s own terms.</li>
+                <li>Online payments are one-time charges for the plan ordered. Polaris does not set up automatic recurring charges; any monthly or yearly service is invoiced separately with your agreement.</li>
+                <li>An order is confirmed once payment is completed and the order shows as Paid in your client portal. Services are delivered digitally as described in our <Link href="/service-delivery" className="text-brass-dark hover:underline">Service Delivery Policy</Link>.</li>
+                <li>Wallet credits from referrals and promotions can be applied toward plans, have no cash value, and cannot be transferred or withdrawn. Referral credits for the referring client remain locked until the referred client pays for a plan.</li>
               </ul>
             </section>
 
@@ -172,6 +190,7 @@ export default function TermsPage() {
               <Link href="/privacy" className="hover:text-ink transition-colors">Privacy Policy</Link>
               <Link href="/security" className="hover:text-ink transition-colors">Security Architecture</Link>
               <Link href="/guarantee" className="hover:text-ink transition-colors">Accuracy Guarantee</Link>
+              <Link href="/refund-policy" className="hover:text-ink transition-colors">Refund Policy</Link>
             </div>
           </div>
         </div>

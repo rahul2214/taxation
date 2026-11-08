@@ -54,7 +54,7 @@ export const SERVICES: Service[] = [
     h1: "Individual tax return preparation by a CPA",
     metaTitle: "Individual Tax Preparation by a CPA",
     metaDescription:
-      "Your Form 1040 and state returns prepared and reviewed by a licensed CPA. W-2s, investments, stock compensation, crypto and rentals. From $59, all 50 states.",
+      "Your Form 1040 and state returns prepared and reviewed by a licensed CPA. W-2s, investments, stock compensation, crypto and rentals. From $99, all 50 states.",
     keywords: ["individual tax preparation", "personal tax return preparation", "Form 1040 preparation", "CPA for personal taxes", "tax preparer for W-2 and 1099"],
     summary: "Form 1040 and state returns for employees, families and investors.",
     intro: [
@@ -88,9 +88,9 @@ export const SERVICES: Service[] = [
       { title: "Prepare", body: "Your preparer builds the return and contacts you if a choice needs your input." },
       { title: "Review and file", body: "You review a summary, sign Form 8879 electronically, and we e-file." },
     ],
-    price: "$59",
-    pricePeriod: "simple return",
-    priceNote: "Itemized returns (Schedule A) $129. Each additional state $39. You see the price before we start.",
+    price: "$99",
+    pricePeriod: "Basic Filing",
+    priceNote: "Standard Filing (itemized, investments, up to 2 states) $199. Premium Filing (self-employed, rentals, unlimited states) $349. You see the price before we start.",
     faqs: [
       {
         question: "How long does an individual return take?",
@@ -98,7 +98,7 @@ export const SERVICES: Service[] = [
       },
       {
         question: "Can you file my state return too?",
-        answer: "Yes. One state return is included. If you lived or worked in more than one state, each additional state return is $39.",
+        answer: "Yes. One state return is included. If you lived or worked in more than one state, Standard Filing ($199) covers up to two states and Premium Filing ($349) covers any number.",
       },
       {
         question: "What if I get a letter from the IRS later?",
@@ -123,7 +123,7 @@ export const SERVICES: Service[] = [
     h1: "Small business and self-employed tax preparation",
     metaTitle: "Small Business Tax Preparation Services",
     metaDescription:
-      "Tax returns for freelancers, LLCs, partnerships and S-Corps: Schedule C, Form 1065 and 1120-S with K-1s, prepared by a CPA. From $199, price agreed up front.",
+      "Tax returns for freelancers, LLCs, partnerships and S-Corps: Schedule C, Form 1065 and 1120-S with K-1s, prepared by a CPA. From $349, price agreed up front.",
     keywords: ["small business tax preparation", "self-employed tax preparation", "LLC tax return", "S-Corp tax return preparation", "Form 1120-S preparation", "partnership tax return 1065"],
     summary: "Schedule C, partnership and S-Corp returns for owners and freelancers.",
     intro: [
@@ -157,8 +157,8 @@ export const SERVICES: Service[] = [
       { title: "Prepare", body: "Your CPA prepares the business and personal returns and flags anything that needs a decision." },
       { title: "File and plan", body: "We e-file, then set up estimated payments so next year has no surprises." },
     ],
-    price: "$199",
-    pricePeriod: "Schedule C",
+    price: "$349",
+    pricePeriod: "Schedule C (Premium Filing)",
     priceNote: "Form 1120-S or Form 1065 from $499. The quote is fixed once we've seen your records.",
     faqs: [
       {

@@ -43,14 +43,15 @@ import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc, setDoc } from "firebase/firestore";
 import {
   getReferrals,
-  updateReferralStatus,
+  setReferralRewardStatus,
   getReferralRewardAmount,
   updateSiteSettings,
   getSiteSettings,
 } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
 
-type ReferralStatus = "Completed" | "Pending" | "Expired";
+// Unlocked = referrer can use the bonus; Locked = waiting for the referred client to pay for a plan
+type ReferralStatus = "Unlocked" | "Locked" | "Cancelled" | "Completed" | "Pending" | "Expired";
 
 type Referral = {
   id: string;
@@ -63,9 +64,13 @@ type Referral = {
   referralDate: { seconds: number; nanoseconds: number } | Date;
   status: ReferralStatus;
   referrerId?: string;
+  rewardId?: string | null;
 };
 
 const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
+  Unlocked: "default",
+  Locked: "secondary",
+  Cancelled: "destructive",
   Completed: "default",
   Pending: "secondary",
   Expired: "destructive",
@@ -109,10 +114,10 @@ export default function ReferralsPage() {
     try {
       const records = await getReferrals();
       const mapped: Referral[] = records.map((rec) => {
-        let normalizedStatus: ReferralStatus = "Pending";
+        let normalizedStatus: ReferralStatus = "Locked";
         const s = (rec.status || "").toLowerCase();
-        if (s === "completed" || s === "rewarded") normalizedStatus = "Completed";
-        else if (s === "expired") normalizedStatus = "Expired";
+        if (s === "unlocked" || s === "completed" || s === "rewarded") normalizedStatus = "Unlocked";
+        else if (s === "cancelled" || s === "expired") normalizedStatus = "Cancelled";
 
         return {
           id: rec.id || "",
@@ -125,6 +130,7 @@ export default function ReferralsPage() {
           referralDate: new Date(rec.referral_date || Date.now()),
           status: normalizedStatus,
           referrerId: rec.referrer_id || undefined,
+          rewardId: rec.reward_id ?? null,
         };
       });
       setSupabaseReferrals(mapped);
@@ -209,17 +215,24 @@ export default function ReferralsPage() {
   const handleStatusChange = async (referral: Referral, newStatus: ReferralStatus) => {
     let updated = false;
 
-    // 1. Try Supabase
-    try {
-      await updateReferralStatus(referral.id, newStatus.toLowerCase());
-      updated = true;
-      fetchSupabaseReferrals();
-    } catch (sbErr) {
-      // might be firestore record
+    // 1. Supabase referral reward (locked -> unlocked / cancelled, done atomically in the DB)
+    if (referral.rewardId) {
+      try {
+        await setReferralRewardStatus(referral.rewardId, newStatus === "Unlocked" ? "unlocked" : "cancelled");
+        updated = true;
+        fetchSupabaseReferrals();
+      } catch (sbErr: any) {
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description: sbErr?.message || "Could not update the referral reward.",
+        });
+        return;
+      }
     }
 
-    // 2. Try Firestore
-    if (firestore) {
+    // 2. Legacy Firestore referral records
+    if (!updated && firestore) {
       try {
         const referralDocRef = doc(firestore, "referrals", referral.id);
         await updateDoc(referralDocRef, { status: newStatus });
@@ -232,7 +245,10 @@ export default function ReferralsPage() {
     if (updated) {
       toast({
         title: "Status Updated",
-        description: `Referral from ${referral.referrerName} has been marked as ${newStatus}.`,
+        description:
+          newStatus === "Unlocked"
+            ? `${referral.referrerName}'s bonus has been released to their wallet.`
+            : `${referral.referrerName}'s locked bonus has been cancelled.`,
       });
     } else {
       toast({
@@ -254,8 +270,12 @@ export default function ReferralsPage() {
   };
 
   // Metrics
-  const completedCount = referrals.filter((r) => r.status === "Completed").length;
-  const totalRewarded = completedCount * rewardAmount;
+  const isUnlocked = (r: Referral) => r.status === "Unlocked" || r.status === "Completed";
+  const completedCount = referrals.filter(isUnlocked).length;
+  const lockedCount = referrals.filter((r) => r.status === "Locked").length;
+  const totalRewarded = referrals
+    .filter(isUnlocked)
+    .reduce((sum, r) => sum + Number(r.rewardAmount ?? rewardAmount), 0);
 
   return (
     <div className="space-y-6">
@@ -306,7 +326,7 @@ export default function ReferralsPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Both the referrer and the new client will receive this exact credit upon registration.
+                The new client gets this credit immediately on signup. The referrer gets the same amount as locked credit, released when the new client pays for a plan.
               </p>
             </div>
 
@@ -391,10 +411,10 @@ export default function ReferralsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Completed Referrals
+                  Unlocked Referrals
                 </p>
                 <p className="text-2xl font-bold text-foreground mt-1">{completedCount}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Total rewarded accounts</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{lockedCount} still locked (no plan purchased yet)</p>
               </div>
               <div className="p-3 bg-secondary text-foreground rounded-md">
                 <UsersRound className="h-6 w-6" />
@@ -493,23 +513,17 @@ export default function ReferralsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => handleStatusChange(ref, "Completed")}
-                            disabled={ref.status === "Completed"}
+                            onClick={() => handleStatusChange(ref, "Unlocked")}
+                            disabled={ref.status !== "Locked"}
                           >
-                            Mark as Completed
+                            Release bonus now
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleStatusChange(ref, "Pending")}
-                            disabled={ref.status === "Pending"}
-                          >
-                            Mark as Pending
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(ref, "Expired")}
-                            disabled={ref.status === "Expired"}
+                            onClick={() => handleStatusChange(ref, "Cancelled")}
+                            disabled={ref.status !== "Locked"}
                             className="text-destructive"
                           >
-                            Mark as Expired
+                            Cancel locked bonus
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
