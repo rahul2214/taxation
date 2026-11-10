@@ -199,10 +199,11 @@ export function HomePage() {
           <div className="lg:col-span-7">
             <p className="eyebrow">Tax preparation &amp; advisory · New York</p>
             <h1 className="mt-6 font-display text-[44px] font-normal leading-[1.04] tracking-[-0.015em] text-ink sm:text-[60px] lg:text-[72px]">
-              Your taxes, <em className="italic text-brass-dark">done right.</em>
+              Taxes handled by a real CPA, <em className="italic text-brass-dark">start to finish.</em>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink-soft">
-              Prepared and checked by a licensed CPA. Simple, accurate and on time.
+              Every return is prepared and reviewed by a licensed CPA, with a fixed price up front, filing on time and
+              IRS notice support included.
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">

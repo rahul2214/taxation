@@ -5,12 +5,13 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageFaq } from "@/components/public/PageFaq";
 import { PAGE_FAQS } from "@/data/faqs";
 import { PageIntro } from "@/components/public/PageIntro";
+import { ContactForm } from "@/components/public/ContactForm";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Contact Our New York CPA Office",
-  description: "Call (212) 847-1920, email plrstaxservices@gmail.com or visit us at 440 Park Avenue South, New York. A CPA replies within four business hours, Mon–Fri.",
+  title: "Contact Polaris Tax Services",
+  description: "Call (212) 847-1920, email plrstaxservices@gmail.com or send a message online. A CPA replies within four business hours, Mon–Fri.",
   path: "/contact",
-  keywords: ["contact CPA New York", "tax accountant Manhattan", "Park Avenue South CPA", "tax preparer phone number"],
+  keywords: ["contact CPA", "contact tax accountant", "online CPA", "tax preparer phone number"],
 });
 
 const emails = [["New clients, portal help and IRS letters", SITE.email]];
@@ -21,7 +22,7 @@ export default function ContactPage() {
       <JsonLd data={[breadcrumbSchema([{ name: "Contact", path: "/contact" }]), { "@context": "https://schema.org", "@type": "ContactPage", name: "Contact Polaris Tax Services", url: `${SITE.url}/contact`, about: { "@id": `${SITE.url}/#organization` } }]} />
       <PageIntro
         eyebrow="Contact"
-        title="Call, write, or come by the office."
+        title="Call, email, or send us a message."
         lede="Weekdays, a CPA reads every message and replies within four business hours. For anything urgent, the phone is fastest."
       />
 
@@ -52,15 +53,11 @@ export default function ContactPage() {
           </div>
 
           <div className="border-t border-paper-line pt-8">
-            <p className="eyebrow">Office</p>
-            <address className="mt-4 text-[15.5px] not-italic leading-relaxed text-ink-soft">
-              Polaris Tax Services Inc.
-              <br />
-              440 Park Avenue South, 12th Floor
-              <br />
-              New York, NY 10016
-            </address>
-            <p className="mt-3 text-[14px] text-ink-muted">In-person meetings by appointment.</p>
+            <p className="eyebrow">How we work</p>
+            <p className="mt-4 text-[15.5px] leading-relaxed text-ink-soft">
+              We work remotely. Consultations happen by phone, and documents are shared securely through the
+              client portal.
+            </p>
           </div>
         </div>
 
@@ -72,42 +69,7 @@ export default function ContactPage() {
               a call.
             </p>
 
-            <form className="mt-8 grid gap-5 sm:grid-cols-2" action="/book-appointment" method="GET">
-              <div>
-                <label htmlFor="contact-name" className="field-label">Full name</label>
-                <input id="contact-name" name="name" autoComplete="name" required className="field" />
-              </div>
-              <div>
-                <label htmlFor="contact-email" className="field-label">Email</label>
-                <input id="contact-email" name="email" type="email" autoComplete="email" required className="field" />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="contact-subject" className="field-label">Topic</label>
-                <select id="contact-subject" name="subject" className="field">
-                  <option>Preparing a tax return</option>
-                  <option>Small business or LLC taxes</option>
-                  <option>I received an IRS or state letter</option>
-                  <option>Client portal or documents</option>
-                  <option>Something else</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="contact-message" className="field-label">Message</label>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  rows={5}
-                  required
-                  className="field h-auto resize-none py-3"
-                />
-              </div>
-              <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[13px] text-ink-muted">Kept confidential. Never shared.</p>
-                <button type="submit" className="btn-ink px-6">
-                  Send and choose a time
-                </button>
-              </div>
-            </form>
+            <ContactForm />
           </div>
         </div>
       </div>

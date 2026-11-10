@@ -14,23 +14,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import Link from "next/link";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
 
-const CONSULTATION_SERVICES = [
-  "Individual or family return (Form 1040)",
-  "Self-employed or single-member LLC",
-  "S-Corp, partnership or C-Corp return",
-  "Tax planning",
-  "Prior-year returns and amendments",
-  "IRS notice or audit",
-  "Bookkeeping and payroll",
-  "Something else",
-];
-
-const TIME_WINDOWS = [
-  "Morning (9am–12pm ET)",
-  "Midday (12–3pm ET)",
-  "Afternoon (3–6pm ET)",
-  "Evening (6–8pm ET)",
-];
+import { useMasterOptions, optionValue, currentValue, resolveOption } from "@/hooks/use-master-options";
 
 export default function BookAppointmentPage() {
   const router = useRouter();
@@ -39,8 +23,12 @@ export default function BookAppointmentPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [service, setService] = useState(CONSULTATION_SERVICES[0]);
-  const [preferredTime, setPreferredTime] = useState(TIME_WINDOWS[0]);
+  const { options: services } = useMasterOptions("appointment_service");
+  const { options: timeWindows } = useMasterOptions("appointment_time");
+  const [serviceValue, setService] = useState("");
+  const [timeValue, setPreferredTime] = useState("");
+  const service = currentValue(services, serviceValue);
+  const preferredTime = currentValue(timeWindows, timeValue);
   const [preferredDate, setPreferredDate] = useState("");
 
   const tomorrow = new Date();
@@ -80,9 +68,11 @@ export default function BookAppointmentPage() {
     const phone = formData.get("phone") as string;
     const email = formData.get("email") as string;
     const notes = (formData.get("notes") as string) || "";
+    const svc = resolveOption(services, service);
+    const slot = resolveOption(timeWindows, preferredTime);
 
     const combinedNotes = [
-      preferredTime ? `Preferred Window: ${preferredTime}` : "",
+      slot.label ? `Preferred Window: ${slot.label}` : "",
       notes.trim() ? `Client Notes: ${notes.trim()}` : "",
     ]
       .filter(Boolean)
@@ -94,7 +84,10 @@ export default function BookAppointmentPage() {
         name: fullName,
         phone,
         email,
-        service,
+        service: svc.label,
+        service_id: svc.id,
+        time_slot: slot.label,
+        time_slot_id: slot.id,
         notes: combinedNotes,
         status: "Pending",
         appointment_date: preferredDate
@@ -111,8 +104,8 @@ export default function BookAppointmentPage() {
             fullName,
             phone,
             email,
-            service,
-            preferredTime,
+            service: svc.label,
+            preferredTime: slot.label,
             notes: combinedNotes,
             status: "Pending" as const,
             requestDate: serverTimestamp(),
@@ -130,7 +123,7 @@ export default function BookAppointmentPage() {
         description: "We'll be in touch within one business day to confirm a time.",
       });
     } catch (error: any) {
-      console.error("Error booking appointment:", error);
+      console.error("Error booking appointment:", error?.message || error);
       toast({
         variant: "destructive",
         title: "Submission Failed",
@@ -203,9 +196,9 @@ export default function BookAppointmentPage() {
                 <div className="sm:col-span-2">
                   <label htmlFor="service" className="field-label">What do you need help with?</label>
                   <select id="service" value={service} onChange={(e) => setService(e.target.value)} className="field">
-                    {CONSULTATION_SERVICES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                    {services.map((s) => (
+                      <option key={optionValue(s)} value={optionValue(s)}>
+                        {s.label}
                       </option>
                     ))}
                   </select>
@@ -231,9 +224,9 @@ export default function BookAppointmentPage() {
                     onChange={(e) => setPreferredTime(e.target.value)}
                     className="field"
                   >
-                    {TIME_WINDOWS.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    {timeWindows.map((t) => (
+                      <option key={optionValue(t)} value={optionValue(t)}>
+                        {t.label}
                       </option>
                     ))}
                   </select>

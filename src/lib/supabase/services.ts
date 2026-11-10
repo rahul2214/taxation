@@ -52,9 +52,26 @@ export interface AppointmentRecord {
   email: string;
   phone?: string;
   service?: string;
+  service_id?: number | null; // FK to master_data(id), category 'appointment_service'
+  time_slot?: string | null;
+  time_slot_id?: number | null; // FK to master_data(id), category 'appointment_time'
   appointment_date: string;
   status?: string;
   notes?: string;
+}
+
+export type ContactStatus = 'new' | 'read' | 'replied' | 'archived';
+
+export interface ContactRecord {
+  id?: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  subject?: string | null;
+  topic_id?: number | null; // FK to master_data(id), category 'contact_topic'
+  message: string;
+  status?: ContactStatus;
+  created_at?: string;
 }
 
 export interface ReferralRecord {
@@ -520,59 +537,57 @@ export async function getAppointments(
   );
 }
 
+/**
+ * Inserts a row, tolerating a live DB that is behind the migrations: optional columns
+ * the table doesn't have yet are dropped, and optional link ids that fail a foreign key
+ * or UUID check are nulled, so a form submission is never lost.
+ */
+async function insertWithOptionalColumns<T>(
+  table: string,
+  row: Record<string, any>,
+  optionalColumns: string[],
+  linkIdColumns: string[]
+): Promise<T> {
+  const payload: Record<string, any> = { ...row };
+
+  for (let attempt = 0; attempt <= optionalColumns.length + 1; attempt++) {
+    const { data, error } = await supabase.from(table).insert([payload]).select().single();
+    if (!error) return data as T;
+
+    // Column missing from table / PostgREST schema cache (PGRST204, 42703)
+    if (error.code === 'PGRST204' || error.code === '42703') {
+      const missing = error.message?.match(/'([a-z_]+)' column|column (?:[a-z_]+\.)?([a-z_]+) does not exist/i);
+      const col = missing?.[1] || missing?.[2];
+      if (col && col in payload && optionalColumns.includes(col)) {
+        delete payload[col];
+        continue;
+      }
+    }
+
+    // Foreign key violation (23503) or invalid UUID (22P02): drop the links
+    if ((error.code === '23503' || error.code === '22P02') && linkIdColumns.some((c) => payload[c] != null)) {
+      for (const c of linkIdColumns) if (c in payload) payload[c] = null;
+      continue;
+    }
+
+    console.error(`insert into ${table} failed:`, error.code, error.message, error.details ?? '');
+    throw new Error(error.message || `Failed to save to ${table}`);
+  }
+
+  throw new Error(`Failed to save to ${table}`);
+}
+
 export async function createAppointment(appointment: AppointmentRecord) {
   if (!isSupabaseConfigured) return null;
-  let payload: any = { ...appointment };
-
-  try {
-    const { data, error } = await supabase
-      .from('appointments')
-      .insert([payload])
-      .select()
-      .single();
-
-    if (!error && data) {
-      apiCache.invalidate('appointments');
-      return data;
-    }
-
-    if (error) {
-      // Handle column not found (e.g. customer_userid doesn't exist yet)
-      if (error.code === '42703') {
-        const trimmedPayload = { ...payload };
-        delete trimmedPayload.customer_userid;
-        const retry1 = await supabase
-          .from('appointments')
-          .insert([trimmedPayload])
-          .select()
-          .single();
-        if (!retry1.error && retry1.data) {
-          apiCache.invalidate('appointments');
-          return retry1.data;
-        }
-      }
-
-      // Handle foreign key constraint violation (23503)
-      if (error.code === '23503') {
-        const fkFreePayload = { ...payload, customer_id: null, customer_userid: null };
-        const retry2 = await supabase
-          .from('appointments')
-          .insert([fkFreePayload])
-          .select()
-          .single();
-        if (!retry2.error && retry2.data) {
-          apiCache.invalidate('appointments');
-          return retry2.data;
-        }
-        if (retry2.error) throw retry2.error;
-      }
-
-      throw error;
-    }
-  } catch (err: any) {
-    console.error("createAppointment error:", err?.message || err);
-    throw err;
-  }
+  const linkIds = ['customer_id', 'customer_userid', 'service_id', 'time_slot_id'];
+  const data = await insertWithOptionalColumns<AppointmentRecord>(
+    'appointments',
+    appointment,
+    [...linkIds, 'time_slot'],
+    linkIds
+  );
+  apiCache.invalidate('appointments');
+  return data;
 }
 
 export async function updateAppointmentStatus(id: string, status: string) {
@@ -586,6 +601,54 @@ export async function updateAppointmentStatus(id: string, status: string) {
 
   if (error) throw error;
   apiCache.invalidate('appointments');
+  return data;
+}
+
+// -------------------------------------------------------------
+// Contacts Service (messages from the public /contact page)
+// -------------------------------------------------------------
+export async function createContact(contact: ContactRecord): Promise<ContactRecord> {
+  if (!isSupabaseConfigured) throw new Error('Database is not configured');
+  const data = await insertWithOptionalColumns<ContactRecord>(
+    'contacts',
+    { ...contact, status: contact.status || 'new' },
+    ['topic_id'],
+    ['topic_id']
+  );
+  apiCache.invalidate('contacts');
+  return data;
+}
+
+export async function getContacts(options?: CacheOptions): Promise<ContactRecord[]> {
+  if (!isSupabaseConfigured) return [];
+  return apiCache.getOrFetch(
+    'contacts:all',
+    async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        // Table not created yet
+        if (error.code === '42P01' || error.code === 'PGRST205') return [];
+        throw new Error(error.message);
+      }
+      return data || [];
+    },
+    { ttlMs: 30_000, ...options }
+  );
+}
+
+export async function updateContactStatus(id: string, status: ContactStatus) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('contacts')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  apiCache.invalidate('contacts');
   return data;
 }
 
@@ -933,6 +996,11 @@ export async function setReferralRewardStatus(rewardId: string, status: 'unlocke
 // -------------------------------------------------------------
 // Plans Service (admin-managed pricing)
 // -------------------------------------------------------------
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Postgres (42P01) or PostgREST (PGRST205) "table doesn't exist yet". */
+const isMissingTableError = (code?: string) => code === '42P01' || code === 'PGRST205';
+
 function normalizePlan(row: any): PlanRecord {
   return {
     ...row,
@@ -958,8 +1026,8 @@ export async function getPlans(
         .order('sort_order', { ascending: true })
         .order('price', { ascending: true });
       if (error) {
-        if (error.code === '42P01') return [];
-        throw error;
+        if (isMissingTableError(error.code)) return [];
+        throw new Error(error.message);
       }
       return (data || []).map(normalizePlan);
     },
@@ -1018,11 +1086,15 @@ export async function getPlanPurchases(
     `plan_purchases:${customerId || 'all'}`,
     async () => {
       let query = supabase.from('plan_purchases').select('*');
-      if (customerId) query = query.eq('customer_id', customerId);
+      if (customerId) {
+        // customer_id is a UUID; a non-UUID id (e.g. an admin-table session) can't own any orders
+        if (!UUID_RE.test(String(customerId))) return [];
+        query = query.eq('customer_id', customerId);
+      }
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) {
-        if (error.code === '42P01') return [];
-        throw error;
+        if (isMissingTableError(error.code)) return [];
+        throw new Error(error.message);
       }
       return (data || []).map(normalizePurchase);
     },

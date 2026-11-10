@@ -73,8 +73,8 @@ export default function CustomerPlansPage() {
       setPurchases(purchaseRows);
       setWalletBalance(Number(customer?.wallet_balance || 0));
       setLockedBalance(Number(customer?.locked_wallet_balance || 0));
-    } catch (err) {
-      console.error("Failed to load plans:", err);
+    } catch (err: any) {
+      console.error("Failed to load plans:", err?.message || err);
       toast({ variant: "destructive", title: "Couldn't load plans", description: "Please refresh and try again." });
     } finally {
       setIsLoading(false);

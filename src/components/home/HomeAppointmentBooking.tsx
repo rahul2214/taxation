@@ -8,24 +8,7 @@ import { trackLead } from "@/lib/analytics";
 import { useFirebase } from "@/firebase";
 import { createAppointment, getCustomer, CustomerRecord } from "@/lib/supabase/services";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-
-const CONSULTATION_SERVICES = [
-  "Individual or family return (Form 1040)",
-  "Self-employed or single-member LLC",
-  "S-Corp, partnership or C-Corp return",
-  "IRS notice or audit",
-  "Tax planning for a business",
-  "Equity, QSBS or a business sale",
-  "Bookkeeping",
-  "Something else",
-];
-
-const TIME_WINDOWS = [
-  "Morning (9am–12pm ET)",
-  "Midday (12–3pm ET)",
-  "Afternoon (3–6pm ET)",
-  "Evening (6–8pm ET)",
-];
+import { useMasterOptions, optionValue, currentValue, resolveOption } from "@/hooks/use-master-options";
 
 export function HomeAppointmentBooking() {
   const { user, firestore } = useFirebase();
@@ -36,9 +19,13 @@ export function HomeAppointmentBooking() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
-  const [service, setService] = useState(CONSULTATION_SERVICES[0]);
+  const { options: services } = useMasterOptions("appointment_service");
+  const { options: timeWindows } = useMasterOptions("appointment_time");
+  const [serviceValue, setService] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState(TIME_WINDOWS[0]);
+  const [timeValue, setSelectedTimeSlot] = useState("");
+  const service = currentValue(services, serviceValue);
+  const selectedTimeSlot = currentValue(timeWindows, timeValue);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -102,9 +89,12 @@ export function HomeAppointmentBooking() {
 
     setIsSubmitting(true);
 
+    const svc = resolveOption(services, service);
+    const slot = resolveOption(timeWindows, selectedTimeSlot);
+
     const combinedNotes = [
       company.trim() ? `Entity / Company: ${company.trim()}` : "",
-      selectedTimeSlot ? `Requested Slot: ${selectedTimeSlot}` : "",
+      slot.label ? `Requested Slot: ${slot.label}` : "",
       notes.trim() ? `Objective: ${notes.trim()}` : "",
     ]
       .filter(Boolean)
@@ -116,7 +106,10 @@ export function HomeAppointmentBooking() {
         name: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
-        service,
+        service: svc.label,
+        service_id: svc.id,
+        time_slot: slot.label,
+        time_slot_id: slot.id,
         appointment_date: preferredDate || minDateStr,
         notes: combinedNotes,
         status: "pending",
@@ -130,9 +123,9 @@ export function HomeAppointmentBooking() {
             name: fullName.trim(),
             email: email.trim(),
             phone: phone.trim(),
-            service,
+            service: svc.label,
             appointmentDate: preferredDate || minDateStr,
-            timeWindow: selectedTimeSlot,
+            timeWindow: slot.label,
             notes: combinedNotes,
             status: "pending",
             requestDate: serverTimestamp(),
@@ -146,9 +139,9 @@ export function HomeAppointmentBooking() {
       setSubmittedData({
         name: fullName.trim(),
         email: email.trim(),
-        service,
+        service: svc.label,
         date: preferredDate || minDateStr,
-        time: selectedTimeSlot,
+        time: slot.label,
       });
 
       setIsSubmitted(true);
@@ -315,9 +308,9 @@ export function HomeAppointmentBooking() {
                     onChange={(e) => setService(e.target.value)}
                     className="field"
                   >
-                    {CONSULTATION_SERVICES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                    {services.map((s) => (
+                      <option key={optionValue(s)} value={optionValue(s)}>
+                        {s.label}
                       </option>
                     ))}
                   </select>
@@ -342,9 +335,9 @@ export function HomeAppointmentBooking() {
                     onChange={(e) => setSelectedTimeSlot(e.target.value)}
                     className="field"
                   >
-                    {TIME_WINDOWS.map((tw) => (
-                      <option key={tw} value={tw}>
-                        {tw}
+                    {timeWindows.map((tw) => (
+                      <option key={optionValue(tw)} value={optionValue(tw)}>
+                        {tw.label}
                       </option>
                     ))}
                   </select>

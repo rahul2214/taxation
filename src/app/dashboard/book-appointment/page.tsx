@@ -38,6 +38,7 @@ import {
   CustomerRecord,
 } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
+import { useMasterOptions, optionValue, currentValue, resolveOption } from "@/hooks/use-master-options";
 
 export default function DashboardBookAppointmentPage() {
   const { user } = useFirebase();
@@ -53,9 +54,13 @@ export default function DashboardBookAppointmentPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [service, setService] = useState("Individual Tax Return (Form 1040)");
+  const { options: services } = useMasterOptions("appointment_service");
+  const { options: timeWindows } = useMasterOptions("appointment_time");
+  const [serviceValue, setService] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
-  const [preferredTime, setPreferredTime] = useState("Morning (9:00 AM - 12:00 PM)");
+  const [timeValue, setPreferredTime] = useState("");
+  const service = currentValue(services, serviceValue);
+  const preferredTime = currentValue(timeWindows, timeValue);
   const [notes, setNotes] = useState("");
 
   // Get tomorrow's date for date picker min value
@@ -139,8 +144,10 @@ export default function DashboardBookAppointmentPage() {
 
     setIsSubmitting(true);
     try {
+      const svc = resolveOption(services, service);
+      const slot = resolveOption(timeWindows, preferredTime);
       const combinedNotes = [
-        preferredTime ? `Preferred Time: ${preferredTime}` : "",
+        slot.label ? `Preferred Time: ${slot.label}` : "",
         notes.trim() ? `Client Notes: ${notes.trim()}` : "",
       ]
         .filter(Boolean)
@@ -153,7 +160,10 @@ export default function DashboardBookAppointmentPage() {
         name: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
-        service,
+        service: svc.label,
+        service_id: svc.id,
+        time_slot: slot.label,
+        time_slot_id: slot.id,
         appointment_date: new Date(preferredDate).toISOString(),
         notes: combinedNotes,
         status: "Pending",
@@ -304,27 +314,11 @@ export default function DashboardBookAppointmentPage() {
                       onChange={(e) => setService(e.target.value)}
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     >
-                      <option value="Individual Tax Return (Form 1040)">
-                        Individual & Family Tax Return (Form 1040)
-                      </option>
-                      <option value="Small Business & Self-Employed (Schedule C / LLC)">
-                        Small Business & Self-Employed (Schedule C / LLC)
-                      </option>
-                      <option value="Corporate Tax Preparation (1120 / 1120-S / 1065)">
-                        Corporate Tax Preparation (1120 / 1120-S / 1065)
-                      </option>
-                      <option value="Tax Planning & Deduction Strategy">
-                        Tax Planning & Deduction Strategy
-                      </option>
-                      <option value="Prior Year Returns & Amendments">
-                        Prior Year Returns & Amendments
-                      </option>
-                      <option value="IRS Notice & Audit Assistance">
-                        IRS Notice & Audit Assistance
-                      </option>
-                      <option value="General Tax Consultation">
-                        General Tax Consultation
-                      </option>
+                      {services.map((s) => (
+                        <option key={optionValue(s)} value={optionValue(s)}>
+                          {s.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -355,15 +349,11 @@ export default function DashboardBookAppointmentPage() {
                         onChange={(e) => setPreferredTime(e.target.value)}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       >
-                        <option value="Morning (9:00 AM - 12:00 PM)">
-                          Morning (9:00 AM - 12:00 PM)
-                        </option>
-                        <option value="Afternoon (12:00 PM - 4:00 PM)">
-                          Afternoon (12:00 PM - 4:00 PM)
-                        </option>
-                        <option value="Evening (4:00 PM - 7:00 PM)">
-                          Evening (4:00 PM - 7:00 PM)
-                        </option>
+                        {timeWindows.map((t) => (
+                          <option key={optionValue(t)} value={optionValue(t)}>
+                            {t.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

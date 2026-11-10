@@ -14,6 +14,8 @@ import {
   ExternalLink,
   CreditCard,
   Receipt,
+  Mail,
+  ListChecks,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
@@ -26,6 +28,7 @@ type AdminSidebarProps = {
   pendingReferralsCount: number;
   pendingDocumentsCount: number;
   pendingOrdersCount?: number;
+  newContactsCount?: number;
 };
 
 export function AdminSidebar({
@@ -33,6 +36,7 @@ export function AdminSidebar({
   pendingReferralsCount,
   pendingDocumentsCount,
   pendingOrdersCount = 0,
+  newContactsCount = 0,
 }: AdminSidebarProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -68,6 +72,7 @@ export function AdminSidebar({
       label: "Work queue",
       items: [
         { href: "/admin/appointments", label: "Appointments", icon: CalendarCheck, badge: countOrNull(pendingAppointmentsCount) },
+        { href: "/admin/contacts", label: "Contact messages", icon: Mail, badge: countOrNull(newContactsCount) },
         { href: "/admin/tax-documents", label: "Client documents", icon: FileText, badge: countOrNull(pendingDocumentsCount) },
         { href: "/admin/orders", label: "Plan orders", icon: Receipt, badge: countOrNull(pendingOrdersCount) },
         { href: "/admin/referrals", label: "Referrals", icon: UsersRound, badge: countOrNull(pendingReferralsCount) },
@@ -77,6 +82,7 @@ export function AdminSidebar({
       label: "Manage",
       items: [
         { href: "/admin/plans", label: "Plans & pricing", icon: CreditCard },
+        { href: "/admin/master-data", label: "Master data", icon: ListChecks },
         { href: "/admin/customers", label: "Clients", icon: Users },
         { href: "/admin/documents", label: "Site tax forms", icon: FileUp },
         { href: "/admin/admins", label: "Admin users", icon: ShieldCheck },
