@@ -441,6 +441,11 @@ export async function getTaxDocuments(
 
 export async function createTaxDocument(doc: TaxDocumentRecord) {
   if (!isSupabaseConfigured) return null;
+  if (doc.customer_userid == null && doc.customer_id) {
+    // Keep the int8 customer_userid relation filled in alongside the UUID.
+    const owner = await getCustomer(doc.customer_id);
+    if (owner?.userid != null) doc = { ...doc, customer_userid: owner.userid };
+  }
   const { data, error } = await supabase
     .from('tax_documents')
     .insert([doc])

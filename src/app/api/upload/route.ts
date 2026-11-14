@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToR2, deleteFromR2, isR2Configured } from "@/lib/cloudflare/r2";
+import { uploadToR2, deleteFromR2, isR2Configured, isR2PublicUrlConfigured } from "@/lib/cloudflare/r2";
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,9 +40,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Sanitize filename and create unique path key
-    const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const key = `${folder}/${userId}/${Date.now()}_${cleanFileName}`;
+    if (!isR2PublicUrlConfigured) {
+      return NextResponse.json(
+        {
+          error: "Cloudflare R2 public URL is not configured. Set NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_URL to your bucket's r2.dev URL or custom domain, otherwise saved file links will not open.",
+          isConfigured: false,
+        },
+        { status: 503 }
+      );
+    }
+
+    // Sanitize every path segment. The random UUID makes file URLs unguessable,
+    // which matters because these are tax documents served from a public bucket URL.
+    const safeSegment = (v: string) => v.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64) || 'general';
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
+    const key = `${safeSegment(folder)}/${safeSegment(userId)}/${crypto.randomUUID()}_${cleanFileName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -73,7 +85,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "No fileUrl or key provided" }, { status: 400 });
     }
 
-    const success = await deleteFromR2(key || fileUrl);
+    // Only delete objects in this app's own folders.
+    const target: string = key || fileUrl;
+    const targetKey = /^https?:\/\//.test(target) ? new URL(target).pathname.replace(/^\/+/, "") : target;
+    if (!/^(customers|admin_uploads|global_forms|documents)\//.test(targetKey)) {
+      return NextResponse.json({ error: "Not a file managed by this site" }, { status: 400 });
+    }
+    const success = await deleteFromR2(targetKey);
     return NextResponse.json({ success });
   } catch (error: any) {
     console.error("API /api/upload DELETE error:", error);

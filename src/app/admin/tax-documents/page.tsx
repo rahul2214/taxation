@@ -46,7 +46,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
-import { uploadFileToCloudflare } from "@/lib/upload";
+import { uploadTaxDocument } from "@/lib/upload";
 import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
 
@@ -263,29 +263,27 @@ export default function TaxDocumentsPage() {
     setUploadingFiles(prev => [...prev, newUpload]);
 
     try {
-      const { url: downloadURL } = await uploadFileToCloudflare(fileToUpload, {
-        folder: "admin_uploads",
-        userId: selectedCustomer.id,
-        onProgress: (progress) => {
-          setUploadingFiles(prev => prev.map(f => f.name === fileToUpload.name ? { ...f, progress } : f));
+      // 1. Upload to Cloudflare R2 and save the file URL in Supabase (rolled back together on failure)
+      const { upload } = await uploadTaxDocument(
+        fileToUpload,
+        {
+          folder: "admin_uploads",
+          userId: selectedCustomer.id,
+          onProgress: (progress) => {
+            setUploadingFiles(prev => prev.map(f => f.name === fileToUpload.name ? { ...f, progress } : f));
+          },
         },
-      });
-
-      // 1. Save in Supabase
-      try {
-        await createTaxDocument({
+        {
           customer_id: selectedCustomer.id,
           document_name: uploadDocumentName,
-          file_url: downloadURL,
           document_type: uploadCategory,
           tax_year: new Date().getFullYear(),
           status: "Pending",
           category: uploadCategory,
           uploader: "admin"
-        });
-      } catch (sbErr) {
-        console.warn("Supabase tax document creation warning:", sbErr);
-      }
+        }
+      );
+      const downloadURL = upload.url;
 
       // 2. Save in Firestore if configured
       if (firestore && selectedCustomer) {

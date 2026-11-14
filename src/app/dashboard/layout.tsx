@@ -12,6 +12,8 @@ import { doc } from "firebase/firestore";
 import { getCustomer } from "@/lib/supabase/services";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
 import { HeardAboutPrompt } from "@/components/dashboard/HeardAboutPrompt";
+import { ensureCustomerProfile, takeOAuthWelcome } from "@/lib/supabase/google-auth";
+import { useToast } from "@/hooks/use-toast";
 
 const DASHBOARD_TITLES: Record<string, string> = {
   "/dashboard/upload": "Upload documents",
@@ -31,6 +33,7 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading, firestore } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
   const [supabaseUserData, setSupabaseUserData] = useState<any>(null);
   // The cached session lives in localStorage, which the server can't see. Read it only after mount
   // so the first client render matches the server HTML.
@@ -51,8 +54,18 @@ export default function DashboardLayout({
     async function loadCustomer() {
       if (!user) return;
       try {
-        const c = await getCustomer(user.uid);
+        // A first-time Google user may not have a customers row yet; ensureCustomerProfile creates it.
+        const c = (await ensureCustomerProfile()) || (await getCustomer(user.uid));
         if (c) setSupabaseUserData(c);
+        const welcome = takeOAuthWelcome();
+        if (welcome) {
+          toast({
+            title: "Welcome to Polaris Tax Services!",
+            description:
+              (welcome.bonus ? `$${welcome.bonus.toFixed(2)} has been credited to your wallet. ` : "") +
+              (welcome.referralCode ? `Your referral code is ${welcome.referralCode}.` : "Your account is ready."),
+          });
+        }
       } catch (e) {
         console.error("Error loading customer in dashboard layout:", e);
       }

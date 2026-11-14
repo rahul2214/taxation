@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -24,6 +24,8 @@ import {
   CustomerRecord,
 } from "@/lib/supabase/services";
 import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
+import { startGoogleAuth } from "@/lib/supabase/google-auth";
+import { emailAuthApi } from "@/lib/auth-email";
 import { HEARD_ABOUT_OPTIONS, heardAboutValue as toHeardAboutValue } from "@/data/heard-about";
 
 const GoogleIcon = () => (
@@ -57,6 +59,8 @@ function SignupContent() {
   const [createdCouponCode, setCreatedCouponCode] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [rewardAmount, setRewardAmount] = useState<number>(25.0);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const signupGateRef = useRef(false);
 
   // Load dynamic reward amount from site settings
   useEffect(() => {
@@ -114,7 +118,8 @@ function SignupContent() {
   };
 
   useEffect(() => {
-    if (showWelcomeDialog) return;
+    // While handleSignup runs, the new session must not auto-redirect (it may be signed out for verification).
+    if (showWelcomeDialog || signupGateRef.current) return;
 
     const cachedTarget = getUserRedirectPath();
     if (cachedTarget && !isRedirecting) {
@@ -149,6 +154,8 @@ function SignupContent() {
     }
 
     setIsSigningUp(true);
+    signupGateRef.current = true;
+    setNeedsVerification(false);
     const cleanEmail = signupEmail.trim().toLowerCase();
     const cleanReferral = signupReferralCode.trim();
     const heardAboutValue = toHeardAboutValue(heardAbout, heardAboutOther);
@@ -226,10 +233,28 @@ function SignupContent() {
         }
       }
 
-      // 6. Build informative welcome message
-      let msg = data.session
-        ? "Your account has been successfully created. You can now access your client dashboard."
-        : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
+      // 6. Firebase sends the verification email. Until the link is clicked, login is blocked,
+      //    so end the session Supabase just opened.
+      let verificationSent = false;
+      if (newUserId) {
+        try {
+          const r = await emailAuthApi<{ sent: boolean }>("send-verification", { email: cleanEmail });
+          verificationSent = Boolean(r.sent);
+        } catch (mailErr) {
+          console.warn("Verification email notice:", mailErr);
+        }
+      }
+      if (verificationSent && data.session) {
+        await supabase.auth.signOut();
+      }
+      setNeedsVerification(verificationSent || !data.session);
+
+      // 7. Build informative welcome message
+      let msg = verificationSent
+        ? `Your account has been created! We sent a verification link to ${cleanEmail}. Click it to activate your account, then sign in.`
+        : data.session
+          ? "Your account has been successfully created. You can now access your client dashboard."
+          : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
 
       if (welcomeBonus > 0) {
         msg += `\n\n🎉 Welcome Bonus: $${welcomeBonus.toFixed(2)} has been credited to your Polaris Wallet. Use it toward any plan!`;
@@ -250,7 +275,7 @@ function SignupContent() {
         errorMsgLower.includes("already exists");
 
       if (isAlreadyRegistered) {
-        userFriendlyMessage = `An account with "${cleanEmail}" already exists. Please sign in instead, or use a different email address.`;
+        userFriendlyMessage = `An account with "${cleanEmail}" already exists. Please sign in instead (use "Continue with Google" if you signed up with Google), or use a different email address.`;
       } else if (
         errorCode === "over_email_send_rate_limit" ||
         errorMsgLower.includes("rate limit") ||
@@ -273,6 +298,7 @@ function SignupContent() {
         description: userFriendlyMessage,
       });
     } finally {
+      signupGateRef.current = false;
       setIsSigningUp(false);
     }
   };
@@ -280,13 +306,16 @@ function SignupContent() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/signup`,
-        },
+      // Carry the referral code and "heard about" answer through the Google redirect;
+      // ensureCustomerProfile applies them when the account is created.
+      await startGoogleAuth({
+        returnPath: "/signup",
+        referralCode: signupReferralCode,
+        heardAbout:
+          heardAbout && (heardAbout !== "Other" || heardAboutOther.trim())
+            ? toHeardAboutValue(heardAbout, heardAboutOther)
+            : undefined,
       });
-      if (error) throw error;
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -512,14 +541,16 @@ function SignupContent() {
               className="w-full"
               onClick={() => {
                 setShowWelcomeDialog(false);
-                if (user) {
+                if (needsVerification) {
+                  router.push("/login");
+                } else if (user) {
                   checkRoleAndRedirect(user);
                 } else {
                   router.push("/dashboard");
                 }
               }}
             >
-              Go to Dashboard
+              {needsVerification ? "Go to Sign In" : "Go to Dashboard"}
             </Button>
           </DialogFooter>
         </DialogContent>

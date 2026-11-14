@@ -9,6 +9,7 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 import { supabase } from '@/lib/supabase/client';
 import { getCachedAuth, setCachedAuth, clearCachedAuth } from '@/lib/cache/auth-cache';
+import { displayNameFromAuthUser, ensureCustomerProfile } from '@/lib/supabase/google-auth';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -110,15 +111,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           uid: su.id,
           id: su.id,
           email: su.email || null,
-          displayName: su.user_metadata?.first_name 
-            ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
-            : (su.email?.split('@')[0] || null),
+          displayName: displayNameFromAuthUser(su),
           phoneNumber: su.user_metadata?.phone || null,
           user_metadata: su.user_metadata,
           role: su.user_metadata?.role || 'customer',
         } as any;
 
         setCachedAuth(mappedUser);
+        // Google sign-ins have no customers row yet; create it (no-op when it exists).
+        ensureCustomerProfile(su).catch((err) => console.warn("Customer profile sync notice:", err));
         setUserAuthState({
           user: mappedUser,
           isUserLoading: false,
@@ -203,15 +204,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           uid: su.id,
           id: su.id,
           email: su.email || null,
-          displayName: su.user_metadata?.first_name 
-            ? `${su.user_metadata.first_name} ${su.user_metadata.last_name || ''}`.trim()
-            : (su.email?.split('@')[0] || null),
+          displayName: displayNameFromAuthUser(su),
           phoneNumber: su.user_metadata?.phone || null,
           user_metadata: su.user_metadata,
           role: su.user_metadata?.role || 'customer',
         } as any;
 
         setCachedAuth(mappedUser);
+        // Google sign-ins have no customers row yet; create it (no-op when it exists).
+        ensureCustomerProfile(su).catch((err) => console.warn("Customer profile sync notice:", err));
         setUserAuthState({
           user: mappedUser,
           isUserLoading: false,

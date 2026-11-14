@@ -1,3 +1,5 @@
+import { createTaxDocument, type TaxDocumentRecord } from "@/lib/supabase/services";
+
 export interface UploadOptions {
   folder?: string; // e.g. "customers", "admin_uploads", "global_forms"
   userId?: string;
@@ -61,6 +63,28 @@ export function uploadFileToCloudflare(
 
     xhr.send(formData);
   });
+}
+
+/**
+ * Uploads a tax document to Cloudflare R2, then records its URL in public.tax_documents.
+ * The two steps succeed or fail together: if the database insert fails, the file is
+ * removed from R2 again and the error is thrown, so no file is left without a record.
+ */
+export async function uploadTaxDocument(
+  file: File,
+  options: UploadOptions,
+  record: Omit<TaxDocumentRecord, "file_url">
+): Promise<{ upload: UploadResult; document: any }> {
+  const upload = await uploadFileToCloudflare(file, options);
+  try {
+    const document = await createTaxDocument({ ...record, file_url: upload.url });
+    return { upload, document };
+  } catch (dbErr: any) {
+    await deleteFileFromCloudflare(upload.key);
+    throw new Error(
+      `The file was uploaded but could not be saved to your records (${dbErr?.message || "database error"}). Please try again.`
+    );
+  }
 }
 
 /**

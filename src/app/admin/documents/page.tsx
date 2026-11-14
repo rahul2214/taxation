@@ -18,7 +18,7 @@ import { Loader2, File as FileIcon } from "lucide-react";
 import { useState, ChangeEvent, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { uploadFileToCloudflare } from "@/lib/upload";
+import { uploadFileToCloudflare, deleteFileFromCloudflare } from "@/lib/upload";
 import { getSiteSettings, updateSiteSettings } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
 
@@ -66,7 +66,7 @@ export default function SiteFormsPage() {
     setUploadingFiles(prev => [...prev, newUpload]);
 
     try {
-      const { url: downloadURL } = await uploadFileToCloudflare(file, {
+      const { url: downloadURL, key: uploadedKey } = await uploadFileToCloudflare(file, {
         folder: "global_forms",
         onProgress: (progress) => {
           setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
@@ -79,8 +79,10 @@ export default function SiteFormsPage() {
           current_year_form_url: formType === 'currentYearFormUrl' ? downloadURL : currentYearUrl,
           prior_year_form_url: formType === 'priorYearFormUrl' ? downloadURL : priorYearUrl,
         });
-      } catch (sbErr) {
-        console.warn("Supabase site settings update warning:", sbErr);
+      } catch (sbErr: any) {
+        // Don't leave an orphaned file in R2 when its URL couldn't be saved.
+        await deleteFileFromCloudflare(uploadedKey);
+        throw new Error(`Uploaded, but the link could not be saved to the database (${sbErr?.message || "database error"}). Please try again.`);
       }
 
       // 2. Update in Firestore if configured

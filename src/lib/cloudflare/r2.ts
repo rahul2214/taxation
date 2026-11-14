@@ -6,9 +6,17 @@ const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
 const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME || 'polaris-tax-documents';
 const publicUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_URL || process.env.CLOUDFLARE_R2_PUBLIC_URL;
 
-export const isR2Configured = Boolean(
-  accountId && accessKeyId && secretAccessKey && bucketName
-);
+// Values copied unchanged from .env.example ("your_..._here", "pub-yourbucketid") are not real settings.
+const isPlaceholder = (v?: string) => !v || /your[_-]|yourbucketid|_here$/i.test(v);
+
+export const isR2Configured =
+  !isPlaceholder(accountId) &&
+  !isPlaceholder(accessKeyId) &&
+  !isPlaceholder(secretAccessKey) &&
+  !isPlaceholder(bucketName);
+
+// Files are served from the bucket's public URL (r2.dev or a custom domain); without one, links won't open.
+export const isR2PublicUrlConfigured = !isPlaceholder(publicUrl);
 
 let r2ClientInstance: S3Client | null = null;
 
@@ -32,7 +40,7 @@ export function getR2Client(): S3Client {
 }
 
 export function getR2PublicUrl(key: string): string {
-  if (publicUrl) {
+  if (publicUrl && isR2PublicUrlConfigured) {
     const cleanPublic = publicUrl.replace(/\/+$/, '');
     const cleanKey = key.replace(/^\/+/, '');
     return `${cleanPublic}/${cleanKey}`;

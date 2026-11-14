@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 import { getCustomer } from "@/lib/supabase/services";
 import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
+import { startGoogleAuth } from "@/lib/supabase/google-auth";
+import { emailAuthApi } from "@/lib/auth-email";
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -38,6 +40,29 @@ function LoginContent() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+
+  // Email verification (sent by Firebase)
+  const searchParams = useSearchParams();
+  const loginGateRef = useRef(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
+
+  const resendVerification = async () => {
+    setIsResending(true);
+    try {
+      const r = await emailAuthApi<{ alreadyVerified?: boolean }>("send-verification", { email: unverifiedEmail });
+      toast(
+        r.alreadyVerified
+          ? { title: "Already verified", description: "Your email is verified. Please sign in again." }
+          : { title: "Verification email sent", description: `We sent a new link to ${unverifiedEmail}.` }
+      );
+      if (r.alreadyVerified) setUnverifiedEmail("");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not send email", description: err.message });
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const checkRoleAndRedirect = async (userData?: any) => {
     setIsRedirecting(true);
@@ -74,7 +99,18 @@ function LoginContent() {
     }
   };
 
+  // Firebase's own pages send people back here after verifying / resetting.
   useEffect(() => {
+    if (searchParams.get("verified")) {
+      toast({ title: "Email verified", description: "Thanks! You can sign in now." });
+    } else if (searchParams.get("reset")) {
+      toast({ title: "Password changed", description: "Sign in with your new password." });
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    // While handleLogin is checking email verification, don't auto-redirect the new session.
+    if (loginGateRef.current) return;
     const cachedTarget = getUserRedirectPath();
     if (cachedTarget && !isRedirecting) {
       setIsRedirecting(true);
@@ -90,21 +126,59 @@ function LoginContent() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
+    setUnverifiedEmail("");
+    loginGateRef.current = true;
     const cleanEmail = loginEmail.trim().toLowerCase();
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: loginPassword,
       });
 
+      if (error?.message?.toLowerCase().includes("invalid login credentials")) {
+        // The password may have been reset on Firebase's page; copy it to Supabase and retry.
+        try {
+          const r = await emailAuthApi<{ synced: boolean }>("login-check", { email: cleanEmail, password: loginPassword });
+          if (r.synced) {
+            ({ data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: loginPassword }));
+          }
+        } catch {
+          // Email service not configured: fall through to the normal error.
+        }
+      }
+
       if (error) {
         if (error.message?.toLowerCase().includes("email not confirmed")) {
-          throw new Error("Please check your email inbox and verify your email address before logging in.");
+          setUnverifiedEmail(cleanEmail);
+          throw new Error("Please verify your email address first. Check your inbox for the link we sent you.");
+        }
+        if (error.message?.toLowerCase().includes("invalid login credentials")) {
+          throw new Error('Incorrect email or password. If you created your account with Google, use "Continue with Google" below.');
         }
         throw error;
       }
 
+      // Email/password accounts must verify their address (Firebase sends the link).
+      if (data?.user && data.user.app_metadata?.provider === "email") {
+        const customer = await getCustomer(data.user.id, { forceRefresh: true });
+        if (customer && (customer as any).email_verified === false) {
+          let verified = false;
+          try {
+            verified = (await emailAuthApi<{ verified: boolean }>("login-check", { email: cleanEmail })).verified;
+          } catch {
+            // Email service unavailable: don't lock customers out because of it.
+            verified = true;
+          }
+          if (!verified) {
+            await supabase.auth.signOut();
+            setUnverifiedEmail(cleanEmail);
+            throw new Error("Please verify your email address first. Check your inbox for the link we sent you.");
+          }
+        }
+      }
+
+      loginGateRef.current = false;
       toast({
         title: "Login Successful",
         description: "Welcome back! Redirecting you to your dashboard...",
@@ -114,6 +188,7 @@ function LoginContent() {
         await checkRoleAndRedirect({ uid: data.user.id, email: data.user.email });
       }
     } catch (error: any) {
+      loginGateRef.current = false;
       toast({
         variant: "destructive",
         title: "Login Failed",
@@ -126,13 +201,8 @@ function LoginContent() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/login`,
-        },
-      });
-      if (error) throw error;
+      // New Google users get their customers row created on return (see ensureCustomerProfile).
+      await startGoogleAuth({ returnPath: "/login" });
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -152,10 +222,8 @@ function LoginContent() {
     }
     setIsResetting(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase(), {
-        redirectTo: `${window.location.origin}/dashboard/account`,
-      });
-      if (error) throw error;
+      // Firebase sends the reset email; the link opens /auth/action, which updates the Supabase password.
+      await emailAuthApi("forgot-password", { email: resetEmail.trim().toLowerCase() });
 
       toast({
         title: "Reset Email Sent",
@@ -194,6 +262,20 @@ function LoginContent() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
+              {unverifiedEmail && (
+                <div role="status" className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900">
+                  <p className="flex items-center gap-2 font-semibold">
+                    <Mail className="h-4 w-4" /> Verify your email to continue
+                  </p>
+                  <p className="text-xs">
+                    We sent a verification link to <strong>{unverifiedEmail}</strong>. Click it, then sign in again. Check your spam folder if you can&apos;t find it.
+                  </p>
+                  <Button type="button" size="sm" variant="outline" onClick={resendVerification} disabled={isResending}>
+                    {isResending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                    Resend verification email
+                  </Button>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email Address</Label>
                 <Input

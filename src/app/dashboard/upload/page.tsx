@@ -27,7 +27,7 @@ import { useState, ChangeEvent, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument, deleteTaxDocument } from "@/lib/supabase/services";
-import { uploadFileToCloudflare, deleteFileFromCloudflare } from "@/lib/upload";
+import { uploadTaxDocument, deleteFileFromCloudflare } from "@/lib/upload";
 import { PageHeading } from "@/components/portal/PageHeading";
 
 type UploadingFile = {
@@ -135,30 +135,27 @@ export default function UploadPage() {
 
   const uploadFile = async (file: File, userId: string) => {
     try {
-      const uploadResult = await uploadFileToCloudflare(file, {
-        folder: "customers",
-        userId,
-        onProgress: (progress) => {
-          setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
+      // 1. Upload to Cloudflare R2 and save the file URL in Supabase (rolled back together on failure)
+      const { upload: uploadResult } = await uploadTaxDocument(
+        file,
+        {
+          folder: "customers",
+          userId,
+          onProgress: (progress) => {
+            setUploadingFiles(prev => prev.map(f => f.name === file.name ? { ...f, progress } : f));
+          },
         },
-      });
-
-      // 1. Save in Supabase
-      try {
-        await createTaxDocument({
+        {
           customer_id: userId,
           document_name: file.name,
-          file_url: uploadResult.url,
           document_type: documentType,
           tax_year: parseInt(taxYear, 10),
           status: "Pending",
           category: 'Customer Upload',
           uploader: 'customer',
-        });
-        fetchSupabaseFiles();
-      } catch (sbErr) {
-        console.warn("Supabase document creation warning:", sbErr);
-      }
+        }
+      );
+      fetchSupabaseFiles();
 
       // 2. Save in Firestore if configured
       if (taxDocsCollection) {
