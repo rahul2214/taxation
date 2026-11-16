@@ -14,6 +14,8 @@ import { getCachedAuth } from "@/lib/cache/auth-cache";
 import { HeardAboutPrompt } from "@/components/dashboard/HeardAboutPrompt";
 import { ensureCustomerProfile, takeOAuthWelcome } from "@/lib/supabase/google-auth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase/client";
+import { isSessionVerified } from "@/lib/auth-email";
 
 const DASHBOARD_TITLES: Record<string, string> = {
   "/dashboard/upload": "Upload documents",
@@ -73,6 +75,38 @@ export default function DashboardLayout({
     loadCustomer();
   }, [user]);
 
+  // Unverified email/password accounts may not use the portal, even with a valid session
+  // (e.g. one left over from signup). The server makes the call; checked once per browser session.
+  const [accessOk, setAccessOk] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        // Not a Supabase customer session (e.g. admin login): the existing checks apply.
+        if (!cancelled) setAccessOk(true);
+        return;
+      }
+      const ok = await isSessionVerified(data.session);
+      if (cancelled) return;
+      if (ok) {
+        setAccessOk(true);
+        return;
+      }
+      try {
+        sessionStorage.setItem("polaris:unverified-email", data.session.user.email || "");
+      } catch {
+        // Storage blocked: the login page just won't prefill the notice.
+      }
+      await supabase.auth.signOut();
+      router.replace("/login");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, router]);
+
   useEffect(() => {
     // If auth state is resolved and there is no user, redirect to login.
     const cached = getCachedAuth();
@@ -88,7 +122,7 @@ export default function DashboardLayout({
   const isLoading = (isUserLoading && !activeUser) || (firestore ? isUserDataLoading : false);
 
   // If we are loading or there's no user yet, show a full-screen loader.
-  if (!mounted || isLoading || !activeUser) {
+  if (!mounted || isLoading || !activeUser || !accessOk) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

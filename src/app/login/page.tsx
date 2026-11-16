@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getCustomer } from "@/lib/supabase/services";
 import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
 import { startGoogleAuth } from "@/lib/supabase/google-auth";
-import { emailAuthApi } from "@/lib/auth-email";
+import { emailAuthApi, isSessionVerified } from "@/lib/auth-email";
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -101,6 +101,17 @@ function LoginContent() {
 
   // Firebase's own pages send people back here after verifying / resetting.
   useEffect(() => {
+    // The dashboard sends unverified accounts back here.
+    try {
+      const pendingEmail = sessionStorage.getItem("polaris:unverified-email");
+      if (pendingEmail) {
+        sessionStorage.removeItem("polaris:unverified-email");
+        setUnverifiedEmail(pendingEmail);
+        setLoginEmail(pendingEmail);
+      }
+    } catch {
+      // Storage blocked: nothing to show.
+    }
     if (searchParams.get("verified")) {
       toast({ title: "Email verified", description: "Thanks! You can sign in now." });
     } else if (searchParams.get("reset")) {
@@ -160,22 +171,11 @@ function LoginContent() {
       }
 
       // Email/password accounts must verify their address (Firebase sends the link).
-      if (data?.user && data.user.app_metadata?.provider === "email") {
-        const customer = await getCustomer(data.user.id, { forceRefresh: true });
-        if (customer && (customer as any).email_verified === false) {
-          let verified = false;
-          try {
-            verified = (await emailAuthApi<{ verified: boolean }>("login-check", { email: cleanEmail })).verified;
-          } catch {
-            // Email service unavailable: don't lock customers out because of it.
-            verified = true;
-          }
-          if (!verified) {
-            await supabase.auth.signOut();
-            setUnverifiedEmail(cleanEmail);
-            throw new Error("Please verify your email address first. Check your inbox for the link we sent you.");
-          }
-        }
+      // The server decides, from this session's token; if it can't confirm, the user stays out.
+      if (!(await isSessionVerified(data?.session))) {
+        await supabase.auth.signOut();
+        setUnverifiedEmail(cleanEmail);
+        throw new Error("Please verify your email address first. Check your inbox for the link we sent you.");
       }
 
       loginGateRef.current = false;

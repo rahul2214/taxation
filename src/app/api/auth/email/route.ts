@@ -6,12 +6,13 @@ import {
   configError,
   findAccount,
   friendlyError,
+  isAccountVerified,
   isFirebaseEmailConfigured,
-  refreshVerifiedFromFirebase,
   sendPasswordResetEmail,
   sendVerificationEmail,
   syncPasswordFromFirebase,
 } from "@/lib/firebase/email-server";
+import { getUserFromRequest } from "@/lib/supabase/server";
 
 /**
  * Email verification and password reset, sent and checked by Firebase,
@@ -21,7 +22,8 @@ import {
  *   verify-email      { oobCode }
  *   check-reset       { oobCode }            -> { email }
  *   reset-password    { oobCode, password }
- *   login-check       { email, password? }   -> { verified, synced }
+ *   login-check       { email, password }    -> { synced }
+ *   session-check     (Authorization: Bearer <Supabase access token>) -> { verified }
  */
 export async function POST(req: NextRequest) {
   if (!isFirebaseEmailConfigured) {
@@ -77,18 +79,20 @@ export async function POST(req: NextRequest) {
       }
 
       case "login-check": {
+        // Supabase rejected this password: maybe it was reset on Firebase's own page.
         if (!email) return bad("Email is required.");
         const password = typeof body?.password === "string" ? body.password : "";
-        if (password) {
-          // Supabase rejected this password: maybe it was reset on Firebase's own page.
-          const synced = await syncPasswordFromFirebase(email, password, req);
-          return NextResponse.json({ synced });
-        }
-        const account = await findAccount(email);
-        if (!account || account.customer.email_verified !== false) {
-          return NextResponse.json({ verified: true });
-        }
-        return NextResponse.json({ verified: await refreshVerifiedFromFirebase(email, req) });
+        if (!password) return bad("Password is required.");
+        const synced = await syncPasswordFromFirebase(email, password, req);
+        return NextResponse.json({ synced });
+      }
+
+      case "session-check": {
+        // Is the signed-in account (from its access token) allowed in? Decided here, not in the browser.
+        const authUser = await getUserFromRequest(req);
+        if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+        const verified = await isAccountVerified(authUser, req);
+        return NextResponse.json({ verified, email: authUser.email });
       }
 
       default:

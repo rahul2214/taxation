@@ -244,20 +244,17 @@ function SignupContent() {
           console.warn("Verification email notice:", mailErr);
         }
       }
-      if (verificationSent && data.session) {
+      // Unverified accounts never stay signed in, whether or not the email went out.
+      if (data.session) {
         await supabase.auth.signOut();
       }
-      setNeedsVerification(verificationSent || !data.session);
+      setNeedsVerification(true);
 
-      // 7. Build the dialog message. When a verification email went out, that is the only thing
-      //    the user needs to act on now; referral details live on the dashboard's Refer page.
-      let msg: string;
-      if (verificationSent || !data.session) {
-        msg = `We've sent a verification link to ${cleanEmail}.\n\nOpen the email and click the link to verify your address, then sign in. If you don't see it in a few minutes, check your spam folder.`;
-      } else {
-        // Verification email could not be sent (email service unavailable): keep it to the essentials.
-        msg = "Your account has been created. You can now access your client dashboard.";
-      }
+      // 7. Build the dialog message: verifying is the only thing the user needs to do now;
+      //    referral details live on the dashboard's Refer page.
+      const msg = verificationSent
+        ? `We've sent a verification link to ${cleanEmail}.\n\nOpen the email and click the link to verify your address, then sign in. If you don't see it in a few minutes, check your spam folder.`
+        : `Your account has been created, but we couldn't send the verification email to ${cleanEmail} just now.\n\nGo to Sign In, enter your email and password, and use "Resend verification email".`;
 
       setWelcomeMessage(msg);
       setShowWelcomeDialog(true);

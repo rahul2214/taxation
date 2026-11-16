@@ -6,7 +6,8 @@
 // only the server knows (an HMAC of the email). The Firebase action codes in the
 // emails are checked here through Firebase's Identity Toolkit REST API, and the
 // result is applied to the Supabase account with the service role key.
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
+import type { User } from '@supabase/supabase-js';
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase/server';
 
 const API_KEY = process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
@@ -81,24 +82,90 @@ async function shadowIdToken(email: string, req?: Request): Promise<{ idToken: s
 
 /** Finds the Supabase auth user + customer row for an email. */
 export async function findAccount(email: string) {
+  const authUser = await findAuthUserByEmail(email);
+  if (!authUser) return null;
+  const customer = await ensureCustomerRow(authUser);
+  return customer ? { customer, authUser } : null;
+}
+
+/** Finds the Supabase login account for an email (the source of truth, not the customers table). */
+async function findAuthUserByEmail(email: string): Promise<User | null> {
   const admin = getSupabaseAdmin();
-  const { data: customer } = await admin
+  const target = email.toLowerCase();
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const hit = data.users.find((u) => u.email?.toLowerCase() === target);
+    if (hit) return hit;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
+
+/**
+ * Returns the customers row for this login account, creating it if missing.
+ * A row left behind by a deleted account with the same email (its id no longer
+ * matches any login) blocks the email's unique key, so it is removed first.
+ */
+export async function ensureCustomerRow(authUser: User) {
+  const admin = getSupabaseAdmin();
+  const { data: own } = await admin.from('customers').select('*').eq('id', authUser.id).maybeSingle();
+  if (own) return own;
+
+  const email = (authUser.email || '').toLowerCase();
+  const { data: sameEmail } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
+  if (sameEmail && sameEmail.id !== authUser.id) {
+    const { data: owner } = await admin.auth.admin.getUserById(sameEmail.id);
+    if (owner?.user) return null; // Belongs to a different live account: leave it alone.
+    await admin.from('customers').delete().eq('id', sameEmail.id);
+  }
+
+  const meta = authUser.user_metadata || {};
+  const fullName = String(meta.full_name || meta.name || '').trim();
+  const first = String(meta.first_name || meta.given_name || fullName.split(/\s+/)[0] || email.split('@')[0]);
+  const last = String(meta.last_name || meta.family_name || fullName.split(/\s+/).slice(1).join(' ') || '');
+  const prefix = first.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'POLARIS';
+  const { data: created, error } = await admin
     .from('customers')
-    .select('*') // '*' so this still works before the email_verified column is added
-    .ilike('email', email)
-    .maybeSingle();
-  if (!customer?.id) return null;
-  const { data } = await admin.auth.admin.getUserById(customer.id);
-  return data?.user ? { customer, authUser: data.user } : null;
+    .insert({
+      id: authUser.id,
+      email,
+      first_name: first,
+      last_name: last,
+      phone: meta.phone || null,
+      role: 'customer',
+      role_id: 2,
+      referral_code: meta.referral_code || `${prefix}-${randomBytes(2).toString('hex').toUpperCase()}`,
+      heard_about: meta.heard_about || null,
+      // Only email/password accounts need to verify; Google already verified the address.
+      email_verified: authUser.app_metadata?.provider !== 'email',
+    })
+    .select('*')
+    .single();
+  if (error) {
+    // Lost a race with the signup page or the database trigger: read what they wrote.
+    const { data: again } = await admin.from('customers').select('*').eq('id', authUser.id).maybeSingle();
+    return again;
+  }
+  return created;
+}
+
+/** True when this login account may use the site: Google accounts always, email accounts once verified. */
+export async function isAccountVerified(authUser: User, req?: Request) {
+  if (authUser.app_metadata?.provider !== 'email') return true;
+  const customer = await ensureCustomerRow(authUser);
+  if (customer?.email_verified === true) return true;
+  // Verified on Firebase's own page (no custom action URL): copy that over.
+  return refreshVerifiedFromFirebase(authUser.email || '', req);
 }
 
 export async function markEmailVerified(email: string) {
   const account = await findAccount(email);
   if (!account) return false;
   const admin = getSupabaseAdmin();
-  await admin.from('customers').update({ email_verified: true, updated_at: new Date().toISOString() }).eq('id', account.customer.id);
+  await admin.from('customers').update({ email_verified: true, updated_at: new Date().toISOString() }).eq('id', account.authUser.id);
   if (!account.authUser.email_confirmed_at) {
-    await admin.auth.admin.updateUserById(account.customer.id, { email_confirm: true });
+    await admin.auth.admin.updateUserById(account.authUser.id, { email_confirm: true });
   }
   return true;
 }
@@ -161,7 +228,7 @@ export async function applyResetCode(oobCode: string, newPassword: string, req?:
   if (!account) throw new FirebaseApiError('EMAIL_NOT_FOUND');
   // Consume the code; the Firebase account keeps the server-only password.
   await call('resetPassword', { oobCode, newPassword: shadowPassword(email) }, req);
-  const { error } = await getSupabaseAdmin().auth.admin.updateUserById(account.customer.id, {
+  const { error } = await getSupabaseAdmin().auth.admin.updateUserById(account.authUser.id, {
     password: newPassword,
     // Getting the reset email proves they own the address.
     email_confirm: true,
@@ -187,7 +254,7 @@ export async function syncPasswordFromFirebase(email: string, password: string, 
   }
   const account = await findAccount(email);
   if (!account) return false;
-  const { error } = await getSupabaseAdmin().auth.admin.updateUserById(account.customer.id, { password, email_confirm: true });
+  const { error } = await getSupabaseAdmin().auth.admin.updateUserById(account.authUser.id, { password, email_confirm: true });
   if (error) return false;
   await markEmailVerified(email);
   // Put the Firebase account back on the server-only password.
