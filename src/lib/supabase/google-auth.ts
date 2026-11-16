@@ -159,6 +159,7 @@ export function takeOAuthWelcome(): OAuthWelcome | null {
 }
 
 const inFlight = new Map<string, Promise<CustomerRecord | null>>();
+const confirmed = new Set<string>();
 
 /**
  * Makes sure the signed-in Supabase user has a public.customers row and returns it.
@@ -169,6 +170,8 @@ export function ensureCustomerProfile(authUser?: SupabaseAuthUser | null): Promi
 
   const run = async (user: SupabaseAuthUser | null | undefined) => {
     if (!user?.id || !user.email) return null;
+    // Already confirmed this session: use the cached row instead of re-querying on every auth event.
+    if (confirmed.has(user.id)) return getCustomer(user.id);
     const existing = inFlight.get(user.id);
     if (existing) return existing;
     const p = createIfMissing(user).finally(() => inFlight.delete(user.id));
@@ -177,7 +180,8 @@ export function ensureCustomerProfile(authUser?: SupabaseAuthUser | null): Promi
   };
 
   if (authUser) return run(authUser);
-  return supabase.auth.getUser().then(({ data }) => run(data.user));
+  // getSession reads the local session (no network round trip, unlike getUser).
+  return supabase.auth.getSession().then(({ data }) => run(data.session?.user));
 }
 
 async function createIfMissing(user: SupabaseAuthUser): Promise<CustomerRecord | null> {
@@ -272,5 +276,6 @@ async function createIfMissing(user: SupabaseAuthUser): Promise<CustomerRecord |
   }
 
   clearPending();
+  confirmed.add(user.id);
   return customer;
 }

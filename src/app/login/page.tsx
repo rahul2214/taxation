@@ -204,7 +204,7 @@ function LoginContent() {
       // New Google users get their customers row created on return (see ensureCustomerProfile).
       await startGoogleAuth({ returnPath: "/login" });
     } catch (error: any) {
-      console.error("Google Sign-In Error:", error);
+      console.warn("Google Sign-In notice:", error?.message || error);
       toast({
         variant: "destructive",
         title: "Sign-In Failed",

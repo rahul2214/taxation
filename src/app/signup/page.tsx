@@ -317,7 +317,7 @@ function SignupContent() {
             : undefined,
       });
     } catch (error: any) {
-      console.error("Google Sign-In Error:", error);
+      console.warn("Google Sign-In notice:", error?.message || error);
       toast({
         variant: "destructive",
         title: "Sign-In Failed",

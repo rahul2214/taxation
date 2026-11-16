@@ -274,7 +274,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     return {
       areServicesAvailable: servicesAvailable,
       firebaseApp: servicesAvailable ? firebaseApp : null,
-      firestore: servicesAvailable ? firestore : null,
+      // All data lives in Supabase now. Firestore stays off unless explicitly enabled: with the
+      // Firestore API disabled in the Firebase project, every read retried for seconds and the
+      // dashboard waited on it before rendering.
+      firestore: servicesAvailable && process.env.NEXT_PUBLIC_ENABLE_FIRESTORE === 'true' ? firestore : null,
       auth: servicesAvailable ? auth : null,
       storage: servicesAvailable ? storage : null,
       user: userAuthState.user,
