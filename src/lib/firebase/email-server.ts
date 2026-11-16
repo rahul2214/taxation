@@ -208,6 +208,7 @@ export function friendlyError(err: unknown) {
     case 'TOO_MANY_ATTEMPTS_TRY_LATER':
       return 'Too many requests. Please wait a few minutes and try again.';
     case 'OPERATION_NOT_ALLOWED':
+    case 'PASSWORD_LOGIN_DISABLED':
       return 'Email sign-in is turned off in Firebase (Authentication -> Sign-in method -> Email/Password).';
     case 'API_KEY_INVALID':
     case 'API_KEY_HTTP_REFERRER_BLOCKED':

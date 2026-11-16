@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Gift, CheckCircle2, ArrowRight } from "lucide-react";
+import { Loader2, Gift, CheckCircle2, ArrowRight, MailCheck } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
@@ -249,18 +249,15 @@ function SignupContent() {
       }
       setNeedsVerification(verificationSent || !data.session);
 
-      // 7. Build informative welcome message
-      let msg = verificationSent
-        ? `Your account has been created! We sent a verification link to ${cleanEmail}. Click it to activate your account, then sign in.`
-        : data.session
-          ? "Your account has been successfully created. You can now access your client dashboard."
-          : `Your account has been created! A verification email was sent to ${cleanEmail}.`;
-
-      if (welcomeBonus > 0) {
-        msg += `\n\n🎉 Welcome Bonus: $${welcomeBonus.toFixed(2)} has been credited to your Polaris Wallet. Use it toward any plan!`;
+      // 7. Build the dialog message. When a verification email went out, that is the only thing
+      //    the user needs to act on now; referral details live on the dashboard's Refer page.
+      let msg: string;
+      if (verificationSent || !data.session) {
+        msg = `We've sent a verification link to ${cleanEmail}.\n\nOpen the email and click the link to verify your address, then sign in. If you don't see it in a few minutes, check your spam folder.`;
+      } else {
+        // Verification email could not be sent (email service unavailable): keep it to the essentials.
+        msg = "Your account has been created. You can now access your client dashboard.";
       }
-
-      msg += `\n\n💳 Your Personal Referral Coupon: ${userReferralCode}\nShare it with friends: they get $${rewardAmount.toFixed(2)} right away, and you earn $${rewardAmount.toFixed(2)} once they purchase a plan.`;
 
       setWelcomeMessage(msg);
       setShowWelcomeDialog(true);
@@ -521,20 +518,18 @@ function SignupContent() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-blue-600" /> Welcome to Polaris Tax Services!
+              {needsVerification ? (
+                <><MailCheck className="h-5 w-5 text-blue-600" /> Verify your email</>
+              ) : (
+                <><CheckCircle2 className="h-5 w-5 text-blue-600" /> Welcome to Polaris Tax Services!</>
+              )}
             </DialogTitle>
             <DialogDescription className="whitespace-pre-line text-sm text-foreground/90 mt-2 leading-relaxed">
               {welcomeMessage}
             </DialogDescription>
           </DialogHeader>
 
-          {createdCouponCode && (
-            <div className="p-3 bg-muted/60 rounded-lg border border-dashed border-primary/40 text-center space-y-1">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Your Referral Coupon Code</span>
-              <p className="text-xl font-mono font-bold text-primary tracking-wider select-all">{createdCouponCode}</p>
-              <p className="text-[11px] text-muted-foreground">Earn ${rewardAmount.toFixed(2)} for every friend who joins and purchases a plan.</p>
-            </div>
-          )}
+          {/* The referral coupon is shown on the dashboard's Refer page, not right after signup. */}
 
           <DialogFooter className="pt-2">
             <Button
