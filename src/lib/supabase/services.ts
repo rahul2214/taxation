@@ -644,6 +644,77 @@ export async function getContacts(options?: CacheOptions): Promise<ContactRecord
   );
 }
 
+// -------------------------------------------------------------
+// Feedback Service (website widget, client portal, mobile app)
+// -------------------------------------------------------------
+export type FeedbackStatus = 'new' | 'reviewed' | 'resolved' | 'archived';
+export type FeedbackSource = 'website' | 'client_portal' | 'mobile_app';
+
+export interface FeedbackRecord {
+  id?: string;
+  customer_id?: string | null;
+  name?: string | null;
+  email?: string | null;
+  rating?: number | null; // 1-5
+  category?: string | null;
+  message: string;
+  source?: FeedbackSource | string;
+  platform?: string | null; // 'web', 'ios', 'android'
+  device?: string | null; // 'desktop', 'mobile', 'tablet'
+  page?: string | null;
+  app_version?: string | null;
+  user_agent?: string | null;
+  status?: FeedbackStatus;
+  created_at?: string;
+}
+
+const FEEDBACK_OPTIONAL_COLUMNS = ['customer_id', 'platform', 'device', 'page', 'app_version', 'user_agent', 'category'];
+
+export async function createFeedback(feedback: FeedbackRecord): Promise<FeedbackRecord> {
+  if (!isSupabaseConfigured) throw new Error('Database is not configured');
+  const data = await insertWithOptionalColumns<FeedbackRecord>(
+    'feedback',
+    { ...feedback, source: feedback.source || 'website', status: feedback.status || 'new' },
+    FEEDBACK_OPTIONAL_COLUMNS,
+    ['customer_id']
+  );
+  apiCache.invalidate('feedback');
+  return data;
+}
+
+export async function getFeedback(options?: CacheOptions): Promise<FeedbackRecord[]> {
+  if (!isSupabaseConfigured) return [];
+  return apiCache.getOrFetch(
+    'feedback:all',
+    async () => {
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        // Table not created yet
+        if (error.code === '42P01' || error.code === 'PGRST205') return [];
+        throw new Error(error.message);
+      }
+      return data || [];
+    },
+    { ttlMs: 30_000, ...options }
+  );
+}
+
+export async function updateFeedbackStatus(id: string, status: FeedbackStatus) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from('feedback')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  apiCache.invalidate('feedback');
+  return data;
+}
+
 export async function updateContactStatus(id: string, status: ContactStatus) {
   if (!isSupabaseConfigured) return null;
   const { data, error } = await supabase

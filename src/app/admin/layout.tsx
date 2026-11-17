@@ -18,6 +18,7 @@ import {
   getAdminByEmail,
   getPlanPurchases,
   getContacts,
+  getFeedback,
 } from "@/lib/supabase/services";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
 
@@ -25,6 +26,7 @@ const ADMIN_TITLES: Record<string, string> = {
   "/admin": "Dashboard",
   "/admin/appointments": "Appointments",
   "/admin/contacts": "Contact messages",
+  "/admin/feedback": "Feedback",
   "/admin/tax-documents": "Client documents",
   "/admin/referrals": "Referrals",
   "/admin/orders": "Plan orders",
@@ -54,7 +56,7 @@ export default function AdminLayout({
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
   const [isSupabaseAdmin, setIsSupabaseAdmin] = useState<boolean | null>(null);
-  const [sbCounts, setSbCounts] = useState({ apts: 0, refs: 0, docs: 0, orders: 0, contacts: 0 });
+  const [sbCounts, setSbCounts] = useState({ apts: 0, refs: 0, docs: 0, orders: 0, contacts: 0, feedback: 0 });
 
   useEffect(() => {
     if (isLoginPage) return;
@@ -96,12 +98,13 @@ export default function AdminLayout({
 
         setIsSupabaseAdmin(isAdm);
 
-        const [apts, refs, docs, orders, contacts] = await Promise.all([
+        const [apts, refs, docs, orders, contacts, feedback] = await Promise.all([
           getAppointments(),
           getReferrals(),
           getTaxDocuments(),
           getPlanPurchases().catch(() => []),
           getContacts().catch(() => []),
+          getFeedback().catch(() => []),
         ]);
         setSbCounts({
           apts: apts.filter((a) => a.status?.toLowerCase() === "pending").length,
@@ -109,6 +112,7 @@ export default function AdminLayout({
           docs: docs.filter((d) => d.status?.toLowerCase() === "pending").length,
           orders: orders.filter((o) => o.status === "pending").length,
           contacts: contacts.filter((c) => (c.status || "new") === "new").length,
+          feedback: feedback.filter((f) => (f.status || "new") === "new").length,
         });
       } catch (err) {
         console.error("Error in Supabase admin verification/counts:", err);
@@ -211,6 +215,7 @@ export default function AdminLayout({
         pendingDocumentsCount={pendingDocumentsCount + sbCounts.docs}
         pendingOrdersCount={sbCounts.orders}
         newContactsCount={sbCounts.contacts}
+        newFeedbackCount={sbCounts.feedback}
       />
       <PortalShell area="Admin" areaHref="/admin" titles={ADMIN_TITLES}>
         {children}

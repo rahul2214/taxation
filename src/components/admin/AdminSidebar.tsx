@@ -16,6 +16,7 @@ import {
   Receipt,
   Mail,
   ListChecks,
+  MessageSquareHeart,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
@@ -29,6 +30,7 @@ type AdminSidebarProps = {
   pendingDocumentsCount: number;
   pendingOrdersCount?: number;
   newContactsCount?: number;
+  newFeedbackCount?: number;
 };
 
 export function AdminSidebar({
@@ -37,6 +39,7 @@ export function AdminSidebar({
   pendingDocumentsCount,
   pendingOrdersCount = 0,
   newContactsCount = 0,
+  newFeedbackCount = 0,
 }: AdminSidebarProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -73,6 +76,7 @@ export function AdminSidebar({
       items: [
         { href: "/admin/appointments", label: "Appointments", icon: CalendarCheck, badge: countOrNull(pendingAppointmentsCount) },
         { href: "/admin/contacts", label: "Contact messages", icon: Mail, badge: countOrNull(newContactsCount) },
+        { href: "/admin/feedback", label: "Feedback", icon: MessageSquareHeart, badge: countOrNull(newFeedbackCount) },
         { href: "/admin/tax-documents", label: "Client documents", icon: FileText, badge: countOrNull(pendingDocumentsCount) },
         { href: "/admin/orders", label: "Plan orders", icon: Receipt, badge: countOrNull(pendingOrdersCount) },
         { href: "/admin/referrals", label: "Referrals", icon: UsersRound, badge: countOrNull(pendingReferralsCount) },

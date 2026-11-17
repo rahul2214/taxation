@@ -12,6 +12,7 @@ import { doc } from "firebase/firestore";
 import { getCustomer } from "@/lib/supabase/services";
 import { getCachedAuth } from "@/lib/cache/auth-cache";
 import { HeardAboutPrompt } from "@/components/dashboard/HeardAboutPrompt";
+import { FeedbackWidget } from "@/components/common/FeedbackWidget";
 import { ensureCustomerProfile, takeOAuthWelcome } from "@/lib/supabase/google-auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
@@ -137,6 +138,7 @@ export default function DashboardLayout({
         {children}
       </PortalShell>
       <HeardAboutPrompt customer={supabaseUserData} />
+      <FeedbackWidget source="client_portal" />
     </SidebarProvider>
   );
 }
