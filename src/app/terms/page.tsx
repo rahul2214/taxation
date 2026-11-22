@@ -174,7 +174,7 @@ export default function TermsPage() {
               </p>
               <div className="bg-paper border border-paper-line rounded-[3px] p-4 space-y-1 text-xs">
                 <p><strong className="text-ink">Polaris Tax Services Inc. — Legal &amp; Client Services</strong></p>
-                <p>Email: <a href="mailto:plrstaxservices@gmail.com" className="text-brass-dark hover:underline">plrstaxservices@gmail.com</a></p>
+                <p>Email: <a href="mailto:taxsupport@plrstax.com" className="text-brass-dark hover:underline">taxsupport@plrstax.com</a></p>
                 <p>Office: (212) 847-1920</p>
                 <p>Address: 440 Park Avenue South, 12th Floor, New York, NY 10016</p>
               </div>

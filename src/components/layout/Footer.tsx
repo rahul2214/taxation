@@ -71,8 +71,8 @@ export function Footer() {
               <a href="tel:+12128471920" className="block font-medium text-ink hover:text-brass-dark">
                 (212) 847-1920
               </a>
-              <a href="mailto:plrstaxservices@gmail.com" className="block text-ink-soft hover:text-ink">
-                plrstaxservices@gmail.com
+              <a href="mailto:taxsupport@plrstax.com" className="block text-ink-soft hover:text-ink">
+                taxsupport@plrstax.com
               </a>
               <p className="pt-2 text-sm text-ink-muted">
                 440 Park Avenue South, 12th Floor

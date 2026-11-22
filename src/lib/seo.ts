@@ -10,7 +10,7 @@ export const SITE = {
     "Licensed CPAs and Enrolled Agents for individual and small business tax returns, S-Corp filings and IRS notices. Fixed prices from $99. Serving all 50 states.",
   phone: "+1-212-847-1920",
   phoneDisplay: "(212) 847-1920",
-  email: "plrstaxservices@gmail.com",
+  email: "taxsupport@plrstax.com",
   address: {
     street: "440 Park Avenue South, 12th Floor",
     city: "New York",
