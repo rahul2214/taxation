@@ -12,9 +12,8 @@ import { Label } from "@/components/ui/label";
 import { emailAuthApi } from "@/lib/auth-email";
 
 /**
- * Landing page for the links in Firebase's emails.
- * Set it as the custom action URL in Firebase Console:
- *   Authentication -> Templates -> (pencil) -> Customize action URL -> https://<site>/auth/action
+ * Landing page for the verification and password reset links emailed with Resend
+ * (see src/lib/email/auth-mail.ts).
  */
 function ActionContent() {
   const params = useSearchParams();

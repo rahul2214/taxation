@@ -233,7 +233,7 @@ function SignupContent() {
         }
       }
 
-      // 6. Firebase sends the verification email. Until the link is clicked, login is blocked,
+      // 6. The server sends the verification email (Resend). Until the link is clicked, login is blocked,
       //    so end the session Supabase just opened.
       let verificationSent = false;
       if (newUserId) {

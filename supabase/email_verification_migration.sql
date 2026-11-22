@@ -1,21 +1,20 @@
 -- ==============================================================================
--- Polaris Tax Services - Email Verification (sent by Firebase) Migration
+-- Polaris Tax Services - Email Verification (sent with Resend) Migration
 -- Run this in your Supabase Project: Dashboard -> SQL Editor -> New Query -> Run
 --
 -- New email/password customers start unverified and can't sign in until they click
--- the link Firebase emails them. Google sign-ins are never blocked (Google already
--- verified the address). Everyone who exists today is marked verified.
+-- the link emailed to them (sent with Resend). Google sign-ins are never blocked
+-- (Google already verified the address). Everyone who exists today is marked verified.
 --
 -- Also required:
 --   Supabase: Authentication -> Providers -> Email -> turn OFF "Confirm email"
---             (Firebase sends the verification email now, not Supabase).
---   Firebase: Authentication -> Sign-in method -> enable Email/Password.
---   Firebase: Authentication -> Templates -> (pencil icon) -> Customize action URL ->
---             https://www.plrstax.com/auth/action
---             (applies to the verification AND password reset emails; edit the sender
---              name and subject in the same Templates screen).
---   Firebase: Authentication -> Settings -> Authorized domains: add www.plrstax.com.
---   .env:     NEXT_PUBLIC_FIREBASE_API_KEY and SUPABASE_SERVICE_ROLE_KEY must be set.
+--             (the site sends the verification email with Resend, not Supabase).
+--   Resend:   Domains -> add and verify your sending domain (e.g. plrstax.com),
+--             then API Keys -> create a key with "Sending access".
+--   .env:     RESEND_API_KEY, RESEND_FROM_EMAIL (e.g. "Polaris Tax Services <no-reply@plrstax.com>"),
+--             SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SITE_URL must be set.
+--             AUTH_TOKEN_SECRET (optional, long random string) signs the email links;
+--             if unset, the service role key is used.
 -- ==============================================================================
 
 ALTER TABLE public.customers

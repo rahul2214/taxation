@@ -35,7 +35,7 @@ export async function isSessionVerified(session: Session | null | undefined): Pr
   }
 }
 
-/** Client wrapper for /api/auth/email (Firebase-sent verification and password reset emails). */
+/** Client wrapper for /api/auth/email (verification and password reset emails, sent with Resend). */
 export async function emailAuthApi<T = any>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
   const res = await fetch("/api/auth/email", {
     method: "POST",

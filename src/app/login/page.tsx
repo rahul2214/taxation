@@ -41,7 +41,7 @@ function LoginContent() {
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
-  // Email verification (sent by Firebase)
+  // Email verification (sent with Resend)
   const searchParams = useSearchParams();
   const loginGateRef = useRef(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
@@ -99,7 +99,6 @@ function LoginContent() {
     }
   };
 
-  // Firebase's own pages send people back here after verifying / resetting.
   useEffect(() => {
     // The dashboard sends unverified accounts back here.
     try {
@@ -142,22 +141,10 @@ function LoginContent() {
     const cleanEmail = loginEmail.trim().toLowerCase();
 
     try {
-      let { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: loginPassword,
       });
-
-      if (error?.message?.toLowerCase().includes("invalid login credentials")) {
-        // The password may have been reset on Firebase's page; copy it to Supabase and retry.
-        try {
-          const r = await emailAuthApi<{ synced: boolean }>("login-check", { email: cleanEmail, password: loginPassword });
-          if (r.synced) {
-            ({ data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: loginPassword }));
-          }
-        } catch {
-          // Email service not configured: fall through to the normal error.
-        }
-      }
 
       if (error) {
         if (error.message?.toLowerCase().includes("email not confirmed")) {
@@ -170,7 +157,7 @@ function LoginContent() {
         throw error;
       }
 
-      // Email/password accounts must verify their address (Firebase sends the link).
+      // Email/password accounts must verify their address (sent with Resend).
       // The server decides, from this session's token; if it can't confirm, the user stays out.
       if (!(await isSessionVerified(data?.session))) {
         await supabase.auth.signOut();
@@ -222,7 +209,7 @@ function LoginContent() {
     }
     setIsResetting(true);
     try {
-      // Firebase sends the reset email; the link opens /auth/action, which updates the Supabase password.
+      // The server emails a reset link (Resend); it opens /auth/action, which updates the Supabase password.
       await emailAuthApi("forgot-password", { email: resetEmail.trim().toLowerCase() });
 
       toast({
