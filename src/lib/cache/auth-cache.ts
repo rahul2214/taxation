@@ -185,5 +185,5 @@ export function clearCachedAuth(): void {
 export function getUserRedirectPath(): string | null {
   const { user, isAdmin } = getCachedAuth();
   if (!user) return null;
-  return isAdmin ? "/admin" : "/dashboard";
+  return isAdmin ? "/admin" : "/dashboard/account";
 }

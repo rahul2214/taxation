@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import type { CustomerRecord } from "@/lib/supabase/services";
 
 /**
  * Asks the server whether this session's account may use the site. Google accounts
@@ -8,9 +9,20 @@ import type { Session } from "@supabase/supabase-js";
 export async function isSessionVerified(session: Session | null | undefined): Promise<boolean> {
   if (!session?.user) return false;
   if (session.user.app_metadata?.provider !== "email") return true;
+  return (await checkSession(session)).verified;
+}
+
+/**
+ * Like isSessionVerified, but when it has to ask the server it also returns the
+ * account's customers row, so login doesn't need a second request to read the role.
+ */
+export async function checkSession(
+  session: Session | null | undefined
+): Promise<{ verified: boolean; customer?: CustomerRecord | null }> {
+  if (!session?.user) return { verified: false };
   const cacheKey = `polaris:verified:${session.user.id}`;
   try {
-    if (sessionStorage.getItem(cacheKey) === "1") return true;
+    if (sessionStorage.getItem(cacheKey) === "1") return { verified: true };
   } catch {
     // Storage blocked: just ask the server.
   }
@@ -29,9 +41,11 @@ export async function isSessionVerified(session: Session | null | undefined): Pr
         // Storage blocked: the next page load asks again.
       }
     }
-    return verified;
+    // Google accounts are always allowed in; a failed check only stops email accounts.
+    if (!res.ok && session.user.app_metadata?.provider !== "email") return { verified: true };
+    return { verified, customer: verified ? data?.customer ?? null : null };
   } catch {
-    return false;
+    return { verified: session.user.app_metadata?.provider !== "email" };
   }
 }
 

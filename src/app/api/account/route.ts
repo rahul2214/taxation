@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { getSupabaseAdmin, getUserFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
+import { getSupabaseAdmin, getUserClaimsFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import { ensureCustomerRow } from "@/lib/email/auth-mail";
 import { applyReferralCode, listReferrals } from "@/lib/server/referrals";
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!isSupabaseAdminConfigured) {
     return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY is not configured on the server." }, { status: 503 });
   }
-  const user = await getUserFromRequest(req).catch(() => null);
+  const user = await getUserClaimsFromRequest(req).catch(() => null);
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   let body: any;

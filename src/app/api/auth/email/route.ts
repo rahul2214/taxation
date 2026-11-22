@@ -8,12 +8,11 @@ import {
   ensureCustomerRow,
   findAccount,
   friendlyError,
-  isAccountVerified,
   isAuthMailConfigured,
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from "@/lib/email/auth-mail";
-import { getSupabaseAdmin, getUserFromRequest } from "@/lib/supabase/server";
+import { getSupabaseAdmin, getUserClaimsFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import { applyReferralCode } from "@/lib/server/referrals";
 
 /**
@@ -25,13 +24,9 @@ import { applyReferralCode } from "@/lib/server/referrals";
  *   verify-email      { oobCode }
  *   check-reset       { oobCode }            -> { email }
  *   reset-password    { oobCode, password }
- *   session-check     (Authorization: Bearer <Supabase access token>) -> { verified }
+ *   session-check     (Authorization: Bearer <Supabase access token>) -> { verified, customer }
  */
 export async function POST(req: NextRequest) {
-  if (!isAuthMailConfigured) {
-    return NextResponse.json({ error: configError() }, { status: 503 });
-  }
-
   let body: any;
   try {
     body = await req.json();
@@ -39,6 +34,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
   const action = String(body?.action || "");
+
+  // Only the email actions need Resend; checking a session just needs the service role.
+  const ready = action === "session-check" ? isSupabaseAdminConfigured : isAuthMailConfigured;
+  if (!ready) {
+    return NextResponse.json({ error: configError() }, { status: 503 });
+  }
   const email = String(body?.email || "").trim().toLowerCase();
   const oobCode = String(body?.oobCode || "");
 
@@ -131,10 +132,13 @@ export async function POST(req: NextRequest) {
 
       case "session-check": {
         // Is the signed-in account (from its access token) allowed in? Decided here, not in the browser.
-        const authUser = await getUserFromRequest(req);
+        const authUser = await getUserClaimsFromRequest(req).catch(() => null);
         if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-        const verified = await isAccountVerified(authUser);
-        return NextResponse.json({ verified, email: authUser.email });
+        // One call answers both questions login needs: may this account in, and is it an admin.
+        const customer = await ensureCustomerRow(authUser);
+        const verified =
+          authUser.app_metadata?.provider !== "email" || customer?.email_verified === true;
+        return NextResponse.json({ verified, email: authUser.email, customer: verified ? customer : null });
       }
 
       default:

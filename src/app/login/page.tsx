@@ -14,16 +14,19 @@ import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
-import { getCustomer } from "@/lib/supabase/services";
+import { apiCache, getCustomer, type CustomerRecord } from "@/lib/supabase/services";
 import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
 import { startGoogleAuth } from "@/lib/supabase/google-auth";
-import { emailAuthApi, isSessionVerified } from "@/lib/auth-email";
+import { checkSession, emailAuthApi } from "@/lib/auth-email";
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
     <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 76.2C313.6 113.4 283.5 96 248 96c-88.8 0-160.1 71.9-160.1 160.1s71.3 160.1 160.1 160.1c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path>
   </svg>
 );
+
+// /dashboard only redirects here; going straight there skips a render and a navigation.
+const DASHBOARD_HOME = "/dashboard/account";
 
 function LoginContent() {
   const { user, isUserLoading } = useFirebase();
@@ -64,7 +67,7 @@ function LoginContent() {
     }
   };
 
-  const checkRoleAndRedirect = async (userData?: any) => {
+  const checkRoleAndRedirect = async (userData?: any, knownCustomer?: CustomerRecord | null) => {
     setIsRedirecting(true);
     try {
       const cached = getCachedAuth();
@@ -73,13 +76,14 @@ function LoginContent() {
         return;
       }
       if (cached.user && !cached.isAdmin) {
-        router.replace("/dashboard");
+        router.replace(DASHBOARD_HOME);
         return;
       }
 
       const uid = userData?.uid || userData?.id || user?.uid;
       if (uid) {
-        const supabaseUser = await getCustomer(uid);
+        // The login check already returned the customers row; only fetch it if we don't have it.
+        const supabaseUser = knownCustomer?.id === uid ? knownCustomer : await getCustomer(uid);
         if (
           supabaseUser?.role === "admin" ||
           supabaseUser?.role === "superadmin" ||
@@ -92,12 +96,17 @@ function LoginContent() {
         }
         if (supabaseUser) setCachedAuth(supabaseUser as any, "customer");
       }
-      router.replace("/dashboard");
+      router.replace(DASHBOARD_HOME);
     } catch (error) {
       console.error("Error checking user role:", error);
-      router.replace("/dashboard");
+      router.replace(DASHBOARD_HOME);
     }
   };
+
+  // Load the dashboard's code while the user types, so it opens right after sign-in.
+  useEffect(() => {
+    router.prefetch(DASHBOARD_HOME);
+  }, [router]);
 
   useEffect(() => {
     // The dashboard sends unverified accounts back here.
@@ -159,7 +168,8 @@ function LoginContent() {
 
       // Email/password accounts must verify their address (sent with Resend).
       // The server decides, from this session's token; if it can't confirm, the user stays out.
-      if (!(await isSessionVerified(data?.session))) {
+      const access = await checkSession(data?.session);
+      if (!access.verified) {
         await supabase.auth.signOut();
         setUnverifiedEmail(cleanEmail);
         throw new Error("Please verify your email address first. Check your inbox for the link we sent you.");
@@ -171,8 +181,12 @@ function LoginContent() {
         description: "Welcome back! Redirecting you to your dashboard...",
       });
 
+      if (access.customer?.id) {
+        // Seed the cache so the dashboard renders from this row instead of fetching it again.
+        apiCache.set(`customer:${access.customer.id}`, access.customer, 120_000);
+      }
       if (data?.user) {
-        await checkRoleAndRedirect({ uid: data.user.id, email: data.user.email });
+        await checkRoleAndRedirect({ uid: data.user.id, email: data.user.email }, access.customer);
       }
     } catch (error: any) {
       loginGateRef.current = false;

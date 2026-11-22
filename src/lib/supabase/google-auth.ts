@@ -180,7 +180,8 @@ export function ensureCustomerProfile(authUser?: SupabaseAuthUser | null): Promi
 async function createIfMissing(user: SupabaseAuthUser): Promise<CustomerRecord | null> {
   const pending = readPending();
 
-  let customer = await getCustomer(user.id, { forceRefresh: true });
+  // Cached for 2 minutes (login seeds it), so this is usually free right after sign-in.
+  let customer = await getCustomer(user.id);
   let bonus = 0;
 
   // The row, referral bonus and heard_about are written by the server (service role):
