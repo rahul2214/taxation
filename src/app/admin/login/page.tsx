@@ -7,9 +7,8 @@ import { PolarisLogo } from "@/components/common/PolarisLogo";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { getCustomer, getAdminById, getAdminByEmail, verifyAdminCredentials } from "@/lib/supabase/services";
-import { supabase } from "@/lib/supabase/client";
-import { getCachedAuth, setCachedAuth } from "@/lib/cache/auth-cache";
+import { adminLogin, getAdminSession } from "@/lib/admin/api";
+import { getCachedAuth } from "@/lib/cache/auth-cache";
 
 export default function AdminLoginPage() {
   const { user, isUserLoading } = useFirebase();
@@ -39,34 +38,11 @@ export default function AdminLoginPage() {
       if (!isUserLoading && user && !isRedirecting) {
         setIsRedirecting(true);
         try {
-          // 1. Check admins table
-          let isAdm = false;
-          if (user.uid) {
-            const adminById = await getAdminById(user.uid);
-            if (adminById) isAdm = true;
-          }
-          if (!isAdm && user.email) {
-            const adminByEmail = await getAdminByEmail(user.email);
-            if (adminByEmail) isAdm = true;
-          }
-          if (!isAdm && typeof window !== 'undefined') {
-            const stored = localStorage.getItem('polaris_admin_session');
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              if (parsed?.email === user.email || parsed?.id === user.uid) isAdm = true;
-            }
-          }
-          // Fallback customers check
-          if (!isAdm && user.uid) {
-            const sbCustomer = await getCustomer(user.uid);
-            if (sbCustomer?.role === "admin" || sbCustomer?.role === "superadmin" || sbCustomer?.role_id === 1 || sbCustomer?.role_id === 3) isAdm = true;
-          }
-
-          if (isAdm) {
+          // Admin status is decided by the server (httpOnly admin session cookie).
+          if (await getAdminSession()) {
             router.replace("/admin");
             return;
           }
-
           // If logged in as customer, redirect to customer dashboard
           router.replace("/dashboard");
         } catch (err) {
@@ -84,95 +60,25 @@ export default function AdminLoginPage() {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Check direct credentials in the admins table first
-      const { admin, error: credError } = await verifyAdminCredentials(cleanEmail, password);
-
-      if (admin && !credError) {
-        // Admin found and password matched in the admins table
-        const adminSessionData = {
-          id: admin.id || `admin-${cleanEmail}`,
-          email: admin.email,
-          name: admin.name || "Administrator",
-          role: admin.role || "admin",
-        };
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
-          window.dispatchEvent(new Event("polaris_admin_auth_changed"));
-        }
-
-        // Try syncing with Supabase Auth in background (optional)
-        try {
-          await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-        } catch (_) {}
-
-        toast({
-          title: "Admin Verified",
-          description: `Welcome to the Admin Console, ${admin.name || "Administrator"}!`,
-        });
-        router.push("/admin");
-        return;
+      // The server checks the password (admins table, or the Supabase Auth password for
+      // admin accounts) and sets an httpOnly session cookie that every admin request needs.
+      const admin = await adminLogin(cleanEmail, password);
+      const adminSessionData = {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name || "Administrator",
+        role: admin.role || "admin",
+        role_id: admin.role_id,
+      };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
+        window.dispatchEvent(new Event("polaris_admin_auth_changed"));
       }
-
-      if (credError === "Incorrect admin password.") {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Incorrect administrator password.",
-        });
-        return;
-      }
-
-      // 2. Check via Supabase Auth
-      const { data: authData, error: sbAuthError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      if (!sbAuthError && authData.user) {
-        // Check if this authenticated user exists in the admins table
-        const adminRec =
-          (await getAdminByEmail(authData.user.email || cleanEmail)) ||
-          (await getAdminById(authData.user.id));
-        const custRec = !adminRec ? await getCustomer(authData.user.id) : null;
-
-        if (adminRec || custRec?.role === "admin" || custRec?.role === "superadmin" || custRec?.role_id === 1 || custRec?.role_id === 3) {
-          const adminSessionData = {
-            id: authData.user.id,
-            email: authData.user.email || cleanEmail,
-            name: adminRec?.name || authData.user.user_metadata?.first_name || "Admin",
-            role: adminRec?.role || custRec?.role || (custRec?.role_id === 3 ? "superadmin" : "admin"),
-            role_id: adminRec?.role_id || custRec?.role_id || (adminRec?.role === 'superadmin' ? 3 : 1),
-          };
-
-          if (typeof window !== "undefined") {
-            localStorage.setItem("polaris_admin_session", JSON.stringify(adminSessionData));
-            window.dispatchEvent(new Event("polaris_admin_auth_changed"));
-          }
-
-          toast({
-            title: "Admin Verified",
-            description: "Welcome to the Polaris Tax Admin Console.",
-          });
-          router.push("/admin");
-          return;
-        } else {
-          await supabase.auth.signOut();
-          toast({
-            variant: "destructive",
-            title: "Access Denied",
-            description: "This account is not authorized as an administrator. It does not exist in the admins table.",
-          });
-          return;
-        }
-      }
-
-      // If credentials failed all checks
       toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: credError || sbAuthError?.message || "Invalid administrator credentials.",
+        title: "Admin Verified",
+        description: `Welcome to the Admin Console, ${admin.name || "Administrator"}!`,
       });
+      router.push("/admin");
     } catch (error: any) {
       toast({
         variant: "destructive",

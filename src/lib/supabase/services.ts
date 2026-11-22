@@ -1,7 +1,36 @@
 import { supabase, isSupabaseConfigured } from './client';
 import { apiCache, CacheOptions } from '../cache/api-cache';
+import { adminApi, isAdminContext } from '../admin/api';
 
 export { apiCache, type CacheOptions };
+
+// Access model (see supabase/rls_hardening_migration.sql):
+// - Browser + customer session: own rows only (RLS), plus public inserts (appointments,
+//   contacts, feedback) and public reads (plans, site settings, roles, master data).
+// - Admin pages (/admin/*): no Supabase session; their reads/writes go through
+//   /api/admin/data (adminApi), checked against the admin session cookie.
+// - Anything touching other customers' rows or money (signup profile, referral codes,
+//   referral lists) goes through server routes using the service role.
+
+/** POST to /api/account with the signed-in customer's access token. */
+async function accountApi<T = any>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Not signed in.');
+  const res = await fetch('/api/account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action, ...payload }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || 'Request failed');
+  return body as T;
+}
+
+/** Calls the customer's own profile setup on the server (row, referral code, heard_about). */
+export async function ensureProfileOnServer(opts: { referralCode?: string; heardAbout?: string } = {}) {
+  return accountApi<{ customer: CustomerRecord | null; isAdmin: boolean; bonus: number }>('ensure-profile', opts);
+}
 
 export interface RoleRecord {
   id: number; // BIGINT identity (1: admin, 2: customer, 3: superadmin)
@@ -186,108 +215,34 @@ export function generateReferralCode(firstName?: string, email?: string): string
   return `${prefix}-${randomSuffix}`;
 }
 
+/**
+ * Saves the signed-in customer's own profile fields. Only first/last name, phone,
+ * address and heard_about can be changed from the browser (RLS + column grants);
+ * other fields (email, role, wallet, referral code, email_verified) are ignored.
+ * The row itself is created on the server (signup route / ensureProfileOnServer).
+ */
 export async function upsertCustomer(customer: CustomerRecord) {
   if (!isSupabaseConfigured) return null;
 
-  const fullPayload: any = {
-    id: customer.id,
-    first_name: customer.first_name,
-    last_name: customer.last_name,
-    email: customer.email,
-    phone: customer.phone,
-    address: customer.address,
-    role: customer.role || 'customer',
-    role_id: customer.role_id !== undefined ? customer.role_id : (customer.role === 'admin' ? 1 : (customer.role === 'superadmin' ? 3 : 2)),
-    updated_at: new Date().toISOString(),
-  };
-
-  if (customer.referral_code !== undefined) fullPayload.referral_code = customer.referral_code;
-  if (customer.wallet_balance !== undefined) fullPayload.wallet_balance = customer.wallet_balance;
-  if (customer.referred_by !== undefined) {
-    fullPayload.referred_by = customer.referred_by !== null ? String(customer.referred_by) : null;
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const key of ['first_name', 'last_name', 'phone', 'address', 'heard_about'] as const) {
+    if (customer[key] !== undefined) payload[key] = customer[key];
   }
-  if (customer.heard_about !== undefined) fullPayload.heard_about = customer.heard_about;
 
-  try {
-    const { data, error } = await supabase
-      .from('customers')
-      .upsert(fullPayload)
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('customers')
+    .update(payload)
+    .eq('id', customer.id)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
 
-    if (error) {
-      // If error code is 42703 (column does not exist), retry with core fields
-      if (error.code === '42703') {
-        const corePayload = {
-          id: customer.id,
-          first_name: customer.first_name,
-          last_name: customer.last_name,
-          email: customer.email,
-          phone: customer.phone,
-          address: customer.address,
-          role: customer.role || 'customer',
-          updated_at: new Date().toISOString(),
-        };
-        const fallback = await supabase
-          .from('customers')
-          .upsert(corePayload)
-          .select()
-          .single();
-        if (fallback.error) throw fallback.error;
-        
-        // Cache invalidation and population
-        apiCache.invalidate('customers:all');
-        if (fallback.data) {
-          apiCache.set(`customer:${customer.id}`, fallback.data, 120_000);
-          if (fallback.data.userid) apiCache.set(`customer:${fallback.data.userid}`, fallback.data, 120_000);
-        }
-        return fallback.data;
-      }
-      throw error;
-    }
-
-    // Invalidate and refresh cache
-    apiCache.invalidate('customers:all');
-    if (data) {
-      apiCache.set(`customer:${customer.id}`, data, 120_000);
-      if (data.userid) apiCache.set(`customer:${data.userid}`, data, 120_000);
-    }
-    return data;
-  } catch (err) {
-    throw err;
+  apiCache.invalidate('customers:all');
+  if (data) {
+    apiCache.set(`customer:${customer.id}`, data, 120_000);
+    if (data.userid) apiCache.set(`customer:${data.userid}`, data, 120_000);
   }
-}
-
-export async function getCustomerByReferralCode(
-  code: string,
-  options?: CacheOptions
-): Promise<CustomerRecord | null> {
-  if (!isSupabaseConfigured || !code?.trim()) return null;
-  const clean = code.trim().toUpperCase();
-
-  return apiCache.getOrFetch(
-    `customer_ref_code:${clean}`,
-    async () => {
-      try {
-        const { data: byCode, error: errCode } = await supabase
-          .from('customers')
-          .select('*')
-          .ilike('referral_code', clean)
-          .maybeSingle();
-
-        if (!errCode && byCode) {
-          // Cross-populate customer caches
-          if (byCode.id) apiCache.set(`customer:${byCode.id}`, byCode, 120_000);
-          if (byCode.userid) apiCache.set(`customer:${byCode.userid}`, byCode, 120_000);
-          return byCode;
-        }
-      } catch (e) {
-        console.warn("getCustomerByReferralCode notice:", e);
-      }
-      return null;
-    },
-    { ttlMs: 60_000, ...options }
-  );
+  return data;
 }
 
 export async function ensureCustomerReferralCode(
@@ -302,16 +257,10 @@ export async function ensureCustomerReferralCode(
     if (existing?.referral_code) {
       return existing.referral_code;
     }
-
-    const newCode = generateReferralCode(firstName || existing?.first_name, email || existing?.email);
-    await supabase
-      .from('customers')
-      .update({ referral_code: newCode })
-      .eq('id', customerId);
-
-    // Invalidate cache
+    // The referral code is unique and not writable from the browser: the server sets it.
+    const { code } = await accountApi<{ code: string }>('ensure-referral-code');
     apiCache.invalidate(`customer:${customerId}`);
-    return newCode;
+    return code;
   } catch (e) {
     console.warn('ensureCustomerReferralCode fallback:', e);
     return generateReferralCode(firstName, email);
@@ -329,6 +278,9 @@ export async function getCustomer(
     cacheKey,
     async () => {
       try {
+        if (isAdminContext()) {
+          return await adminApi<CustomerRecord | null>('getCustomer', { id: idOrUseridOrEmail });
+        }
         const val = String(idOrUseridOrEmail).trim();
         const isNumeric =
           typeof idOrUseridOrEmail === 'number' ||
@@ -388,15 +340,7 @@ export async function getAllCustomers(options?: CacheOptions): Promise<CustomerR
 
   return apiCache.getOrFetch(
     'customers:all',
-    async () => {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
+    async () => (await adminApi<CustomerRecord[]>('getAllCustomers')) || [],
     { ttlMs: 45_000, ...options } // 45 seconds TTL
   );
 }
@@ -415,6 +359,9 @@ export async function getTaxDocuments(
     cacheKey,
     async () => {
       try {
+        if (isAdminContext()) {
+          return (await adminApi<TaxDocumentRecord[]>('getTaxDocuments', { customerId })) || [];
+        }
         let query = supabase.from('tax_documents').select('*');
         if (customerId) {
           const val = String(customerId).trim();
@@ -441,6 +388,11 @@ export async function getTaxDocuments(
 
 export async function createTaxDocument(doc: TaxDocumentRecord) {
   if (!isSupabaseConfigured) return null;
+  if (isAdminContext()) {
+    const created = await adminApi<TaxDocumentRecord>('createTaxDocument', { doc });
+    apiCache.invalidate('tax_docs');
+    return created;
+  }
   if (doc.customer_userid == null && doc.customer_id) {
     // Keep the int8 customer_userid relation filled in alongside the UUID.
     const owner = await getCustomer(doc.customer_id);
@@ -476,14 +428,7 @@ export async function updateCustomerHeardAbout(id: string, heardAbout: string) {
 
 export async function updateTaxDocumentStatus(id: string, status: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('tax_documents')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
+  const data = await adminApi<TaxDocumentRecord>('updateTaxDocumentStatus', { id, status });
   apiCache.invalidate('tax_docs');
   return data;
 }
@@ -514,6 +459,9 @@ export async function getAppointments(
     cacheKey,
     async () => {
       try {
+        if (isAdminContext()) {
+          return (await adminApi<AppointmentRecord[]>('getAppointments', { identifier: customerIdOrEmail })) || [];
+        }
         let query = supabase.from('appointments').select('*');
         if (customerIdOrEmail) {
           const identifier = String(customerIdOrEmail).trim();
@@ -546,6 +494,9 @@ export async function getAppointments(
  * Inserts a row, tolerating a live DB that is behind the migrations: optional columns
  * the table doesn't have yet are dropped, and optional link ids that fail a foreign key
  * or UUID check are nulled, so a form submission is never lost.
+ *
+ * The row's id is made here and the insert asks for nothing back: visitors may
+ * insert into these tables but (under RLS) not read them, so `.select()` would fail.
  */
 async function insertWithOptionalColumns<T>(
   table: string,
@@ -553,11 +504,11 @@ async function insertWithOptionalColumns<T>(
   optionalColumns: string[],
   linkIdColumns: string[]
 ): Promise<T> {
-  const payload: Record<string, any> = { ...row };
+  const payload: Record<string, any> = { id: row.id || crypto.randomUUID(), ...row };
 
   for (let attempt = 0; attempt <= optionalColumns.length + 1; attempt++) {
-    const { data, error } = await supabase.from(table).insert([payload]).select().single();
-    if (!error) return data as T;
+    const { error } = await supabase.from(table).insert([payload]);
+    if (!error) return { ...payload } as T;
 
     // Column missing from table / PostgREST schema cache (PGRST204, 42703)
     if (error.code === 'PGRST204' || error.code === '42703') {
@@ -569,8 +520,9 @@ async function insertWithOptionalColumns<T>(
       }
     }
 
-    // Foreign key violation (23503) or invalid UUID (22P02): drop the links
-    if ((error.code === '23503' || error.code === '22P02') && linkIdColumns.some((c) => payload[c] != null)) {
+    // Foreign key violation (23503), invalid UUID (22P02), or a link to an account that
+    // isn't this session's (RLS, 42501, e.g. an expired login): save it as a guest row instead
+    if ((error.code === '23503' || error.code === '22P02' || error.code === '42501') && linkIdColumns.some((c) => payload[c] != null)) {
       for (const c of linkIdColumns) if (c in payload) payload[c] = null;
       continue;
     }
@@ -597,14 +549,7 @@ export async function createAppointment(appointment: AppointmentRecord) {
 
 export async function updateAppointmentStatus(id: string, status: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('appointments')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
+  const data = await adminApi<AppointmentRecord>('updateAppointmentStatus', { id, status });
   apiCache.invalidate('appointments');
   return data;
 }
@@ -628,18 +573,7 @@ export async function getContacts(options?: CacheOptions): Promise<ContactRecord
   if (!isSupabaseConfigured) return [];
   return apiCache.getOrFetch(
     'contacts:all',
-    async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) {
-        // Table not created yet
-        if (error.code === '42P01' || error.code === 'PGRST205') return [];
-        throw new Error(error.message);
-      }
-      return data || [];
-    },
+    async () => (await adminApi<ContactRecord[]>('getContacts')) || [],
     { ttlMs: 30_000, ...options }
   );
 }
@@ -686,44 +620,21 @@ export async function getFeedback(options?: CacheOptions): Promise<FeedbackRecor
   if (!isSupabaseConfigured) return [];
   return apiCache.getOrFetch(
     'feedback:all',
-    async () => {
-      const { data, error } = await supabase
-        .from('feedback')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) {
-        // Table not created yet
-        if (error.code === '42P01' || error.code === 'PGRST205') return [];
-        throw new Error(error.message);
-      }
-      return data || [];
-    },
+    async () => (await adminApi<FeedbackRecord[]>('getFeedback')) || [],
     { ttlMs: 30_000, ...options }
   );
 }
 
 export async function updateFeedbackStatus(id: string, status: FeedbackStatus) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('feedback')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
+  const data = await adminApi<FeedbackRecord>('updateFeedbackStatus', { id, status });
   apiCache.invalidate('feedback');
   return data;
 }
 
 export async function updateContactStatus(id: string, status: ContactStatus) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('contacts')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
+  const data = await adminApi<ContactRecord>('updateContactStatus', { id, status });
   apiCache.invalidate('contacts');
   return data;
 }
@@ -742,77 +653,13 @@ export async function getReferrals(
     cacheKey,
     async () => {
       try {
-        let query = supabase.from('customers').select('*');
-        if (referrerId) {
-          const referrer = await getCustomer(referrerId, options);
-          const searchVals = [referrerId];
-          if (referrer?.userid != null) {
-            searchVals.push(String(referrer.userid));
-          }
-          query = query.in('referred_by', searchVals);
-        } else {
-          query = query.not('referred_by', 'is', null);
+        // Needs other customers' rows (the referred friends), so it is built on the server.
+        if (isAdminContext()) {
+          return (await adminApi<ReferralRecord[]>('getReferrals', { referrerId })) || [];
         }
-
-        const { data: referredUsers, error } = await query.order('created_at', { ascending: false });
-        if (error) {
-          if (error.code === '42703' || error.code === '42P01') return [];
-          throw error;
-        }
-
-        if (!referredUsers || referredUsers.length === 0) return [];
-
-        const allCustomers = await getAllCustomers(options);
-        const customerMap = new Map<string, CustomerRecord>();
-        allCustomers.forEach(c => {
-          customerMap.set(c.id, c);
-          if (c.userid != null) customerMap.set(String(c.userid), c);
-        });
-
-        const currentReward = await getReferralRewardAmount(options);
-
-        // Locked / unlocked state lives in referral_rewards (one row per referred customer)
-        const rewardMap = new Map<string, ReferralRewardRecord>();
-        try {
-          const { data: rewards, error: rewardsErr } = await supabase
-            .from('referral_rewards')
-            .select('*')
-            .in('referred_id', referredUsers.map(u => u.id));
-          if (!rewardsErr && rewards) {
-            rewards.forEach((r: ReferralRewardRecord) => rewardMap.set(r.referred_id, r));
-          }
-        } catch (e) {
-          // referral_rewards table not created yet; fall back to legacy status
-        }
-
-        const statusLabel: Record<ReferralRewardRecord['status'], string> = {
-          locked: 'Locked',
-          unlocked: 'Unlocked',
-          cancelled: 'Cancelled',
-        };
-
-        return referredUsers.map(u => {
-          const ref = u.referred_by ? customerMap.get(u.referred_by) : null;
-          const reward = rewardMap.get(u.id);
-          return {
-            id: u.id,
-            referrer_id: ref?.id,
-            referrer_userid: ref?.userid,
-            referrer_name: ref ? `${ref.first_name || ''} ${ref.last_name || ''}`.trim() || ref.email : (u.referred_by ? `User #${u.referred_by}` : 'Referrer'),
-            referrer_email: ref?.email || '',
-            referred_id: u.id,
-            referred_userid: u.userid,
-            referred_name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
-            referred_email: u.email,
-            referral_code: ref?.referral_code,
-            reward_amount: reward ? Number(reward.referrer_amount) : currentReward,
-            status: reward ? statusLabel[reward.status] : 'Rewarded',
-            reward_id: reward?.id ?? null,
-            unlocked_at: reward?.unlocked_at ?? null,
-            referral_date: u.signup_date || u.created_at,
-            created_at: u.created_at,
-          };
-        });
+        if (!referrerId) return [];
+        const { referrals } = await accountApi<{ referrals: ReferralRecord[] }>('referrals');
+        return referrals || [];
       } catch (err) {
         console.warn("getReferrals notice:", err);
         return [];
@@ -857,56 +704,6 @@ export async function getWalletBalance(
   );
 }
 
-export async function addWalletTransaction(tx: WalletTransactionRecord) {
-  if (!isSupabaseConfigured) return null;
-  const payload: any = {
-    customer_id: tx.customer_id,
-    amount: tx.amount,
-    type: tx.type,
-    description: tx.description,
-    reference_id: tx.reference_id,
-    created_at: new Date().toISOString(),
-  };
-  if (tx.customer_userid !== undefined && tx.customer_userid !== null) {
-    payload.customer_userid = tx.customer_userid;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('wallet_transactions')
-      .insert([payload])
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === '42P01') {
-        console.warn("wallet_transactions table not yet created in Supabase.");
-        return null;
-      }
-      // If customer_userid does not exist yet before migration, retry with core payload
-      if (error.code === '42703' && payload.customer_userid) {
-        delete payload.customer_userid;
-        const fallback = await supabase
-          .from('wallet_transactions')
-          .insert([payload])
-          .select()
-          .single();
-        if (fallback.error) throw fallback.error;
-        apiCache.invalidate(`wallet_txs:${tx.customer_id}`);
-        apiCache.invalidate('wallet_txs');
-        return fallback.data;
-      }
-      throw error;
-    }
-    apiCache.invalidate(`wallet_txs:${tx.customer_id}`);
-    apiCache.invalidate('wallet_txs');
-    return data;
-  } catch (e) {
-    console.warn("addWalletTransaction notice:", e);
-    return null;
-  }
-}
-
 export async function getWalletTransactions(
   customerId: string,
   options?: CacheOptions
@@ -936,55 +733,6 @@ export async function getWalletTransactions(
     },
     { ttlMs: 30_000, ...options }
   );
-}
-
-export async function creditCustomerWallet(
-  customerId: string,
-  amount: number,
-  type: WalletTransactionRecord['type'],
-  description: string,
-  referenceId?: string
-) {
-  if (!isSupabaseConfigured || !customerId || amount <= 0) return 0;
-
-  try {
-    // 1. Get current balance (force refresh or direct fetch)
-    const cust = await getCustomer(customerId, { forceRefresh: true });
-    const currentBalance = Number(cust?.wallet_balance || 0);
-    const newBalance = Number((currentBalance + amount).toFixed(2));
-
-    // 2. Update wallet balance
-    const { error: updateErr } = await supabase
-      .from('customers')
-      .update({ wallet_balance: newBalance })
-      .eq('id', customerId);
-
-    if (updateErr) {
-      console.warn("creditCustomerWallet update notice:", updateErr);
-    }
-
-    // Invalidate caches for customer balance and related listings
-    apiCache.invalidate(`customer:${customerId}`);
-    if (cust?.userid) apiCache.invalidate(`customer:${cust.userid}`);
-    apiCache.invalidate('customers:all');
-    apiCache.invalidate(`wallet_balance:${customerId}`);
-    apiCache.invalidate('referrals');
-
-    // 3. Record ledger transaction
-    await addWalletTransaction({
-      customer_id: customerId,
-      customer_userid: cust?.userid,
-      amount,
-      type,
-      description,
-      reference_id: referenceId,
-    });
-
-    return newBalance;
-  } catch (err) {
-    console.warn("creditCustomerWallet error:", err);
-    return 0;
-  }
 }
 
 export async function getReferralRewardAmount(options?: CacheOptions): Promise<number> {
@@ -1021,50 +769,14 @@ function invalidateCustomerMoneyCaches(customerId?: string | null) {
 }
 
 /**
- * Applies a referral code to a newly created customer (runs atomically in the DB).
- * - New user: bonus goes to wallet_balance and is usable right away.
- * - Referrer: bonus goes to locked_wallet_balance and only becomes usable once
- *   the new user pays for a plan (see markPlanPurchasePaid).
+ * Referral codes are applied on the server only (signup route for email accounts,
+ * /api/account ensure-profile for Google accounts): see src/lib/server/referrals.ts.
  */
-export async function applyReferralSignup(
-  newUserId: string,
-  referralCode: string
-): Promise<{ applied: boolean; amount?: number; reason?: string }> {
-  if (!isSupabaseConfigured || !newUserId || !referralCode?.trim()) {
-    return { applied: false, reason: 'not_configured' };
-  }
-  const { data, error } = await supabase.rpc('apply_referral_signup', {
-    p_referred_id: newUserId,
-    p_referral_code: referralCode.trim(),
-  });
-  if (error) throw error;
-  invalidateCustomerMoneyCaches(newUserId);
-  return (data || { applied: false }) as { applied: boolean; amount?: number; reason?: string };
-}
-
-/** @deprecated Use applyReferralSignup. Kept so older callers keep working. */
-export async function processReferralReward({
-  newUserId,
-  referralCodeUsed,
-}: {
-  referrer?: CustomerRecord;
-  newUserId: string;
-  newUserName?: string;
-  newUserEmail?: string;
-  referralCodeUsed: string;
-  rewardAmount?: number;
-}) {
-  return applyReferralSignup(newUserId, referralCodeUsed);
-}
 
 /** Admin override for a locked referral reward: release it now, or cancel it. */
 export async function setReferralRewardStatus(rewardId: string, status: 'unlocked' | 'cancelled') {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase.rpc('admin_set_referral_reward_status', {
-    p_reward_id: rewardId,
-    p_status: status,
-  });
-  if (error) throw error;
+  const data = await adminApi<ReferralRewardRecord>('setReferralRewardStatus', { rewardId, status });
   invalidateCustomerMoneyCaches((data as ReferralRewardRecord | null)?.referrer_id);
   return data as ReferralRewardRecord;
 }
@@ -1096,8 +808,11 @@ export async function getPlans(
   return apiCache.getOrFetch(
     `plans:${includeInactive ? 'all' : 'active'}`,
     async () => {
-      let query = supabase.from('plans').select('*');
-      if (!includeInactive) query = query.eq('is_active', true);
+      // Inactive plans are only visible to admins (RLS shows visitors active plans only).
+      if (includeInactive) {
+        return ((await adminApi<any[]>('getPlans', { includeInactive: true })) || []).map(normalizePlan);
+      }
+      const query = supabase.from('plans').select('*').eq('is_active', true);
       const { data, error } = await query
         .order('sort_order', { ascending: true })
         .order('price', { ascending: true });
@@ -1124,19 +839,14 @@ export async function savePlan(plan: PlanRecord): Promise<PlanRecord | null> {
     sort_order: Number(plan.sort_order) || 0,
     updated_at: new Date().toISOString(),
   };
-  const query = plan.id
-    ? supabase.from('plans').update(payload).eq('id', plan.id)
-    : supabase.from('plans').insert([payload]);
-  const { data, error } = await query.select().single();
-  if (error) throw error;
+  const data = await adminApi<any>('savePlan', { plan: { ...payload, id: plan.id } });
   apiCache.invalidate('plans');
   return normalizePlan(data);
 }
 
 export async function deletePlan(id: string) {
   if (!isSupabaseConfigured) return null;
-  const { error } = await supabase.from('plans').delete().eq('id', id);
-  if (error) throw error;
+  await adminApi('deletePlan', { id });
   apiCache.invalidate('plans');
   return true;
 }
@@ -1161,6 +871,9 @@ export async function getPlanPurchases(
   return apiCache.getOrFetch(
     `plan_purchases:${customerId || 'all'}`,
     async () => {
+      if (isAdminContext()) {
+        return ((await adminApi<any[]>('getPlanPurchases', { customerId })) || []).map(normalizePurchase);
+      }
       let query = supabase.from('plan_purchases').select('*');
       if (customerId) {
         // customer_id is a UUID; a non-UUID id (e.g. an admin-table session) can't own any orders
@@ -1194,12 +907,7 @@ export async function createPlanPurchase(customerId: string, planId: string, use
 /** Admin confirms payment. This unlocks the referrer's locked bonus, if any. */
 export async function markPlanPurchasePaid(purchaseId: string, paymentMethod?: string, paymentReference?: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase.rpc('mark_plan_purchase_paid', {
-    p_purchase_id: purchaseId,
-    p_payment_method: paymentMethod || null,
-    p_payment_reference: paymentReference || null,
-  });
-  if (error) throw error;
+  const data = await adminApi<any>('markPlanPurchasePaid', { purchaseId, paymentMethod, paymentReference });
   invalidateCustomerMoneyCaches((data as any)?.customer_id);
   apiCache.invalidate('wallet_balance');
   apiCache.invalidate('wallet_txs');
@@ -1209,8 +917,15 @@ export async function markPlanPurchasePaid(purchaseId: string, paymentMethod?: s
 /** Cancels a pending purchase and refunds any wallet credit that was applied. */
 export async function cancelPlanPurchase(purchaseId: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase.rpc('cancel_plan_purchase', { p_purchase_id: purchaseId });
-  if (error) throw error;
+  let data: any;
+  if (isAdminContext()) {
+    data = await adminApi<any>('cancelPlanPurchase', { purchaseId });
+  } else {
+    // The database function only lets a customer cancel their own pending order.
+    const res = await supabase.rpc('cancel_plan_purchase', { p_purchase_id: purchaseId });
+    if (res.error) throw res.error;
+    data = res.data;
+  }
   invalidateCustomerMoneyCaches((data as any)?.customer_id);
   return normalizePurchase(data);
 }
@@ -1246,19 +961,7 @@ export async function getSiteSettings(options?: CacheOptions): Promise<SiteSetti
 
 export async function updateSiteSettings(settings: Partial<SiteSettingsRecord>) {
   if (!isSupabaseConfigured) return null;
-  const payload: any = {
-    id: 'global',
-    ...settings,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase
-    .from('site_settings')
-    .upsert(payload)
-    .select()
-    .single();
-
-  if (error) throw error;
+  const data = await adminApi<SiteSettingsRecord>('updateSiteSettings', { settings });
   apiCache.invalidate('site_settings');
   apiCache.invalidate('referral_reward_amount');
   return data;
@@ -1267,187 +970,32 @@ export async function updateSiteSettings(settings: Partial<SiteSettingsRecord>) 
 // -------------------------------------------------------------
 // Admins Service
 // -------------------------------------------------------------
-export async function getAdminByEmail(
-  email: string,
-  options?: CacheOptions
-): Promise<AdminRecord | null> {
-  if (!isSupabaseConfigured) return null;
-  const clean = email.trim().toLowerCase();
-
-  return apiCache.getOrFetch(
-    `admin_email:${clean}`,
-    async () => {
-      try {
-        const { data, error } = await supabase
-          .from('admins')
-          .select('*')
-          .ilike('email', clean)
-          .maybeSingle();
-
-        if (error) {
-          if (error.code === 'PGRST116' || error.code === '42P01') return null;
-          throw error;
-        }
-        if (data?.id) {
-          apiCache.set(`admin_id:${data.id}`, data, 300_000);
-        }
-        return data;
-      } catch (err: any) {
-        if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
-          console.warn("Notice: public.admins table does not exist in Supabase yet. Please run the schema.sql in Supabase SQL Editor.");
-          return null;
-        }
-        throw err;
-      }
-    },
-    { ttlMs: 300_000, ...options }
-  );
-}
-
-export async function getAdminById(
-  id: string,
-  options?: CacheOptions
-): Promise<AdminRecord | null> {
-  if (!isSupabaseConfigured) return null;
-
-  return apiCache.getOrFetch(
-    `admin_id:${id}`,
-    async () => {
-      try {
-        const { data, error } = await supabase
-          .from('admins')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (error) {
-          if (error.code === 'PGRST116' || error.code === '42P01') return null;
-          throw error;
-        }
-        if (data?.email) {
-          apiCache.set(`admin_email:${data.email.toLowerCase().trim()}`, data, 300_000);
-        }
-        return data;
-      } catch (err: any) {
-        if (err?.code === '42P01' || err?.message?.includes('relation "public.admins" does not exist')) {
-          return null;
-        }
-        throw err;
-      }
-    },
-    { ttlMs: 300_000, ...options }
-  );
-}
-
-export async function verifyAdminCredentials(
-  email: string,
-  password: string
-): Promise<{ admin: AdminRecord | null; error?: string }> {
-  if (!isSupabaseConfigured) return { admin: null, error: "Database is not connected." };
-  try {
-    const admin = await getAdminByEmail(email);
-    if (!admin) {
-      return { admin: null, error: "Admin account not found in admins table." };
-    }
-    
-    // If admin has a password stored in the admins table, verify it
-    if (admin.password && admin.password.trim() !== '') {
-      if (admin.password === password) {
-        return { admin };
-      }
-      return { admin: null, error: "Incorrect admin password." };
-    }
-
-    // If password is not stored in admins table, admin email exists in table
-    return { admin };
-  } catch (err: any) {
-    return { admin: null, error: err.message || "Failed to verify admin credentials." };
-  }
-}
+// Admin sign-in and the admin check happen on the server: see /api/admin/session and
+// src/lib/admin/api.ts (adminLogin, getAdminSession). The admins table is not
+// readable from the browser.
 
 export async function getAllAdmins(options?: CacheOptions): Promise<AdminRecord[]> {
   if (!isSupabaseConfigured) return [];
 
   return apiCache.getOrFetch(
     'admins:all',
-    async () => {
-      try {
-        const { data, error } = await supabase
-          .from('admins')
-          .select('id, email, name, role, created_at, updated_at')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          if (error.code === '42P01') return [];
-          throw error;
-        }
-        return data || [];
-      } catch (err) {
-        return [];
-      }
-    },
+    async () => (await adminApi<AdminRecord[]>('getAllAdmins')) || [],
     { ttlMs: 60_000, ...options }
   );
 }
 
 export async function createOrUpdateAdmin(admin: AdminRecord) {
   if (!isSupabaseConfigured) return null;
-  const payload: any = {
-    email: admin.email.toLowerCase().trim(),
-    name: admin.name || '',
-    role: admin.role || 'admin',
-    role_id: admin.role_id !== undefined ? admin.role_id : (admin.role === 'superadmin' ? 3 : 1),
-    updated_at: new Date().toISOString(),
-  };
-  if (admin.id) payload.id = admin.id;
-  if (admin.password) payload.password = admin.password;
-
-  try {
-    const { data, error } = await supabase
-      .from('admins')
-      .upsert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      // If role_id does not exist yet before migration, retry without role_id
-      if (error.code === '42703' && payload.role_id !== undefined) {
-        delete payload.role_id;
-        const fallback = await supabase
-          .from('admins')
-          .upsert(payload)
-          .select()
-          .single();
-        if (fallback.error) throw fallback.error;
-        apiCache.invalidate('admin_email');
-        apiCache.invalidate('admin_id');
-        apiCache.invalidate('admins:all');
-        return fallback.data;
-      }
-      throw error;
-    }
-
-    apiCache.invalidate('admin_email');
-    apiCache.invalidate('admin_id');
-    apiCache.invalidate('admins:all');
-    return data;
-  } catch (err) {
-    throw err;
-  }
+  const data = await adminApi<AdminRecord>('createOrUpdateAdmin', { admin });
+  apiCache.invalidate('admins:all');
+  return data;
 }
 
 export async function deleteAdmin(id: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('admins')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
-  apiCache.invalidate('admin_email');
-  apiCache.invalidate('admin_id');
+  await adminApi('deleteAdmin', { id });
   apiCache.invalidate('admins:all');
-  return data;
+  return true;
 }
 
 // -------------------------------------------------------------

@@ -1,4 +1,19 @@
 import { createTaxDocument, type TaxDocumentRecord } from "@/lib/supabase/services";
+import { supabase } from "@/lib/supabase/client";
+
+/**
+ * Auth header for /api/upload: the customer's Supabase access token. Admin pages send
+ * no token; their httpOnly admin session cookie goes with the request automatically.
+ */
+async function uploadAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
 
 export interface UploadOptions {
   folder?: string; // e.g. "customers", "admin_uploads", "global_forms"
@@ -20,7 +35,7 @@ export function uploadFileToCloudflare(
   file: File,
   options?: UploadOptions
 ): Promise<UploadResult> {
-  return new Promise((resolve, reject) => {
+  return uploadAuthHeaders().then((authHeaders) => new Promise<UploadResult>((resolve, reject) => {
     const formData = new FormData();
     formData.append("file", file);
     if (options?.folder) formData.append("folder", options.folder);
@@ -28,6 +43,8 @@ export function uploadFileToCloudflare(
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload");
+    xhr.withCredentials = true;
+    for (const [name, value] of Object.entries(authHeaders)) xhr.setRequestHeader(name, value);
 
     if (xhr.upload && options?.onProgress) {
       xhr.upload.onprogress = (event) => {
@@ -62,7 +79,7 @@ export function uploadFileToCloudflare(
     };
 
     xhr.send(formData);
-  });
+  }));
 }
 
 /**
@@ -94,7 +111,8 @@ export async function deleteFileFromCloudflare(fileUrlOrKey: string): Promise<bo
   try {
     const res = await fetch("/api/upload", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await uploadAuthHeaders()) },
+      credentials: "same-origin",
       body: JSON.stringify({ fileUrl: fileUrlOrKey }),
     });
     const data = await res.json();

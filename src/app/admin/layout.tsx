@@ -10,17 +10,15 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import {
-  getCustomer,
   getAppointments,
   getReferrals,
   getTaxDocuments,
-  getAdminById,
-  getAdminByEmail,
   getPlanPurchases,
   getContacts,
   getFeedback,
 } from "@/lib/supabase/services";
-import { getCachedAuth } from "@/lib/cache/auth-cache";
+import { getAdminSession } from "@/lib/admin/api";
+import { clearCachedAuth, getCachedAuth } from "@/lib/cache/auth-cache";
 
 const ADMIN_TITLES: Record<string, string> = {
   "/admin": "Dashboard",
@@ -63,40 +61,17 @@ export default function AdminLayout({
     async function checkAdminAndCounts() {
       if (!user) return;
       try {
-        let isAdm = false;
-
-        // 1. Check in admins table by uid
-        if (user.uid) {
-          const adminById = await getAdminById(user.uid);
-          if (adminById) isAdm = true;
-        }
-
-        // 2. Check in admins table by email
-        if (!isAdm && user.email) {
-          const adminByEmail = await getAdminByEmail(user.email);
-          if (adminByEmail) isAdm = true;
-        }
-
-        // 3. Check localStorage admin session
-        if (!isAdm && typeof window !== "undefined") {
-          const stored = localStorage.getItem("polaris_admin_session");
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (parsed?.email === user.email || parsed?.id === user.uid) {
-                isAdm = true;
-              }
-            } catch (e) {}
-          }
-        }
-
-        // 4. Fallback: check customers table if role is admin
-        if (!isAdm && user.uid) {
-          const c = await getCustomer(user.uid);
-          if (c?.role === "admin" || c?.role === "superadmin" || c?.role_id === 1 || c?.role_id === 3) isAdm = true;
-        }
-
+        // Admin status comes from the server-checked admin session cookie (set at /admin/login).
+        const isAdm = Boolean(await getAdminSession());
         setIsSupabaseAdmin(isAdm);
+        if (!isAdm) {
+          if (getCachedAuth().isAdmin) {
+            // Cookie expired or missing: drop the stale local admin session and sign in again.
+            clearCachedAuth();
+            router.replace("/admin/login");
+          }
+          return;
+        }
 
         const [apts, refs, docs, orders, contacts, feedback] = await Promise.all([
           getAppointments(),
@@ -122,7 +97,7 @@ export default function AdminLayout({
     if (user) {
       checkAdminAndCounts();
     }
-  }, [isLoginPage, user]);
+  }, [isLoginPage, user, router]);
 
   const pendingAppointmentsQuery = useMemoFirebase(() => {
     if (isLoginPage || !firestore) return null;

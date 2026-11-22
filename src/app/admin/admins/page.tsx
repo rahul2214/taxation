@@ -46,6 +46,7 @@ import {
   AdminRecord,
   RoleRecord,
 } from "@/lib/supabase/services";
+import { getAdminSession } from "@/lib/admin/api";
 import { useFirebase } from "@/firebase";
 import { PageHeading } from "@/components/portal/PageHeading";
 
@@ -64,6 +65,9 @@ export default function AdminsPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("admin");
+  // Only super administrators may add or remove admins (enforced on the server too).
+  const [me, setMe] = useState<{ email: string; role: string } | null>(null);
+  const canManage = me?.role === "superadmin";
 
   const loadAdmins = async () => {
     setIsLoading(true);
@@ -83,6 +87,7 @@ export default function AdminsPage() {
   };
 
   useEffect(() => {
+    getAdminSession().then((s) => setMe(s ? { email: s.email, role: s.role } : null));
     loadAdmins();
     getRoles()
       .then(roles => {
@@ -95,6 +100,14 @@ export default function AdminsPage() {
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 10) {
+      toast({
+        variant: "destructive",
+        title: "Password Too Short",
+        description: "Admin passwords must be at least 10 characters.",
+      });
+      return;
+    }
     if (!email || !password) {
       toast({
         variant: "destructive",
@@ -138,7 +151,7 @@ export default function AdminsPage() {
   };
 
   const handleDeleteAdmin = async (adminId: string, adminEmail: string) => {
-    if (user?.email?.toLowerCase() === adminEmail.toLowerCase()) {
+    if ((me?.email || user?.email || "").toLowerCase() === adminEmail.toLowerCase()) {
       toast({
         variant: "destructive",
         title: "Action Prohibited",
@@ -174,11 +187,19 @@ export default function AdminsPage() {
         title="Admin users"
         description="People who can sign in to this console."
         actions={
-          <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" /> Add admin
-          </Button>
+          canManage ? (
+            <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" /> Add admin
+            </Button>
+          ) : undefined
         }
       />
+
+      {me && !canManage && (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Info className="h-4 w-4" /> Only a super administrator can add or remove admin users.
+        </p>
+      )}
 
      
 
@@ -237,13 +258,13 @@ export default function AdminsPage() {
                         {adm.created_at ? new Date(adm.created_at).toLocaleDateString() : "Default"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {adm.id && (
+                        {adm.id && canManage && (
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleDeleteAdmin(adm.id!, adm.email)}
-                            disabled={user?.email?.toLowerCase() === adm.email.toLowerCase()}
+                            disabled={(me?.email || user?.email || "").toLowerCase() === adm.email.toLowerCase()}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

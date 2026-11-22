@@ -7,19 +7,12 @@
  * code, wallet, heard_about) the first time it sees the account, and applies a
  * referral code the visitor entered on /signup before leaving for Google.
  * The `google_oauth_migration.sql` trigger does the same inside the database;
- * this client path covers projects where that migration has not been run.
+ * the server's /api/account "ensure-profile" action covers the rest (and is the
+ * only place the referral code is applied, since RLS keeps wallet writes off the browser).
  */
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from './client';
-import {
-  apiCache,
-  applyReferralSignup,
-  generateReferralCode,
-  getAdminByEmail,
-  getCustomer,
-  upsertCustomer,
-  type CustomerRecord,
-} from './services';
+import { apiCache, ensureProfileOnServer, getCustomer, type CustomerRecord } from './services';
 
 const PENDING_KEY = 'polaris:pending-oauth-signup';
 const WELCOME_KEY = 'polaris:oauth-welcome';
@@ -185,78 +178,38 @@ export function ensureCustomerProfile(authUser?: SupabaseAuthUser | null): Promi
 }
 
 async function createIfMissing(user: SupabaseAuthUser): Promise<CustomerRecord | null> {
-  const email = user.email!.trim().toLowerCase();
   const pending = readPending();
 
   let customer = await getCustomer(user.id, { forceRefresh: true });
+  let bonus = 0;
 
-  if (!customer) {
-    // Admins sign in through /admin/login; don't give them a customer row by accident.
+  // The row, referral bonus and heard_about are written by the server (service role):
+  // the browser can't create customer rows or move wallet money under RLS.
+  const needsServer = !customer || (isRecent(customer) && (pending?.referralCode || (pending?.heardAbout && !customer.heard_about)));
+  if (needsServer) {
     try {
-      if (await getAdminByEmail(email)) {
+      const result = await ensureProfileOnServer({
+        referralCode: pending?.referralCode,
+        heardAbout: pending?.heardAbout || user.user_metadata?.heard_about,
+      });
+      if (result.isAdmin) {
+        // Admins sign in through /admin/login; they don't get a customer row.
         clearPending();
         return null;
       }
-    } catch {
-      // Admin table missing or unreachable: carry on as a customer.
-    }
-
-    const { first, last } = namesFromAuthUser(user);
-    const meta = user.user_metadata || {};
-    const base: CustomerRecord = {
-      id: user.id,
-      email,
-      first_name: first,
-      last_name: last,
-      phone: meta.phone || undefined,
-      role: 'customer',
-      wallet_balance: 0,
-      heard_about: pending?.heardAbout || meta.heard_about || undefined,
-    };
-
-    // referral_code is unique, so retry with a fresh code if one collides.
-    for (let attempt = 0; attempt < 3 && !customer; attempt++) {
-      try {
-        customer = await upsertCustomer({
-          ...base,
-          referral_code: attempt === 0 && meta.referral_code ? meta.referral_code : generateReferralCode(first, email),
-        });
-      } catch (err: any) {
-        const msg = String(err?.message || '');
-        if (err?.code === '23505' && msg.includes('email')) {
-          // A row with this email exists under another id (e.g. created by an admin). Use it as is.
-          console.warn('Customer with this email already exists under a different id:', email);
-          customer = await getCustomer(email, { forceRefresh: true });
-          break;
-        }
-        if (err?.code !== '23505') {
-          console.warn('Could not create customer profile:', err);
-          break;
-        }
+      bonus = Number(result.bonus || 0);
+      if (result.customer) {
+        customer = result.customer;
+        apiCache.set(`customer:${user.id}`, customer, 120_000);
       }
+    } catch (err) {
+      console.warn('Could not set up customer profile:', err);
     }
   }
 
   if (!customer) return null;
 
-  // Brand-new account: apply the referral code typed on /signup, and queue a welcome toast.
   if (customer.id === user.id && isRecent(customer)) {
-    let bonus = 0;
-    if (pending?.referralCode) {
-      try {
-        const result = await applyReferralSignup(user.id, pending.referralCode);
-        if (result.applied) bonus = Number(result.amount || 0);
-      } catch (err) {
-        console.warn('Referral code could not be applied after Google signup:', err);
-      }
-    }
-    if (pending?.heardAbout && !customer.heard_about && 'heard_about' in customer) {
-      try {
-        await supabase.from('customers').update({ heard_about: pending.heardAbout }).eq('id', user.id);
-      } catch {
-        // The dashboard prompt will ask again.
-      }
-    }
     // Email signups get their welcome dialog on /signup; only greet Google signups here, once.
     const greetedKey = `polaris:greeted:${user.id}`;
     let greeted = false;
@@ -268,10 +221,6 @@ async function createIfMissing(user: SupabaseAuthUser): Promise<CustomerRecord |
     }
     if (user.app_metadata?.provider === 'google' && !greeted) {
       setWelcome({ referralCode: customer.referral_code, bonus });
-    }
-    if (bonus > 0 || pending?.heardAbout) {
-      apiCache.invalidate(`customer:${user.id}`);
-      customer = (await getCustomer(user.id, { forceRefresh: true })) || customer;
     }
   }
 

@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { doc } from "firebase/firestore";
 import { getCustomer } from "@/lib/supabase/services";
-import { getCachedAuth } from "@/lib/cache/auth-cache";
+import { clearCachedAuth, getCachedAuth } from "@/lib/cache/auth-cache";
 import { HeardAboutPrompt } from "@/components/dashboard/HeardAboutPrompt";
 import { FeedbackWidget } from "@/components/common/FeedbackWidget";
 import { ensureCustomerProfile, takeOAuthWelcome } from "@/lib/supabase/google-auth";
@@ -85,8 +85,15 @@ export default function DashboardLayout({
     (async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        // Not a Supabase customer session (e.g. admin login): the existing checks apply.
-        if (!cancelled) setAccessOk(true);
+        // Admins log in without a Supabase session; anyone else here has only a leftover
+        // cached login (e.g. from an unverified signup) and must sign in properly.
+        if (cancelled) return;
+        if (getCachedAuth().isAdmin) {
+          setAccessOk(true);
+          return;
+        }
+        clearCachedAuth();
+        router.replace("/login");
         return;
       }
       const ok = await isSessionVerified(data.session);

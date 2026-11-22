@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './client';
 import { apiCache, CacheOptions } from '../cache/api-cache';
+import { adminApi } from '../admin/api';
 
 // -------------------------------------------------------------
 // Master data: admin-managed values for form dropdowns
@@ -86,23 +87,9 @@ export async function getMasterOptions(category: MasterCategory, options?: Cache
   }
 }
 
+// Writes are admin-only and go through the server (/api/admin/data).
 export async function createMasterData(record: MasterDataRecord): Promise<MasterDataRecord> {
-  const { data, error } = await supabase
-    .from('master_data')
-    .insert([
-      {
-        category: record.category,
-        label: record.label.trim(),
-        sort_order: record.sort_order ?? 0,
-        is_active: record.is_active ?? true,
-      },
-    ])
-    .select()
-    .single();
-  if (error) {
-    if (error.code === '23505') throw new Error('That value already exists in this list.');
-    throw new Error(error.message);
-  }
+  const data = await adminApi<MasterDataRecord>('createMasterData', { record });
   apiCache.invalidate('master_data');
   return data;
 }
@@ -111,20 +98,13 @@ export async function updateMasterData(
   id: number,
   changes: Partial<Pick<MasterDataRecord, 'label' | 'sort_order' | 'is_active'>>
 ): Promise<MasterDataRecord> {
-  const payload: Record<string, unknown> = { ...changes, updated_at: new Date().toISOString() };
-  if (typeof changes.label === 'string') payload.label = changes.label.trim();
-  const { data, error } = await supabase.from('master_data').update(payload).eq('id', id).select().single();
-  if (error) {
-    if (error.code === '23505') throw new Error('That value already exists in this list.');
-    throw new Error(error.message);
-  }
+  const data = await adminApi<MasterDataRecord>('updateMasterData', { id, changes });
   apiCache.invalidate('master_data');
   return data;
 }
 
 /** Deletes a value. Appointments/contacts that used it keep their text label; their id is set to null. */
 export async function deleteMasterData(id: number): Promise<void> {
-  const { error } = await supabase.from('master_data').delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  await adminApi('deleteMasterData', { id });
   apiCache.invalidate('master_data');
 }

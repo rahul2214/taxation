@@ -1,12 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToR2, deleteFromR2, isR2Configured, isR2PublicUrlConfigured } from "@/lib/cloudflare/r2";
+import { getAdminSession } from "@/lib/server/admin-auth";
+import { getUserFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
+
+/**
+ * Who is uploading: an admin (admin session cookie) or a signed-in customer
+ * (Authorization: Bearer <Supabase access token>). Anyone else is refused.
+ * Customers can only write to, and delete from, customers/<their user id>/.
+ */
+type Caller = { kind: "admin" } | { kind: "customer"; userId: string };
+
+const ADMIN_FOLDERS = new Set(["admin_uploads", "global_forms", "documents", "customers"]);
+const MANAGED_PREFIX = /^(customers|admin_uploads|global_forms|documents)\//;
+
+async function getCaller(req: NextRequest): Promise<Caller | null> {
+  if (getAdminSession(req)) return { kind: "admin" };
+  if (!isSupabaseAdminConfigured) return null;
+  const user = await getUserFromRequest(req).catch(() => null);
+  return user ? { kind: "customer", userId: user.id } : null;
+}
+
+const unauthorized = () => NextResponse.json({ error: "Please sign in to upload or delete files." }, { status: 401 });
 
 export async function POST(req: NextRequest) {
   try {
+    const caller = await getCaller(req);
+    if (!caller) return unauthorized();
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const folder = (formData.get("folder") as string) || "documents";
-    const userId = (formData.get("userId") as string) || "general";
+    let folder = (formData.get("folder") as string) || "documents";
+    let userId = (formData.get("userId") as string) || "general";
+    if (caller.kind === "customer") {
+      // Customers always upload into their own folder, whatever the form says.
+      folder = "customers";
+      userId = caller.userId;
+    } else if (!ADMIN_FOLDERS.has(folder)) {
+      folder = "admin_uploads";
+    }
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -80,6 +111,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const caller = await getCaller(req);
+    if (!caller) return unauthorized();
+
     const { fileUrl, key } = await req.json();
     if (!fileUrl && !key) {
       return NextResponse.json({ error: "No fileUrl or key provided" }, { status: 400 });
@@ -88,8 +122,12 @@ export async function DELETE(req: NextRequest) {
     // Only delete objects in this app's own folders.
     const target: string = key || fileUrl;
     const targetKey = /^https?:\/\//.test(target) ? new URL(target).pathname.replace(/^\/+/, "") : target;
-    if (!/^(customers|admin_uploads|global_forms|documents)\//.test(targetKey)) {
+    if (!MANAGED_PREFIX.test(targetKey) || targetKey.split("/").includes("..")) {
       return NextResponse.json({ error: "Not a file managed by this site" }, { status: 400 });
+    }
+    // Customer user ids are UUIDs, so they contain no characters the upload sanitizer changes.
+    if (caller.kind === "customer" && !targetKey.startsWith(`customers/${caller.userId}/`)) {
+      return NextResponse.json({ error: "You can only delete your own files." }, { status: 403 });
     }
     const success = await deleteFromR2(targetKey);
     return NextResponse.json({ success });

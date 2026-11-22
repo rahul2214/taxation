@@ -162,8 +162,13 @@ export function clearCachedAuth(): void {
   if (typeof window === "undefined") return;
 
   try {
+    const hadAdminSession = Boolean(localStorage.getItem(ADMIN_SESSION_KEY));
     localStorage.removeItem(USER_SESSION_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
+    // The real admin session is an httpOnly cookie only the server can clear.
+    if (hadAdminSession) {
+      fetch("/api/admin/session", { method: "DELETE", credentials: "same-origin" }).catch(() => {});
+    }
 
     if (typeof document !== "undefined") {
       document.cookie = "polaris_auth_session=; path=/; max-age=0";

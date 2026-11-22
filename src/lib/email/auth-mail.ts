@@ -201,6 +201,39 @@ async function markEmailVerified(authUser: User) {
   }
 }
 
+// ---------- Signup ----------
+
+/**
+ * Creates an email/password login that Supabase keeps UNCONFIRMED until the emailed
+ * link is clicked. Supabase itself then refuses the password ("Email not confirmed"),
+ * so an unverified account never gets a session, and the Users page shows
+ * "Waiting for verification".
+ */
+export async function createUnconfirmedUser(email: string, password: string, metadata: Record<string, unknown>) {
+  const { data, error } = await getSupabaseAdmin().auth.admin.createUser({
+    email,
+    password,
+    email_confirm: false,
+    user_metadata: metadata,
+  });
+  if (error) {
+    const msg = (error.message || '').toLowerCase();
+    if ((error as any).code === 'email_exists' || msg.includes('already been registered') || msg.includes('already registered')) {
+      throw new AuthMailError(
+        `An account with "${email}" already exists. Please sign in instead (use "Continue with Google" if you signed up with Google), or use a different email address.`
+      );
+    }
+    if ((error as any).code === 'weak_password' || msg.includes('password')) {
+      throw new AuthMailError('Please choose a stronger password (at least 8 characters).');
+    }
+    if ((error as any).code === 'email_address_invalid' || msg.includes('invalid')) {
+      throw new AuthMailError('Please enter a valid email address.');
+    }
+    throw error;
+  }
+  return data.user;
+}
+
 // ---------- Verification ----------
 
 export async function sendVerificationEmail(email: string, req?: Request) {

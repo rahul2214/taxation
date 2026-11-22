@@ -13,15 +13,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Loader2, Gift, CheckCircle2, ArrowRight, MailCheck } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase/client";
 import {
-  upsertCustomer,
   getCustomer,
   generateReferralCode,
-  getCustomerByReferralCode,
-  applyReferralSignup,
   getReferralRewardAmount,
-  CustomerRecord,
 } from "@/lib/supabase/services";
 import { getCachedAuth, getUserRedirectPath, setCachedAuth } from "@/lib/cache/auth-cache";
 import { startGoogleAuth } from "@/lib/supabase/google-auth";
@@ -165,89 +160,25 @@ function SignupContent() {
     setCreatedCouponCode(userReferralCode);
 
     try {
-      // 2. Check if a valid referral / coupon code is provided
-      let referrerMatch: CustomerRecord | null = null;
-      let referredById: string | null = null;
-
-      if (cleanReferral) {
-        try {
-          referrerMatch = await getCustomerByReferralCode(cleanReferral);
-          if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
-            // Store the referrer's int8 userid value in referred_by
-            referredById = referrerMatch.userid != null ? String(referrerMatch.userid) : (referrerMatch.id || null);
-          }
-        } catch (findErr) {
-          console.warn("Notice checking referral code:", findErr);
-        }
-      }
-
-      // 3. Register user with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      // 2. The server creates the login, UNCONFIRMED in Supabase, writes the customer profile,
+      //    applies the referral code (new user's credit usable now, referrer's locked until this
+      //    user pays for a plan) and emails the verification link (Resend). No session is opened:
+      //    Supabase refuses the password until the link is clicked.
+      const created = await emailAuthApi<{ userId: string; sent: boolean; welcomeBonus?: number }>("signup", {
         email: cleanEmail,
         password: signupPassword,
-        options: {
-          data: {
-            first_name: signupFirstName.trim(),
-            last_name: signupLastName.trim(),
-            phone: signupPhone.trim(),
-            referral_code: userReferralCode,
-            heard_about: heardAboutValue,
-          },
+        referredByCode: cleanReferral || undefined,
+        metadata: {
+          first_name: signupFirstName.trim(),
+          last_name: signupLastName.trim(),
+          phone: signupPhone.trim(),
+          referral_code: userReferralCode,
+          heard_about: heardAboutValue,
         },
       });
 
-      if (error) throw error;
-
-      const newUserId = data.user?.id;
-      let welcomeBonus = 0;
-      if (newUserId) {
-        // 4. Save Customer profile with coupon code & starting wallet balance at 0.00
-        try {
-          await upsertCustomer({
-            id: newUserId,
-            first_name: signupFirstName.trim(),
-            last_name: signupLastName.trim(),
-            email: cleanEmail,
-            phone: signupPhone.trim(),
-            role: "customer",
-            referral_code: userReferralCode,
-            wallet_balance: 0.0,
-            referred_by: referredById || undefined,
-            heard_about: heardAboutValue,
-          });
-        } catch (profileErr) {
-          console.warn("Profile upsert notice:", profileErr);
-        }
-
-        // 5. If referred: the new user gets a usable credit now; the referrer's
-        //    credit stays locked until this new user pays for a plan (done in the DB).
-        if (referrerMatch && referrerMatch.email?.toLowerCase() !== cleanEmail) {
-          try {
-            const result = await applyReferralSignup(newUserId, cleanReferral);
-            if (result.applied) {
-              welcomeBonus = Number(result.amount ?? rewardAmount);
-            }
-          } catch (rewardErr) {
-            console.warn("Referral reward process notice:", rewardErr);
-          }
-        }
-      }
-
-      // 6. The server sends the verification email (Resend). Until the link is clicked, login is blocked,
-      //    so end the session Supabase just opened.
-      let verificationSent = false;
-      if (newUserId) {
-        try {
-          const r = await emailAuthApi<{ sent: boolean }>("send-verification", { email: cleanEmail });
-          verificationSent = Boolean(r.sent);
-        } catch (mailErr) {
-          console.warn("Verification email notice:", mailErr);
-        }
-      }
-      // Unverified accounts never stay signed in, whether or not the email went out.
-      if (data.session) {
-        await supabase.auth.signOut();
-      }
+      // 3. The verification email went out with the account (step 2).
+      const verificationSent = Boolean(created.sent);
       setNeedsVerification(true);
 
       // 7. Build the dialog message: verifying is the only thing the user needs to do now;
