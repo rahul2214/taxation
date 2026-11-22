@@ -20,14 +20,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UploadCloud, File, X, Loader2 } from "lucide-react";
+import { UploadCloud, File, X, Loader2, RefreshCw, Eye } from "lucide-react";
 import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp, doc } from "firebase/firestore";
-import { useState, ChangeEvent, useEffect } from "react";
+import { useState, ChangeEvent, useEffect, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument, deleteTaxDocument } from "@/lib/supabase/services";
-import { uploadTaxDocument, deleteFileFromCloudflare } from "@/lib/upload";
+import { uploadTaxDocument, replaceTaxDocument, openStoredFile } from "@/lib/upload";
 import { PageHeading } from "@/components/portal/PageHeading";
 
 type UploadingFile = {
@@ -57,6 +57,9 @@ export default function UploadPage() {
 
   const [supabaseFiles, setSupabaseFiles] = useState<TaxDocItem[]>([]);
   const [isSbLoading, setIsSbLoading] = useState(true);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [busyFileId, setBusyFileId] = useState<string | null>(null);
 
   const fetchSupabaseFiles = async () => {
     if (!user) return;
@@ -188,31 +191,50 @@ export default function UploadPage() {
     }
   };
   
-  const handleDelete = async (fileId: string, fileUrl: string) => {
-      // Delete in Supabase
-      try {
-        await deleteTaxDocument(fileId);
-        fetchSupabaseFiles();
-      } catch (sbErr) {}
-
-      // Delete from Cloudflare R2
-      try {
-        await deleteFileFromCloudflare(fileUrl);
-      } catch (cfErr) {
-        console.warn("Cloudflare delete notice:", cfErr);
-      }
-
-      // Delete in Firestore
+  // Deletes the record and its file in Cloudflare (both on the server).
+  const handleDelete = async (fileId: string, fileName: string) => {
+    if (!window.confirm(`Delete "${fileName}"? This can't be undone.`)) return;
+    setBusyFileId(fileId);
+    try {
+      await deleteTaxDocument(fileId);
+      fetchSupabaseFiles();
       if (user && firestore) {
-        const docRef = doc(firestore, `customers/${user.uid}/taxDocuments`, fileId);
-        deleteDocumentNonBlocking(docRef);
+        deleteDocumentNonBlocking(doc(firestore, `customers/${user.uid}/taxDocuments`, fileId));
       }
-
-      toast({
-          title: "File Deleted",
-          description: "The file has been successfully deleted.",
-      });
+      toast({ title: "File Deleted", description: `${fileName} has been deleted.` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Delete failed", description: err?.message || "Could not delete the file." });
+    } finally {
+      setBusyFileId(null);
+    }
   };
+
+  const startReplace = (fileId: string) => {
+    setReplaceTargetId(fileId);
+    if (replaceInputRef.current) {
+      replaceInputRef.current.value = "";
+      replaceInputRef.current.click();
+    }
+  };
+
+  // Uploads the new file, points the record at it, and the server deletes the old file.
+  const handleReplaceFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const fileId = replaceTargetId;
+    if (!file || !fileId || !user) return;
+    setBusyFileId(fileId);
+    try {
+      await replaceTaxDocument(fileId, file, { folder: "customers", userId: user.uid });
+      fetchSupabaseFiles();
+      toast({ title: "File replaced", description: `${file.name} replaced the previous file.` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Replace failed", description: err?.message || "Could not replace the file." });
+    } finally {
+      setBusyFileId(null);
+      setReplaceTargetId(null);
+    }
+  };
+
 
   const statusVariant: { [key: string]: "default" | "secondary" | "destructive" } = {
     "Verified": "default",
@@ -227,6 +249,7 @@ export default function UploadPage() {
 
   return (
     <div className="space-y-6">
+      <input ref={replaceInputRef} type="file" className="hidden" onChange={handleReplaceFile} />
       <PageHeading
         title="Upload documents"
         description="Send us your W-2s, 1099s, receipts and anything else for your return. Files are encrypted and only your preparer can open them."
@@ -344,11 +367,25 @@ export default function UploadPage() {
                             <TableCell>
                                 <Badge variant={statusVariant[file.status] || "secondary"}>{file.status}</Badge>
                             </TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(file.id, file.fileUrl)}>
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                </Button>
+                            <TableCell className="text-right whitespace-nowrap">
+                                {busyFileId === file.id ? (
+                                    <Loader2 className="inline h-4 w-4 animate-spin text-muted-foreground" />
+                                ) : (
+                                    <>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => openStoredFile(file.fileUrl)} title="View">
+                                            <Eye className="h-4 w-4" />
+                                            <span className="sr-only">View</span>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => startReplace(file.id)} title="Replace with a new file">
+                                            <RefreshCw className="h-4 w-4" />
+                                            <span className="sr-only">Replace</span>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(file.id, file.documentName)} title="Delete">
+                                            <X className="h-4 w-4" />
+                                            <span className="sr-only">Delete</span>
+                                        </Button>
+                                    </>
+                                )}
                             </TableCell>
                         </TableRow>
                     ))}

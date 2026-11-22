@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { applyReferralCode, listReferrals } from './referrals';
 import { AdminSession, hashAdminPassword, MIN_ADMIN_PASSWORD_LENGTH } from './admin-auth';
+import { deleteDocument, DocumentError, removeReplacedFormFiles, removeSupersededDocuments, replaceDocumentFile } from './documents';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isMissingTable = (code?: string) => code === '42P01' || code === 'PGRST205';
@@ -24,6 +25,16 @@ const stripPassword = (row: any) => {
   const { password: _p, ...rest } = row;
   return rest;
 };
+
+/** Turns a DocumentError into an OpError so its message reaches the admin UI. */
+async function asOpError<T>(p: Promise<T>): Promise<T> {
+  try {
+    return await p;
+  } catch (err) {
+    if (err instanceof DocumentError) throw new OpError(err.message);
+    throw err;
+  }
+}
 
 type Op = (db: SupabaseClient, args: any, admin: AdminSession) => Promise<unknown>;
 
@@ -78,7 +89,16 @@ export const adminOps: Record<string, Op> = {
       const { data: owner } = await db.from('customers').select('userid').eq('id', row.customer_id).maybeSingle();
       if (owner?.userid != null) row.customer_userid = owner.userid;
     }
-    return check(await db.from('tax_documents').insert([row]).select().single());
+    const created: any = check(await db.from('tax_documents').insert([row]).select().single());
+    // A new Tax Estimation / Tax Return Draft / Final Document replaces the customer's previous one.
+    if (created?.id) await asOpError(removeSupersededDocuments(db, { kind: 'admin' }, created.id));
+    return created;
+  },
+  async deleteTaxDocument(db, { id }) {
+    return asOpError(deleteDocument(db, { kind: 'admin' }, s(id)));
+  },
+  async replaceTaxDocumentFile(db, { id, fileUrl, documentName }) {
+    return asOpError(replaceDocumentFile(db, { kind: 'admin' }, s(id), { fileUrl: s(fileUrl), documentName: s(documentName) }));
   },
   async updateTaxDocumentStatus(db, { id, status }) {
     return check(await db.from('tax_documents').update({ status: s(status) }).eq('id', s(id)).select().single());
@@ -202,7 +222,15 @@ export const adminOps: Record<string, Op> = {
     const allowed = ['current_year_form_url', 'prior_year_form_url', 'referral_reward_amount'];
     const payload: Record<string, unknown> = { id: 'global', updated_at: new Date().toISOString() };
     for (const k of allowed) if (settings && k in settings) payload[k] = settings[k];
-    return check(await db.from('site_settings').upsert(payload).select().single());
+    const { data: before } = await db
+      .from('site_settings')
+      .select('current_year_form_url, prior_year_form_url')
+      .eq('id', 'global')
+      .maybeSingle();
+    const saved: any = check(await db.from('site_settings').upsert(payload).select().single());
+    // Delete the old form file from R2 when an admin uploads a replacement.
+    await removeReplacedFormFiles(before, saved);
+    return saved;
   },
 
   // ---------- Admin users ----------

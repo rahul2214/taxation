@@ -405,6 +405,12 @@ export async function createTaxDocument(doc: TaxDocumentRecord) {
     .single();
 
   if (error) throw error;
+  if (data?.id && ['Tax Estimation', 'Tax Return Draft', 'Final Document'].includes(data.category)) {
+    // One per tax year: the server deletes the customer's previous upload in this category (row and file).
+    await accountApi('remove-superseded-documents', { id: data.id }).catch((err) =>
+      console.warn('Could not remove the previous document:', err?.message || err)
+    );
+  }
   apiCache.invalidate('tax_docs');
   return data;
 }
@@ -433,16 +439,27 @@ export async function updateTaxDocumentStatus(id: string, status: string) {
   return data;
 }
 
+/** Deletes a document and its file in Cloudflare R2 (done together on the server). */
 export async function deleteTaxDocument(id: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase
-    .from('tax_documents')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
+  const result = isAdminContext()
+    ? await adminApi('deleteTaxDocument', { id })
+    : await accountApi('delete-document', { id });
   apiCache.invalidate('tax_docs');
-  return data;
+  return result;
+}
+
+/**
+ * Points a document at a newly uploaded file; the server deletes the old file from R2
+ * and sets the status back to Pending.
+ */
+export async function replaceTaxDocumentFile(id: string, fileUrl: string, documentName?: string) {
+  if (!isSupabaseConfigured) return null;
+  const result = isAdminContext()
+    ? await adminApi<TaxDocumentRecord>('replaceTaxDocumentFile', { id, fileUrl, documentName })
+    : (await accountApi<{ document: TaxDocumentRecord }>('replace-document-file', { id, fileUrl, documentName })).document;
+  apiCache.invalidate('tax_docs');
+  return result;
 }
 
 // -------------------------------------------------------------

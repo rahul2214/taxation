@@ -1,4 +1,4 @@
-import { createTaxDocument, type TaxDocumentRecord } from "@/lib/supabase/services";
+import { createTaxDocument, replaceTaxDocumentFile, type TaxDocumentRecord } from "@/lib/supabase/services";
 import { supabase } from "@/lib/supabase/client";
 
 /**
@@ -101,6 +101,26 @@ export async function uploadTaxDocument(
     throw new Error(
       `The file was uploaded but could not be saved to your records (${dbErr?.message || "database error"}). Please try again.`
     );
+  }
+}
+
+/**
+ * Replaces the file of an existing tax document: uploads the new file to R2, points the
+ * document at it, and the server deletes the old file. If the database update fails, the
+ * new upload is removed again so nothing is left behind.
+ */
+export async function replaceTaxDocument(
+  documentId: string,
+  file: File,
+  options: UploadOptions
+): Promise<{ upload: UploadResult; document: any }> {
+  const upload = await uploadFileToCloudflare(file, options);
+  try {
+    const document = await replaceTaxDocumentFile(documentId, upload.url, file.name);
+    return { upload, document };
+  } catch (dbErr: any) {
+    await deleteFileFromCloudflare(upload.key);
+    throw new Error(`The new file could not replace the old one (${dbErr?.message || "database error"}). Please try again.`);
   }
 }
 

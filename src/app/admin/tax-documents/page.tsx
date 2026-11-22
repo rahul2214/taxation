@@ -41,13 +41,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { MoreHorizontal, Loader2, Download, Upload } from "lucide-react";
-import { useState, useEffect, ChangeEvent } from "react";
+import { MoreHorizontal, Loader2, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
-import { uploadTaxDocument, storedFileLinkProps } from "@/lib/upload";
-import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus } from "@/lib/supabase/services";
+import { uploadTaxDocument, replaceTaxDocument, storedFileLinkProps } from "@/lib/upload";
+import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus, deleteTaxDocument } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
 
 type DocumentStatus = "Verified" | "Pending" | "Requires Attention";
@@ -97,6 +97,10 @@ export default function TaxDocumentsPage() {
   const [uploadDocumentName, setUploadDocumentName] = useState("");
   const [uploadCategory, setUploadCategory] = useState<TaxDocument['category']>("Tax Estimation");
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  // Replace / delete an existing document (the old file is removed from Cloudflare on the server).
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replaceTarget, setReplaceTarget] = useState<TaxDocument | null>(null);
+  const [busyDocId, setBusyDocId] = useState<string | null>(null);
 
   const fetchDocsAndCustomers = async () => {
     setIsLoading(true);
@@ -239,6 +243,45 @@ export default function TaxDocumentsPage() {
     }
   };
   
+  const startReplace = (document: TaxDocument) => {
+    setReplaceTarget(document);
+    if (replaceInputRef.current) {
+      replaceInputRef.current.value = "";
+      replaceInputRef.current.click();
+    }
+  };
+
+  const handleReplaceFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const target = replaceTarget;
+    if (!file || !target) return;
+    setBusyDocId(target.id);
+    try {
+      await replaceTaxDocument(target.id, file, { folder: "admin_uploads", userId: target.customerId });
+      toast({ title: "Document replaced", description: `${target.documentName} now uses ${file.name}. The old file was deleted.` });
+      fetchDocsAndCustomers();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Replace failed", description: err?.message || "Could not replace the document." });
+    } finally {
+      setBusyDocId(null);
+      setReplaceTarget(null);
+    }
+  };
+
+  const handleDeleteDocument = async (document: TaxDocument) => {
+    if (!window.confirm(`Delete "${document.documentName}"? The file will be removed from storage and can't be recovered.`)) return;
+    setBusyDocId(document.id);
+    try {
+      await deleteTaxDocument(document.id);
+      toast({ title: "Document deleted", description: `${document.documentName} and its file were deleted.` });
+      fetchDocsAndCustomers();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Delete failed", description: err?.message || "Could not delete the document." });
+    } finally {
+      setBusyDocId(null);
+    }
+  };
+
   const openUploadDialog = (customer: Customer) => {
     setSelectedCustomer(customer);
     setUploadDocumentName("");
@@ -325,7 +368,8 @@ export default function TaxDocumentsPage() {
 
   return (
     <div className="space-y-6">
-    <PageHeading
+      <input ref={replaceInputRef} type="file" className="hidden" onChange={handleReplaceFile} />
+      <PageHeading
       title="Client documents"
       description="Documents clients have uploaded, grouped by client. Review each one and mark it approved or rejected."
     />
@@ -380,8 +424,8 @@ export default function TaxDocumentsPage() {
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                  <MoreHorizontal className="h-4 w-4" />
+                                <Button aria-haspopup="true" size="icon" variant="ghost" disabled={busyDocId === docItem.id}>
+                                  {busyDocId === docItem.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                                   <span className="sr-only">Actions</span>
                                 </Button>
                               </DropdownMenuTrigger>
@@ -394,6 +438,12 @@ export default function TaxDocumentsPage() {
                                 <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Verified')} disabled={docItem.status === 'Verified'}>Mark as Verified</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Requires Attention')} disabled={docItem.status === 'Requires Attention'}>Mark as Requires Attention</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleStatusChange(docItem, 'Pending')} disabled={docItem.status === 'Pending'}>Revert to Pending</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => startReplace(docItem)}>
+                                  <RefreshCw className="mr-2 h-4 w-4" />Replace file
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteDocument(docItem)} className="text-destructive focus:text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" />Delete
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

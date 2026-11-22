@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { getSupabaseAdmin, getUserClaimsFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import { ensureCustomerRow } from "@/lib/email/auth-mail";
 import { applyReferralCode, listReferrals } from "@/lib/server/referrals";
+import { deleteDocument, DocumentError, removeSupersededDocuments, replaceDocumentFile } from "@/lib/server/documents";
 
 // A customer row this young counts as a brand-new signup (referral code may still be applied).
 const NEW_ACCOUNT_WINDOW_MS = 15 * 60 * 1000;
@@ -16,6 +17,9 @@ const NEW_ACCOUNT_WINDOW_MS = 15 * 60 * 1000;
  *                        referral code to a brand-new account, saves heard_about.
  *   referrals            -> { referrals }   (people this customer referred)
  *   ensure-referral-code -> { code }
+ *   delete-document      { id } -> { deleted }      (own uploads only; also deletes the R2 file)
+ *   replace-document-file { id, fileUrl, documentName? } -> { document }  (deletes the old R2 file)
+ *   remove-superseded-documents { id } -> { removed }  (after a new one-per-year upload)
  */
 export async function POST(req: NextRequest) {
   if (!isSupabaseAdminConfigured) {
@@ -32,6 +36,7 @@ export async function POST(req: NextRequest) {
   }
   const action = String(body?.action || "");
   const db = getSupabaseAdmin();
+  const actor = { kind: "customer" as const, userId: user.id };
 
   try {
     switch (action) {
@@ -89,10 +94,29 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Could not create a referral code." }, { status: 500 });
       }
 
+      case "delete-document": {
+        return NextResponse.json(await deleteDocument(db, actor, String(body?.id || "")));
+      }
+
+      case "replace-document-file": {
+        const document = await replaceDocumentFile(db, actor, String(body?.id || ""), {
+          fileUrl: String(body?.fileUrl || ""),
+          documentName: String(body?.documentName || ""),
+        });
+        return NextResponse.json({ document });
+      }
+
+      case "remove-superseded-documents": {
+        return NextResponse.json(await removeSupersededDocuments(db, actor, String(body?.id || "")));
+      }
+
       default:
         return NextResponse.json({ error: "Unknown action." }, { status: 400 });
     }
   } catch (err) {
+    if (err instanceof DocumentError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     console.error(`/api/account ${action} error:`, err);
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
