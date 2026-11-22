@@ -946,6 +946,76 @@ export async function cancelPlanPurchase(purchaseId: string) {
 }
 
 // -------------------------------------------------------------
+// Basic Information Documents (shared with every client)
+// -------------------------------------------------------------
+export interface BasicInfoDocumentRecord {
+  id: string;
+  title: string;
+  description?: string | null;
+  file_url: string;
+  file_name?: string | null;
+  file_size?: number | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Admins get every document; clients get the active ones (row-level security). */
+export async function getBasicInfoDocuments(options?: CacheOptions): Promise<BasicInfoDocumentRecord[]> {
+  if (!isSupabaseConfigured) return [];
+  const admin = isAdminContext();
+  return apiCache.getOrFetch(
+    `basic_info:${admin ? 'all' : 'active'}`,
+    async () => {
+      if (admin) return (await adminApi<BasicInfoDocumentRecord[]>('getBasicInfoDocuments')) || [];
+      const { data, error } = await supabase
+        .from('basic_info_documents')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.warn('getBasicInfoDocuments notice:', error.message || error.code || error);
+        return [];
+      }
+      return data || [];
+    },
+    { ttlMs: 60_000, ...options }
+  );
+}
+
+export async function createBasicInfoDocument(doc: {
+  title: string;
+  description?: string;
+  file_url: string;
+  file_name?: string;
+  file_size?: number;
+  is_active?: boolean;
+}) {
+  const data = await adminApi<BasicInfoDocumentRecord>('createBasicInfoDocument', { doc });
+  apiCache.invalidate('basic_info');
+  return data;
+}
+
+/** Pass file_url (with file_name/file_size) to replace the file; the old file is deleted from storage. */
+export async function updateBasicInfoDocument(
+  id: string,
+  changes: Partial<Pick<BasicInfoDocumentRecord, 'title' | 'description' | 'is_active' | 'sort_order' | 'file_url' | 'file_name' | 'file_size'>>
+) {
+  const data = await adminApi<BasicInfoDocumentRecord>('updateBasicInfoDocument', { id, changes });
+  apiCache.invalidate('basic_info');
+  return data;
+}
+
+/** Deletes the document and its file in storage. */
+export async function deleteBasicInfoDocument(id: string) {
+  const data = await adminApi('deleteBasicInfoDocument', { id });
+  apiCache.invalidate('basic_info');
+  return data;
+}
+
+// -------------------------------------------------------------
 // Site Settings Service
 // -------------------------------------------------------------
 export async function getSiteSettings(options?: CacheOptions): Promise<SiteSettingsRecord | null> {

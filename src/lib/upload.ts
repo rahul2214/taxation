@@ -28,58 +28,118 @@ export interface UploadResult {
   size: number;
 }
 
-/**
- * Uploads a file to Cloudflare R2 object storage via /api/upload with real-time progress callbacks.
- */
-export function uploadFileToCloudflare(
-  file: File,
-  options?: UploadOptions
-): Promise<UploadResult> {
-  return uploadAuthHeaders().then((authHeaders) => new Promise<UploadResult>((resolve, reject) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (options?.folder) formData.append("folder", options.folder);
-    if (options?.userId) formData.append("userId", options.userId);
+/** Thrown when the browser could not reach R2 at all (e.g. the bucket's CORS rule is missing). */
+class DirectUploadNetworkError extends Error {}
 
+/** Sends a file with XMLHttpRequest so upload progress can be reported. */
+function sendWithProgress(
+  method: string,
+  url: string,
+  body: Document | XMLHttpRequestBodyInit,
+  headers: Record<string, string>,
+  options: { withCredentials?: boolean; onProgress?: (percent: number) => void }
+): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/upload");
-    xhr.withCredentials = true;
-    for (const [name, value] of Object.entries(authHeaders)) xhr.setRequestHeader(name, value);
-
-    if (xhr.upload && options?.onProgress) {
+    xhr.open(method, url);
+    if (options.withCredentials) xhr.withCredentials = true;
+    for (const [name, value] of Object.entries(headers)) xhr.setRequestHeader(name, value);
+    if (xhr.upload && options.onProgress) {
       xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = (event.loaded / event.total) * 100;
-          options.onProgress!(percent);
-        }
+        if (event.lengthComputable) options.onProgress!((event.loaded / event.total) * 100);
       };
     }
+    xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+    xhr.onerror = () => reject(new DirectUploadNetworkError("Network error during file upload."));
+    xhr.send(body);
+  });
+}
 
-    xhr.onload = () => {
-      try {
-        const response = JSON.parse(xhr.responseText);
-        if (xhr.status >= 200 && xhr.status < 300 && response.success) {
-          if (options?.onProgress) options.onProgress(100);
-          resolve({
-            url: response.url,
-            key: response.key,
-            name: response.name,
-            size: response.size,
-          });
-        } else {
-          reject(new Error(response.error || `Upload failed with HTTP status ${xhr.status}`));
-        }
-      } catch (e: any) {
-        reject(new Error(xhr.responseText || "Unexpected error parsing upload response"));
-      }
-    };
+/**
+ * Uploads straight from the browser to Cloudflare R2 with a signed link from /api/upload,
+ * so the file doesn't pass through the web host (no 4.5 MB request limit).
+ */
+async function uploadDirectToR2(file: File, options: UploadOptions | undefined, authHeaders: Record<string, string>): Promise<UploadResult> {
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+      folder: options?.folder,
+      userId: options?.userId,
+    }),
+  });
+  const ticket = await res.json().catch(() => ({}));
+  if (!res.ok || !ticket.uploadUrl) {
+    throw new Error(ticket.error || `Upload failed with HTTP status ${res.status}`);
+  }
 
-    xhr.onerror = () => {
-      reject(new Error("Network error during file upload. Please check your internet connection."));
-    };
+  const put = await sendWithProgress("PUT", ticket.uploadUrl, file, ticket.headers || {}, {
+    onProgress: options?.onProgress,
+  });
+  if (put.status < 200 || put.status >= 300) {
+    throw new Error(`Cloudflare rejected the upload (HTTP ${put.status}). Please try again.`);
+  }
+  options?.onProgress?.(100);
+  return { url: ticket.url, key: ticket.key, name: file.name, size: file.size };
+}
 
-    xhr.send(formData);
-  }));
+/** The old way: the file goes to /api/upload, which uploads it to R2. */
+async function uploadThroughServer(file: File, options: UploadOptions | undefined, authHeaders: Record<string, string>): Promise<UploadResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (options?.folder) formData.append("folder", options.folder);
+  if (options?.userId) formData.append("userId", options.userId);
+
+  let result: { status: number; text: string };
+  try {
+    result = await sendWithProgress("POST", "/api/upload", formData, authHeaders, {
+      withCredentials: true,
+      onProgress: options?.onProgress,
+    });
+  } catch {
+    throw new Error("Network error during file upload. Please check your internet connection.");
+  }
+  if (result.status === 413) {
+    throw new Error("This file is too large to upload right now. Please try a smaller file or contact us.");
+  }
+  let response: any;
+  try {
+    response = JSON.parse(result.text);
+  } catch {
+    throw new Error(result.text || "Unexpected error parsing upload response");
+  }
+  if (result.status < 200 || result.status >= 300 || !response.success) {
+    throw new Error(response.error || `Upload failed with HTTP status ${result.status}`);
+  }
+  options?.onProgress?.(100);
+  return { url: response.url, key: response.key, name: response.name, size: response.size };
+}
+
+// Small enough to fit through any host's request limit (Vercel's is 4.5 MB).
+const SERVER_FALLBACK_MAX_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Uploads a file to Cloudflare R2 with progress callbacks: straight from the browser to R2
+ * (any size up to 50 MB). If the browser can't reach R2 at all (for example the bucket's
+ * CORS rule is missing), small files fall back to going through the server.
+ */
+export async function uploadFileToCloudflare(file: File, options?: UploadOptions): Promise<UploadResult> {
+  const authHeaders = await uploadAuthHeaders();
+  try {
+    return await uploadDirectToR2(file, options, authHeaders);
+  } catch (err) {
+    if (!(err instanceof DirectUploadNetworkError)) throw err;
+    console.warn("Direct upload to R2 failed (check the bucket's CORS rule); trying through the server.");
+    if (file.size > SERVER_FALLBACK_MAX_BYTES) {
+      throw new Error("Couldn't reach file storage to upload this file. Please try again, or contact us if it keeps happening.");
+    }
+    options?.onProgress?.(0);
+    return uploadThroughServer(file, options, authHeaders);
+  }
 }
 
 /**

@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { applyReferralCode, listReferrals } from './referrals';
 import { AdminSession, hashAdminPassword, MIN_ADMIN_PASSWORD_LENGTH } from './admin-auth';
 import { CancelBlockedError, guardCancelAgainstPayPal } from '@/lib/paypal/purchase';
+import { deleteFromR2, keyFromStoredUrl } from '@/lib/cloudflare/r2';
 import { deleteDocument, DocumentError, removeReplacedFormFiles, removeSupersededDocuments, replaceDocumentFile } from './documents';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -223,6 +224,77 @@ export const adminOps: Record<string, Op> = {
       throw err;
     }
     return check(await db.rpc('cancel_plan_purchase', { p_purchase_id: s(purchaseId) }));
+  },
+
+  // ---------- Basic information documents (shared with every client) ----------
+  async getBasicInfoDocuments(db) {
+    const res = await db
+      .from('basic_info_documents')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+    if (res.error && isMissingTable(res.error.code)) {
+      throw new OpError('The basic_info_documents table is missing. Run supabase/basic_info_documents_migration.sql first.');
+    }
+    return check(res) || [];
+  },
+  async createBasicInfoDocument(db, { doc }) {
+    const title = s(doc?.title).slice(0, 200);
+    const fileUrl = s(doc?.file_url);
+    if (!title) throw new OpError('Please give the document a title.');
+    if (!keyFromStoredUrl(fileUrl)?.startsWith('basic_info/')) throw new OpError('Upload the file first.');
+    const res = await db
+      .from('basic_info_documents')
+      .insert([{
+        title,
+        description: s(doc?.description).slice(0, 1000) || null,
+        file_url: fileUrl,
+        file_name: s(doc?.file_name).slice(0, 255) || null,
+        file_size: Number(doc?.file_size) || null,
+        sort_order: Number.isFinite(Number(doc?.sort_order)) ? Number(doc.sort_order) : 0,
+        is_active: doc?.is_active !== false,
+      }])
+      .select()
+      .single();
+    if (res.error && isMissingTable(res.error.code)) {
+      throw new OpError('The basic_info_documents table is missing. Run supabase/basic_info_documents_migration.sql first.');
+    }
+    return check(res);
+  },
+  /** Edits title/description/visibility; a new file_url replaces the file and deletes the old one from R2. */
+  async updateBasicInfoDocument(db, { id, changes }) {
+    const { data: before } = await db.from('basic_info_documents').select('*').eq('id', s(id)).maybeSingle();
+    if (!before) throw new OpError('Document not found.');
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (changes && 'title' in changes) {
+      const title = s(changes.title).slice(0, 200);
+      if (!title) throw new OpError('The title cannot be empty.');
+      update.title = title;
+    }
+    if (changes && 'description' in changes) update.description = s(changes.description).slice(0, 1000) || null;
+    if (changes && 'is_active' in changes) update.is_active = Boolean(changes.is_active);
+    if (changes && 'sort_order' in changes && Number.isFinite(Number(changes.sort_order))) update.sort_order = Number(changes.sort_order);
+    if (changes && 'file_url' in changes) {
+      const fileUrl = s(changes.file_url);
+      if (!keyFromStoredUrl(fileUrl)?.startsWith('basic_info/')) throw new OpError('Upload the new file first.');
+      update.file_url = fileUrl;
+      update.file_name = s(changes.file_name).slice(0, 255) || null;
+      update.file_size = Number(changes.file_size) || null;
+    }
+    const saved: any = check(await db.from('basic_info_documents').update(update).eq('id', before.id).select().single());
+    if (update.file_url && before.file_url !== update.file_url) {
+      const ok = await deleteFromR2(before.file_url);
+      if (!ok) console.warn('Old basic info file could not be deleted:', keyFromStoredUrl(before.file_url));
+    }
+    return saved;
+  },
+  async deleteBasicInfoDocument(db, { id }) {
+    const { data: before } = await db.from('basic_info_documents').select('id, file_url').eq('id', s(id)).maybeSingle();
+    if (!before) throw new OpError('Document not found.');
+    check(await db.from('basic_info_documents').delete().eq('id', before.id));
+    const ok = await deleteFromR2(before.file_url);
+    if (!ok) console.warn('Basic info file could not be deleted:', keyFromStoredUrl(before.file_url));
+    return { deleted: before.id };
   },
 
   // ---------- Site settings ----------

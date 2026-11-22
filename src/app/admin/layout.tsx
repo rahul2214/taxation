@@ -32,6 +32,7 @@ const ADMIN_TITLES: Record<string, string> = {
   "/admin/master-data": "Master data",
   "/admin/customers": "Clients",
   "/admin/documents": "Site tax forms",
+  "/admin/basic-info": "Basic information",
   "/admin/admins": "Admin users",
 };
 

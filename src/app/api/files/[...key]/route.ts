@@ -11,7 +11,7 @@ const LINK_TTL_SECONDS = 300;
  *   - Admins (admin session cookie) can open any file.
  *   - Customers (Authorization: Bearer <Supabase access token>) can open their own uploads
  *     (customers/<uid>/...), files the team uploaded for them (admin_uploads/<uid>/...),
- *     and the site tax forms (global_forms/...).
+ *     the site tax forms (global_forms/...) and the basic information files (basic_info/...).
  * By default it redirects to the signed link (works as a plain link for admins).
  * With ?json=1 it returns { url } instead, for the customer portal, which sends a Bearer token.
  */
@@ -29,7 +29,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ key: string
       allowed =
         key.startsWith(`customers/${user.id}/`) ||
         key.startsWith(`admin_uploads/${user.id}/`) ||
-        key.startsWith("global_forms/");
+        key.startsWith("global_forms/") ||
+        key.startsWith("basic_info/");
     } else {
       return NextResponse.json({ error: "Please sign in to open this file." }, { status: 401 });
     }

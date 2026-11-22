@@ -12,6 +12,7 @@ import {
   CalendarCheck,
   Globe,
   CreditCard,
+  Info,
 } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { DocumentData } from "firebase/firestore";
@@ -64,6 +65,7 @@ export function CustomerSidebar({ userData }: { userData: DocumentData | null })
         { href: "/dashboard/upload", label: "Upload documents", icon: UploadCloud },
         { href: "/dashboard/documents", label: "My documents", icon: FolderLock },
         { href: "/dashboard/tax-info", label: "Tax forms", icon: FileText },
+        { href: "/dashboard/basic-info", label: "Basic information", icon: Info },
       ],
     },
     {

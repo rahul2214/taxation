@@ -23,6 +23,7 @@ const DASHBOARD_TITLES: Record<string, string> = {
   "/dashboard/documents": "My documents",
   "/dashboard/final-documents": "Final documents",
   "/dashboard/tax-info": "Tax forms",
+  "/dashboard/basic-info": "Basic information",
   "/dashboard/book-appointment": "Book a call",
   "/dashboard/plans": "Plans & pricing",
   "/dashboard/refer": "Refer a friend",
