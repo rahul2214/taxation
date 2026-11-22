@@ -8,7 +8,7 @@ import { PageIntro } from "@/components/public/PageIntro";
 import { ContactForm } from "@/components/public/ContactForm";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Contact Polaris Tax Services",
+  title: "Contact Our CPA Office in New York",
   description: "Call (212) 847-1920, email plrstaxservices@gmail.com or send a message online. A CPA replies within four business hours, Mon–Fri.",
   path: "/contact",
   keywords: ["contact CPA", "contact tax accountant", "online CPA", "tax preparer phone number"],

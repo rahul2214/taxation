@@ -8,7 +8,7 @@ import { PAGE_FAQS } from "@/data/faqs";
 import { FileText, ShieldCheck, Scale, CheckCircle2, AlertCircle } from "lucide-react";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Terms of Service & Client Engagement Terms",
+  title: "Terms of Service & Engagement Terms",
   description: "The terms that apply when you use the Polaris Tax Services website and client portal, and when you engage us to prepare your tax returns.",
   path: "/terms",
   keywords: ["tax preparation engagement terms"],

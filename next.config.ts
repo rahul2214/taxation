@@ -29,7 +29,16 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // Private app areas: their layouts are client components and can't export metadata, so
+    // without this they render the homepage's title with "index, follow". The header keeps
+    // them out of search results (robots.txt lets crawlers fetch them so they can see it).
+    const noIndex = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
     return [
+      { source: '/admin', headers: noIndex },
+      { source: '/admin/:path*', headers: noIndex },
+      { source: '/dashboard', headers: noIndex },
+      { source: '/dashboard/:path*', headers: noIndex },
+      { source: '/auth/:path*', headers: noIndex },
       {
         // Cache images and fonts
         source: '/:path*.(svg|jpg|jpeg|png|webp|ico|woff|woff2)',

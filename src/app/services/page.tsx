@@ -13,7 +13,7 @@ import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = buildMetadata({
   title: "Tax Preparation & Business Services",
-  description: "CPA tax preparation for individuals from $99 and small businesses from $349, plus bookkeeping, payroll, business formation, IRS notice help and tax planning. All 50 states.",
+  description: "CPA tax preparation for individuals from $99 and businesses from $349, plus bookkeeping, payroll, IRS notice help and tax planning. All 50 states.",
   path: "/services",
   keywords: ["individual tax return preparation", "small business tax preparation", "S-Corp tax preparation", "partnership tax return 1065", "IRS notice help", "bookkeeping services", "payroll services", "business formation", "tax planning services", "Roth conversion planning", "MNC tax filing"],
 });

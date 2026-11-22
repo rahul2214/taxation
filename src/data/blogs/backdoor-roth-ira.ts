@@ -15,7 +15,7 @@ export const backdoorRothIraPost: BlogPost = {
   views: 16500,
   seo: {
     metaTitle: "Backdoor Roth IRA 2026 Guide: Step-by-Step for High Earners",
-    metaDescription: "Step-by-step 2026 backdoor Roth IRA tutorial for high-income earners. Avoid pro-rata rule traps, file IRS Form 8606 accurately, and build tax-free retirement wealth.",
+    metaDescription: "Step-by-step 2026 backdoor Roth IRA guide for high earners: avoid the pro-rata rule trap, file Form 8606 correctly and build tax-free retirement savings.",
     keywords: [
       "backdoor Roth IRA 2026",
       "pro rata rule backdoor Roth",

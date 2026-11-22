@@ -6,7 +6,7 @@ import { LegalDocument } from "@/components/public/LegalDocument";
 export const metadata: Metadata = buildMetadata({
   title: "Service Delivery Policy",
   description:
-    "How Polaris Tax Services delivers tax preparation after you purchase a plan: digital delivery through the client portal, typical timelines and what we need from you.",
+    "How we deliver your tax preparation after you buy a plan: secure delivery through the client portal, typical timelines and what we need from you.",
   path: "/service-delivery",
   keywords: ["tax preparation turnaround time", "service delivery policy"],
 });

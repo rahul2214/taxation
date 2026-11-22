@@ -14,7 +14,7 @@ export const llcVsScorpPost: BlogPost = {
   trending: true,
   views: 22410,
   seo: {
-    metaTitle: "LLC vs S-Corp: Tax Differences & Self-Employment Savings 2026",
+    metaTitle: "LLC vs S-Corp 2026: Self-Employment Tax Savings Compared",
     metaDescription: "Compare LLC vs S-Corp taxation for 2026. Learn how S-Corporation election saves on 15.3% self-employment taxes, reasonable salary requirements, and setup costs.",
     keywords: [
       "LLC vs S Corp tax savings",

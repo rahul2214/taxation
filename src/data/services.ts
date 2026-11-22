@@ -186,7 +186,7 @@ export const SERVICES: Service[] = [
     h1: "Tax filing for multinational companies and their US entities",
     metaTitle: "MNC Tax Filing for US Subsidiaries & Groups",
     metaDescription:
-      "US corporate tax filing for multinational companies: Form 1120, 5471 and 5472 information returns, foreign tax credits, GILTI and transfer pricing documentation, prepared by CPAs.",
+      "US tax filing for multinational groups by CPAs: Form 1120, Forms 5471 and 5472, foreign tax credits, GILTI and transfer pricing documentation.",
     keywords: ["MNC tax filing", "multinational company tax return", "US subsidiary tax filing", "Form 5471 preparation", "Form 5472 foreign-owned corporation", "transfer pricing documentation", "GILTI tax"],
     summary: "US returns and international information forms for multinational groups and foreign-owned US companies.",
     intro: [
@@ -423,7 +423,7 @@ export const SERVICES: Service[] = [
     h1: "Payroll services for small businesses and S-Corp owners",
     metaTitle: "Small Business Payroll Services",
     metaDescription:
-      "Payroll run by the CPA firm that files your taxes: direct deposit, payroll tax deposits, Forms 941 and 940, W-2s and state filings, including owner salaries for S-Corps.",
+      "Payroll run by the CPA firm that files your taxes: direct deposit, tax deposits, Forms 941 and 940, W-2s and state filings, including S-Corp owner salaries.",
     keywords: ["small business payroll services", "payroll for S-Corp owner", "outsourced payroll", "Form 941 filing", "payroll tax filing service"],
     summary: "Pay runs, payroll tax deposits and year-end W-2s, handled for you.",
     intro: [
@@ -484,7 +484,7 @@ export const SERVICES: Service[] = [
     h1: "Business formation and entity selection",
     metaTitle: "Business Formation & Entity Selection Help",
     metaDescription:
-      "Choose the right structure for your business with a CPA: LLC, partnership, S-Corp or C-Corp. We handle the state filing, EIN, S-Corp election and tax registrations.",
+      "Pick the right structure with a CPA: LLC, partnership, S-Corp or C-Corp. We handle the state filing, EIN, S-Corp election and tax registrations.",
     keywords: ["business formation services", "LLC formation", "choose a business entity", "S-Corp election Form 2553", "EIN application", "sole proprietor vs LLC"],
     summary: "The right entity from day one, with the filings to set it up.",
     intro: [
