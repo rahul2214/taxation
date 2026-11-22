@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase/server';
-import {
-  capturePayPalOrder,
-  extractCompletedCapture,
-  getPayPalOrder,
-  PayPalApiError,
-  PAYPAL_CURRENCY,
-} from '@/lib/paypal/server';
-import { loadPayablePurchase } from '@/lib/paypal/purchase';
+import { capturePayPalOrder, getPayPalOrder, PayPalApiError } from '@/lib/paypal/server';
+import { loadPayablePurchase, recordCompletedOrder } from '@/lib/paypal/purchase';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,38 +41,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const capture = extractCompletedCapture(order);
-    if (!capture) {
+    const outcome = await recordCompletedOrder(purchase, orderId, order);
+    if (outcome.kind === 'not_completed') {
       return NextResponse.json({ error: 'PayPal did not complete the payment.' }, { status: 402 });
     }
-    if (
-      capture.customId !== purchase.id ||
-      capture.currency !== PAYPAL_CURRENCY ||
-      Math.round(capture.amount * 100) !== Math.round(purchase.amount_due * 100)
-    ) {
-      console.error('PayPal capture mismatch', { purchaseId: purchase.id, capture });
+    if (outcome.kind === 'mismatch') {
       return NextResponse.json(
         { error: 'Payment details did not match your order. Please contact support.' },
         { status: 409 }
       );
     }
-
-    const { error } = await getSupabaseAdmin().rpc('record_paypal_payment', {
-      p_purchase_id: purchase.id,
-      p_paypal_order_id: orderId,
-      p_capture_id: capture.captureId,
-      p_amount: capture.amount,
-    });
-    if (error) {
-      // Money was captured but not recorded: log loudly so an admin can reconcile
-      console.error('PayPal capture recorded FAILED', { purchaseId: purchase.id, captureId: capture.captureId, error });
+    if (outcome.kind === 'record_failed') {
       return NextResponse.json(
-        { error: 'Your payment went through but we could not update your order. Our team will confirm it shortly.' },
+        { error: 'Your payment went through but we could not update your order yet. Please do not pay again; refresh in a minute or contact us.' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ status: 'paid', captureId: capture.captureId });
+    return NextResponse.json({ status: 'paid', captureId: outcome.captureId });
   } catch (err: any) {
     console.error('PayPal capture-order error:', err?.details || err);
     return NextResponse.json({ error: 'Could not complete the PayPal payment. Please try again.' }, { status: 500 });

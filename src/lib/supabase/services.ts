@@ -938,10 +938,8 @@ export async function cancelPlanPurchase(purchaseId: string) {
   if (isAdminContext()) {
     data = await adminApi<any>('cancelPlanPurchase', { purchaseId });
   } else {
-    // The database function only lets a customer cancel their own pending order.
-    const res = await supabase.rpc('cancel_plan_purchase', { p_purchase_id: purchaseId });
-    if (res.error) throw res.error;
-    data = res.data;
+    // Through the server, which first checks PayPal so a paid order is never cancelled.
+    data = (await accountApi<{ purchase: any }>('cancel-purchase', { purchaseId })).purchase;
   }
   invalidateCustomerMoneyCaches((data as any)?.customer_id);
   return normalizePurchase(data);

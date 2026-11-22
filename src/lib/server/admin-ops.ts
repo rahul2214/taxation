@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { applyReferralCode, listReferrals } from './referrals';
 import { AdminSession, hashAdminPassword, MIN_ADMIN_PASSWORD_LENGTH } from './admin-auth';
+import { CancelBlockedError, guardCancelAgainstPayPal } from '@/lib/paypal/purchase';
 import { deleteDocument, DocumentError, removeReplacedFormFiles, removeSupersededDocuments, replaceDocumentFile } from './documents';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -214,6 +215,13 @@ export const adminOps: Record<string, Op> = {
     );
   },
   async cancelPlanPurchase(db, { purchaseId }) {
+    // If the order went to PayPal, make sure it wasn't paid there before cancelling.
+    try {
+      await guardCancelAgainstPayPal(db, s(purchaseId));
+    } catch (err) {
+      if (err instanceof CancelBlockedError) throw new OpError(err.message);
+      throw err;
+    }
     return check(await db.rpc('cancel_plan_purchase', { p_purchase_id: s(purchaseId) }));
   },
 

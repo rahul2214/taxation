@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { getSupabaseAdmin, getUserClaimsFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import { ensureCustomerRow } from "@/lib/email/auth-mail";
 import { applyReferralCode, listReferrals } from "@/lib/server/referrals";
+import { CancelBlockedError, guardCancelAgainstPayPal } from "@/lib/paypal/purchase";
 import { deleteDocument, DocumentError, removeSupersededDocuments, replaceDocumentFile } from "@/lib/server/documents";
 
 // A customer row this young counts as a brand-new signup (referral code may still be applied).
@@ -20,6 +21,7 @@ const NEW_ACCOUNT_WINDOW_MS = 15 * 60 * 1000;
  *   delete-document      { id } -> { deleted }      (own uploads only; also deletes the R2 file)
  *   replace-document-file { id, fileUrl, documentName? } -> { document }  (deletes the old R2 file)
  *   remove-superseded-documents { id } -> { removed }  (after a new one-per-year upload)
+ *   cancel-purchase      { purchaseId } -> { purchase }  (own pending order; checks PayPal first)
  */
 export async function POST(req: NextRequest) {
   if (!isSupabaseAdminConfigured) {
@@ -108,6 +110,23 @@ export async function POST(req: NextRequest) {
 
       case "remove-superseded-documents": {
         return NextResponse.json(await removeSupersededDocuments(db, actor, String(body?.id || "")));
+      }
+
+      case "cancel-purchase": {
+        const purchaseId = String(body?.purchaseId || "");
+        const { data: own } = await db.from("plan_purchases").select("id, customer_id").eq("id", purchaseId).maybeSingle();
+        if (!own || own.customer_id !== user.id) {
+          return NextResponse.json({ error: "Order not found." }, { status: 404 });
+        }
+        try {
+          await guardCancelAgainstPayPal(db, purchaseId);
+        } catch (err) {
+          if (err instanceof CancelBlockedError) return NextResponse.json({ error: err.message }, { status: 409 });
+          throw err;
+        }
+        const { data: purchase, error } = await db.rpc("cancel_plan_purchase", { p_purchase_id: purchaseId });
+        if (error) return NextResponse.json({ error: error.message || "Could not cancel the order." }, { status: 400 });
+        return NextResponse.json({ purchase });
       }
 
       default:

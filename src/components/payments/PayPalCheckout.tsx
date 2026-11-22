@@ -74,6 +74,8 @@ export function PayPalCheckout({ purchaseId, onPaid, onError }: Props) {
     if (!isPayPalEnabled) return;
     let cancelled = false;
     let buttons: any = null;
+    // Set when the server finds this order was already paid; stops PayPal's error message.
+    let alreadyPaid = false;
 
     loadPayPalSdk()
       .then((paypal) => {
@@ -82,6 +84,12 @@ export function PayPalCheckout({ purchaseId, onPaid, onError }: Props) {
           style: { layout: "vertical", shape: "rect", label: "pay" },
           createOrder: async () => {
             const { ok, json } = await postWithAuth("/api/paypal/create-order", { purchaseId });
+            if (ok && json.status === "paid") {
+              // An earlier payment went through and has now been recorded: don't charge again.
+              alreadyPaid = true;
+              callbacks.current.onPaid();
+              throw new Error("ALREADY_PAID");
+            }
             if (!ok || !json.id) throw new Error(json.error || "Could not start PayPal checkout.");
             return json.id;
           },
@@ -104,6 +112,7 @@ export function PayPalCheckout({ purchaseId, onPaid, onError }: Props) {
           },
           onError: (err: any) => {
             setState("ready");
+            if (alreadyPaid) return;
             callbacks.current.onError(err?.message || "PayPal checkout failed. Please try again.");
           },
         });
