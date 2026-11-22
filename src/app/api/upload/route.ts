@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToR2, deleteFromR2, isR2Configured, isR2PublicUrlConfigured } from "@/lib/cloudflare/r2";
+import { uploadToR2, deleteFromR2, isR2Configured, keyFromStoredUrl } from "@/lib/cloudflare/r2";
 import { getAdminSession } from "@/lib/server/admin-auth";
 import { getUserFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 
@@ -11,7 +11,6 @@ import { getUserFromRequest, isSupabaseAdminConfigured } from "@/lib/supabase/se
 type Caller = { kind: "admin" } | { kind: "customer"; userId: string };
 
 const ADMIN_FOLDERS = new Set(["admin_uploads", "global_forms", "documents", "customers"]);
-const MANAGED_PREFIX = /^(customers|admin_uploads|global_forms|documents)\//;
 
 async function getCaller(req: NextRequest): Promise<Caller | null> {
   if (getAdminSession(req)) return { kind: "admin" };
@@ -71,18 +70,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!isR2PublicUrlConfigured) {
-      return NextResponse.json(
-        {
-          error: "Cloudflare R2 public URL is not configured. Set NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_URL to your bucket's r2.dev URL or custom domain, otherwise saved file links will not open.",
-          isConfigured: false,
-        },
-        { status: 503 }
-      );
-    }
-
-    // Sanitize every path segment. The random UUID makes file URLs unguessable,
-    // which matters because these are tax documents served from a public bucket URL.
+    // Sanitize every path segment. The bucket is private: files open only through
+    // /api/files, which checks the folder owner and returns a short-lived signed link.
     const safeSegment = (v: string) => v.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64) || 'general';
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
     const key = `${safeSegment(folder)}/${safeSegment(userId)}/${crypto.randomUUID()}_${cleanFileName}`;
@@ -120,9 +109,8 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Only delete objects in this app's own folders.
-    const target: string = key || fileUrl;
-    const targetKey = /^https?:\/\//.test(target) ? new URL(target).pathname.replace(/^\/+/, "") : target;
-    if (!MANAGED_PREFIX.test(targetKey) || targetKey.split("/").includes("..")) {
+    const targetKey = keyFromStoredUrl(String(key || fileUrl));
+    if (!targetKey) {
       return NextResponse.json({ error: "Not a file managed by this site" }, { status: 400 });
     }
     // Customer user ids are UUIDs, so they contain no characters the upload sanitizer changes.

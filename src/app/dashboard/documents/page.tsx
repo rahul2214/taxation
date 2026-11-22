@@ -25,7 +25,7 @@ import { useState, ChangeEvent, useMemo, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getTaxDocuments, createTaxDocument } from "@/lib/supabase/services";
-import { uploadTaxDocument } from "@/lib/upload";
+import { uploadTaxDocument, storedFileLinkProps } from "@/lib/upload";
 import { PageHeading } from "@/components/portal/PageHeading";
 
 type TaxDocument = {
@@ -197,7 +197,7 @@ export default function DocumentsWorkflowPage() {
                     <p className="text-sm text-muted-foreground">Uploaded: {formatDate(taxEstimationDoc.uploadDate)}</p>
                 </div>
                 <Button asChild variant="outline" size="sm">
-                  <a href={taxEstimationDoc.fileUrl} target="_blank" rel="noopener noreferrer">
+                  <a {...storedFileLinkProps(taxEstimationDoc.fileUrl)} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" /> Download
                   </a>
                 </Button>
@@ -281,7 +281,7 @@ export default function DocumentsWorkflowPage() {
                     <p className="text-sm text-muted-foreground">Uploaded: {formatDate(finalDoc.uploadDate)}</p>
                 </div>
                 <Button asChild variant="default" size="sm">
-                  <a href={finalDoc.fileUrl} target="_blank" rel="noopener noreferrer">
+                  <a {...storedFileLinkProps(finalDoc.fileUrl)} target="_blank" rel="noopener noreferrer">
                     <Download className="mr-2 h-4 w-4" /> Download Final
                   </a>
                 </Button>

@@ -46,7 +46,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { collection, doc, updateDoc, getDocs, serverTimestamp, addDoc } from "firebase/firestore";
-import { uploadTaxDocument } from "@/lib/upload";
+import { uploadTaxDocument, storedFileLinkProps } from "@/lib/upload";
 import { getAllCustomers, getTaxDocuments, createTaxDocument, updateTaxDocumentStatus } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
 
@@ -387,7 +387,7 @@ export default function TaxDocumentsPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <a href={docItem.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                  <a {...storedFileLinkProps(docItem.fileUrl)} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                     <Download className="mr-2 h-4 w-4" />Download
                                   </a>
                                 </DropdownMenuItem>

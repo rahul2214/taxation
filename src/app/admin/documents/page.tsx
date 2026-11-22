@@ -18,7 +18,7 @@ import { Loader2, File as FileIcon } from "lucide-react";
 import { useState, ChangeEvent, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { uploadFileToCloudflare, deleteFileFromCloudflare } from "@/lib/upload";
+import { uploadFileToCloudflare, deleteFileFromCloudflare, storedFileLinkProps } from "@/lib/upload";
 import { getSiteSettings, updateSiteSettings } from "@/lib/supabase/services";
 import { PageHeading } from "@/components/portal/PageHeading";
 
@@ -140,12 +140,12 @@ export default function SiteFormsPage() {
             <div className="space-y-2">
                 <Label htmlFor="currentYearForm">Current Year Form</Label>
                 <Input id="currentYearForm" type="file" onChange={(e) => handleFileChange(e, 'currentYearFormUrl')} />
-                {currentYearUrl && <a href={currentYearUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"><FileIcon className="h-3 w-3" /> View/Download Current Form</a>}
+                {currentYearUrl && <a {...storedFileLinkProps(currentYearUrl)} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"><FileIcon className="h-3 w-3" /> View/Download Current Form</a>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="priorYearForm">Prior Year Form</Label>
                 <Input id="priorYearForm" type="file" onChange={(e) => handleFileChange(e, 'priorYearFormUrl')} />
-                {priorYearUrl && <a href={priorYearUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"><FileIcon className="h-3 w-3" /> View/Download Current Form</a>}
+                {priorYearUrl && <a {...storedFileLinkProps(priorYearUrl)} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"><FileIcon className="h-3 w-3" /> View/Download Current Form</a>}
             </div>
         </>
         )}

@@ -15,6 +15,7 @@ import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { getSiteSettings } from "@/lib/supabase/services";
+import { storedFileLinkProps } from "@/lib/upload";
 import { PageHeading } from "@/components/portal/PageHeading";
 
 export default function TaxInfoPage() {
@@ -66,7 +67,7 @@ export default function TaxInfoPage() {
                 </div>
                 {currentYearUrl ? (
                   <Button asChild variant="outline">
-                    <a href={currentYearUrl} target="_blank" rel="noopener noreferrer">
+                    <a {...storedFileLinkProps(currentYearUrl)} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>
@@ -82,7 +83,7 @@ export default function TaxInfoPage() {
                 </div>
                 {priorYearUrl ? (
                   <Button asChild variant="outline">
-                    <a href={priorYearUrl} target="_blank" rel="noopener noreferrer">
+                    <a {...storedFileLinkProps(priorYearUrl)} target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </a>

@@ -122,3 +122,43 @@ export async function deleteFileFromCloudflare(fileUrlOrKey: string): Promise<bo
     return false;
   }
 }
+
+/**
+ * Opens a stored file link (/api/files/<key>) in a new tab. The bucket is private, so this
+ * asks /api/files for a short-lived signed link first, sending the customer's access token
+ * (admins are recognised by their session cookie).
+ * The tab is opened before the request so pop-up blockers allow it.
+ */
+export async function openStoredFile(storedUrl: string): Promise<void> {
+  const tab = typeof window !== "undefined" ? window.open("", "_blank") : null;
+  try {
+    const sep = storedUrl.includes("?") ? "&" : "?";
+    const res = await fetch(`${storedUrl}${sep}json=1`, {
+      headers: await uploadAuthHeaders(),
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) throw new Error(data.error || `Could not open the file (HTTP ${res.status}).`);
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = data.url;
+    } else {
+      window.location.href = data.url;
+    }
+  } catch (err: any) {
+    tab?.close();
+    if (typeof window !== "undefined") window.alert(err?.message || "Could not open the file.");
+  }
+}
+
+/** Props for an <a> that opens a stored file through openStoredFile. */
+export function storedFileLinkProps(storedUrl: string) {
+  return {
+    href: storedUrl,
+    onClick: (e: { preventDefault: () => void }) => {
+      e.preventDefault();
+      void openStoredFile(storedUrl);
+    },
+  };
+}
