@@ -14,8 +14,16 @@
 -- Safe to run more than once.
 -- ==============================================================================
 
-REVOKE ALL ON FUNCTION public.cancel_plan_purchase(UUID) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.cancel_plan_purchase(UUID) TO service_role;
+-- Skips quietly if the function isn't there yet (plans/PayPal migrations not run).
+DO $$
+BEGIN
+    IF to_regprocedure('public.cancel_plan_purchase(uuid)') IS NULL THEN
+        RAISE NOTICE 'cancel_plan_purchase(uuid) does not exist yet: run plans_and_referral_rewards_migration.sql, paypal_migration.sql and rls_hardening_migration.sql first, then this file again.';
+    ELSE
+        REVOKE ALL ON FUNCTION public.cancel_plan_purchase(UUID) FROM PUBLIC, anon, authenticated;
+        GRANT EXECUTE ON FUNCTION public.cancel_plan_purchase(UUID) TO service_role;
+    END IF;
+END $$;
 
 -- Check (expect only service_role / postgres in the list):
 -- SELECT grantee, privilege_type FROM information_schema.routine_privileges
